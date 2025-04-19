@@ -1,0 +1,108 @@
+\documentclass{article}
+\usepackage{xcolor} % Pacchetto per i colori
+\usepackage{color}    % per Shaded
+\usepackage{graphicx} % per immagini
+\usepackage{float}   % per le immagini
+\usepackage{caption}   % per le immagini
+\usepackage{tcolorbox} % per le evidenziature
+\usepackage{hyperref} % Per i link
+\usepackage{framed}   % per i blocchi di codice
+\usepackage{url}        % per mandare a capo url molto lunghi
+\usepackage{listings}   % per lo stile di indentazione
+\usepackage{enumitem}   % per gli indici
+\usepackage{longtable}  % per le tabelle
+\usepackage{booktabs}   % per le tabelle
+\usepackage{array}      % per le tabelle
+\usepackage{calc}       % per le tabelle
+\usepackage{fontspec}   % per i box-drawing
+\setmainfont{FreeSans}
+\setmonofont{FreeMono}
+\usepackage{multicol}   % per il toc a due colonne
+\usepackage{tocloft}    % per il numero di pagina sul toc
+
+% Imposta le dimensioni della pagina
+\usepackage[a4paper, margin=0.7in]{geometry}
+
+% Definisci i colori scritte personalizzati
+\definecolor{darkviolet}{rgb}{0.58, 0.0, 1.0}
+\definecolor{red}{rgb}{1.0, 0.0, 0.0}
+\definecolor{orange}{rgb}{1.0, 0.647, 0.0}
+\definecolor{skyblue}{rgb}{0.53, 0.81, 0.98}
+\definecolor{brown}{rgb}{0.65, 0.16, 0.16}
+\definecolor{green}{rgb}{0.0, 0.5, 0.0}
+
+% Definisce i colori per gli evidenziatori
+\definecolor{hlyellow}{RGB}{255, 249, 196}      % Giallo pastello
+\definecolor{hlred}{RGB}{255, 205, 210}         % Rosso chiaro/pesca
+\definecolor{hlgreen}{RGB}{200, 230, 201}       % Verde menta chiaro
+\definecolor{hlviolet}{RGB}{232, 215, 255}     % Viola chiaro/lilla
+\definecolor{hlorange}{RGB}{255, 224, 178}      % Arancione tenue
+\definecolor{hlskyblue}{RGB}{187, 222, 251}      % Azzurro pastello
+
+
+% indentazione dei blocchi di codice con lo stile tango
+\definecolor{TangoRed}{RGB}{204,0,0}
+\definecolor{TangoGreen}{RGB}{78,154,6}
+\definecolor{TangoBlue}{RGB}{52,101,164}
+\definecolor{TangoGray}{RGB}{238,238,236}
+
+\lstdefinestyle{tango}{
+    % backgroundcolor=\color{TangoGray},
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{TangoBlue}\bfseries,
+    commentstyle=\color{TangoGreen}\itshape,
+    stringstyle=\color{TangoRed},
+    breaklines=true,
+    showstringspaces=false,
+    numberstyle=\tiny\color{gray},
+    numbers=left,
+    numbersep=5pt,
+}
+
+% personalizzazione dei blocchi di codice
+\lstset{
+    basicstyle=\small\ttfamily,     % riduce la dimensione
+    breaklines=true,                % fa andare a capo
+    breakatwhitespace=false,        % fa andare a capo solo negli spazi bianchi
+    columns=flexible,               % evita tagli strani a metà carattere
+    linewidth=\linewidth,           % obbliga a stare dentro un certo margine
+    keepspaces=true,
+    extendedchars=true,
+    frame=single,
+    showstringspaces=false,
+    numbers=left,          % mostra i numeri di riga a sinistra
+    numberstyle=\tiny,     % stile dei numeri (puoi personalizzarlo)
+    numbersep=5pt,          % distanza tra i numeri e il codice
+    xleftmargin=\parindent,
+    xrightmargin=\parindent,
+    style=tango
+}
+
+% Comportamento generale testo
+\sloppy % Permette di andare a capo se la parola è troppo lunga
+
+% nella conversione possono esserci dei \passthrugh che dicono a latex di non fare semplicemente niente
+\newcommand{\passthrough}[1]{#1}
+
+\providecommand{\pandocbounded}[2]{#2}
+
+% TOC in due colonne e con il numero di pagina
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+\setlength{\cftbeforesecskip}{5pt}
+\setlength{\columnsep}{20pt}
+\renewcommand{\contentsname}{Indice}
+\AtBeginDocument{\addtocontents{toc}{\protect\begin{multicols}{2}}}
+\AtEndDocument{\addtocontents{toc}{\protect\end{multicols}}}
+
+% Definizione fallback per \tightlist
+\providecommand{\tightlist}{%
+    \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+$if(highlighting-macros)$
+$highlighting-macros$
+$endif$
+
+\begin{document}
+\tableofcontents % Questo inserisce l'indice
+$body$
+\end{document}
