@@ -2,6 +2,7 @@ import argparse
 import os
 import re
 import sys
+import shutil
 from pathlib import Path
 
 ## DEFINES ##
@@ -256,6 +257,53 @@ def RemoveHeaderFromFile(file_path):
 ##############################
 ## FUNCTIONS FOR CONVERSION ##
 ##############################
+def InitVault():
+    """
+    Inizializza la struttura del vault copiando i file e le cartelle necessarie.
+    """
+    # Percorso della cartella superiore
+    parent_dir = os.path.join(SCRIPT_DIR, "..")
+    vault_dir = os.path.join(parent_dir, "vault")
+    template_dir = os.path.join(SCRIPT_DIR, "templates", "init-vault")
+    init_main_file = os.path.join(SCRIPT_DIR, "templates", "init-main.md")
+
+    # Controlla se esiste già una cartella chiamata 'vault'
+    if os.path.exists(vault_dir):
+        print("Errore: esiste già una cartella chiamata 'vault' nella directory superiore.")
+        sys.exit(1)
+
+    # Copia la cartella init-vault e rinominala in 'vault'
+    try:
+        if not os.path.exists(template_dir):
+            print(f"Errore: la cartella template '{template_dir}' non esiste.")
+            sys.exit(1)
+        os.makedirs(vault_dir)
+        for root, dirs, files in os.walk(template_dir):
+            relative_path = os.path.relpath(root, template_dir)
+            target_dir = os.path.join(vault_dir, relative_path)
+            if not os.path.exists(target_dir):
+                os.makedirs(target_dir)
+            for file in files:
+                src_file = os.path.join(root, file)
+                dest_file = os.path.join(target_dir, file)
+                shutil.copy(src_file, dest_file)
+        print(f"Cartella 'vault' creata con successo in {vault_dir}.")
+    except Exception as e:
+        print(f"Errore durante la copia della cartella 'init-vault': {e}")
+        sys.exit(1)
+
+    # Copia il file init-main.md e rinominalo in main.md
+    try:
+        if not os.path.exists(init_main_file):
+            print(f"Errore: il file template '{init_main_file}' non esiste.")
+            sys.exit(1)
+        dest_main_file = os.path.join(parent_dir, "main.md")
+        shutil.copy(init_main_file, dest_main_file)
+        print(f"File 'main.md' creato con successo in {parent_dir}.")
+    except Exception as e:
+        print(f"Errore durante la copia del file 'init-main.md': {e}")
+        sys.exit(1)
+
 def ConversionSingleNote(nota):
     global NOTE_PATH
     NOTE_PATH = None  # Inizializza come None per indicare che non è stato trovato
@@ -415,6 +463,7 @@ def main():
     parser = argparse.ArgumentParser(description="Make script per gestire la conversione di note in PDF.")
 
     # Aggiunta delle opzioni
+    parser.add_argument("-i", "--init",                                                  help="Inizializza la struttura del vault in modo che sia conforme al make.py")
     parser.add_argument("-a", "--all",                  metavar="OUTPUT",                help="Converte tutto il repository in un unico file di output, usando il main.md come ordinamento")
     parser.add_argument("-g", "--group",    nargs=2,    metavar=("ARGOMENTO", "OUTPUT"), help="Converte un macro-argomento specificato in un file di output, usando main.md come ordinamento")
     parser.add_argument("-n", "--note",     nargs=2,    metavar=("NOTA", "OUTPUT"),      help="Converte una nota specificata in un file di output")
@@ -468,11 +517,13 @@ def main():
         # Inizio conversione
         ConversionAllNote(custom)
         
+    elif args.init:
+        print(f"Opzione --init selezionata. Creazione di un vault di partenza.")
+        InitVault()
+        
     else:
         print("Errore: nessuna opzione valida selezionata.")
         parser.print_help()
 
 if __name__ == "__main__":
     main()
-    
-    # todo : pensare di fare un unico repo per note private e di progetto
