@@ -261,23 +261,28 @@ def InitVault():
     """
     Inizializza la struttura del vault copiando i file e le cartelle necessarie.
     """
-    # Percorso della cartella superiore
-    parent_dir = os.path.join(SCRIPT_DIR, "..")
-    vault_dir = os.path.join(parent_dir, "vault")
-    template_dir = os.path.join(SCRIPT_DIR, "templates", "init-vault")
-    init_main_file = os.path.join(SCRIPT_DIR, "templates", "init-main.md")
+    parent_dir = Path(os.path.join(SCRIPT_DIR, "..")).resolve()
+    vault_dir = Path(os.path.join(parent_dir, "vault")).resolve()
+    template_dir = Path(os.path.join(SCRIPT_DIR, "templates", "init-vault")).resolve()
+    setup_dir = Path(os.path.join(SCRIPT_DIR, "templates", "setup-vault")).resolve()
 
     # Controlla se esiste già una cartella chiamata 'vault'
     if os.path.exists(vault_dir):
-        print("Errore: esiste già una cartella chiamata 'vault' nella directory superiore.")
-        sys.exit(1)
+        # Ottieni il contenuto della cartella 'vault'
+        vault_contents = os.listdir(vault_dir)
+        
+        # Check di un repo già inizializzato, non si vuole cancellare ciò che già esiste
+        vault_contents = [item for item in vault_contents if item != "build"]
+        if vault_contents:
+            print("Errore: Il Vault contiene già file, non è necessario inizializzare.")
+            sys.exit(1)
 
-    # Copia la cartella init-vault e rinominala in 'vault'
     try:
         if not os.path.exists(template_dir):
             print(f"Errore: la cartella template '{template_dir}' non esiste.")
             sys.exit(1)
-        os.makedirs(vault_dir)
+
+        # Copia il contenuto della cartella init-vault nella cartella 'vault'
         for root, dirs, files in os.walk(template_dir):
             relative_path = os.path.relpath(root, template_dir)
             target_dir = os.path.join(vault_dir, relative_path)
@@ -286,22 +291,28 @@ def InitVault():
             for file in files:
                 src_file = os.path.join(root, file)
                 dest_file = os.path.join(target_dir, file)
+                # Rinomina init-main.md in main.md durante la copia
+                if file == "init-main.md":
+                    dest_file = os.path.join(target_dir, "main.md")
                 shutil.copy(src_file, dest_file)
-        print(f"Cartella 'vault' creata con successo in {vault_dir}.")
-    except Exception as e:
-        print(f"Errore durante la copia della cartella 'init-vault': {e}")
-        sys.exit(1)
+        print(f"Struttura del Vault costruita con successo")
 
-    # Copia il file init-main.md e rinominalo in main.md
-    try:
-        if not os.path.exists(init_main_file):
-            print(f"Errore: il file template '{init_main_file}' non esiste.")
-            sys.exit(1)
-        dest_main_file = os.path.join(parent_dir, "main.md")
-        shutil.copy(init_main_file, dest_main_file)
-        print(f"File 'main.md' creato con successo in {parent_dir}.")
+        # Copia tutto il contenuto della cartella setup-vault fuori dalla cartella 'vault'
+        for root, dirs, files in os.walk(setup_dir):
+            relative_path = os.path.relpath(root, setup_dir)
+            target_dir = os.path.join(parent_dir, relative_path)
+            if not os.path.exists(target_dir):
+                os.makedirs(target_dir)
+            for file in files:
+                src_file = os.path.join(root, file)
+                dest_file = os.path.join(target_dir, file)
+                shutil.copy(src_file, dest_file)
+        print(f"File di setup per VSCode copiati con successo")
+        
+        print(f"Enjoy your new vault! <3 ")
+    
     except Exception as e:
-        print(f"Errore durante la copia del file 'init-main.md': {e}")
+        print(f"Errore durante la costruzione del Vault: {e}")
         sys.exit(1)
 
 def ConversionSingleNote(nota):
@@ -444,6 +455,7 @@ def NoteConversion(combined_note_path):
     
     # Comando per la conversione
     command = f"pandoc \"{path_note}\" -o \"{OUTPUT_PATH}\" --toc --toc-depth=3 --template=\"{TEMPLATE}\" --lua-filter=\"{LUA_FILTER}\" --listings --pdf-engine=xelatex"
+    #command = f"pandoc \"{path_note}\" -o \"{OUTPUT_PATH}\" --template=\"{TEMPLATE}\" --lua-filter=\"{LUA_FILTER}\" --listings --pdf-engine=xelatex"
     
     # Esegui il comando
     print(f"Eseguo il comando: {command}")
@@ -460,10 +472,10 @@ def main():
     global custom
     
     # Creazione del parser
-    parser = argparse.ArgumentParser(description="Make script per gestire la conversione di note in PDF.")
+    parser = argparse.ArgumentParser(description="Make script per gestire la conversione di note in PDF. Consiglio: genera un repo git vuoto e inserisci questo come un sottomodulo prima di lanciare un --init")
 
     # Aggiunta delle opzioni
-    parser.add_argument("-i", "--init",                                                  help="Inizializza la struttura del vault in modo che sia conforme al make.py")
+    parser.add_argument("-i", "--init",     action="store_true",                         help="Inizializza la struttura del vault in modo che sia conforme al make.py")
     parser.add_argument("-a", "--all",                  metavar="OUTPUT",                help="Converte tutto il repository in un unico file di output, usando il main.md come ordinamento")
     parser.add_argument("-g", "--group",    nargs=2,    metavar=("ARGOMENTO", "OUTPUT"), help="Converte un macro-argomento specificato in un file di output, usando main.md come ordinamento")
     parser.add_argument("-n", "--note",     nargs=2,    metavar=("NOTA", "OUTPUT"),      help="Converte una nota specificata in un file di output")
