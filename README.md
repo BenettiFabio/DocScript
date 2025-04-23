@@ -72,10 +72,13 @@ Il comando di pandoc per la conversione da markdown a pdf rispetta delle regole 
 - > <span style="color: orange;">NOTA:</span> Questa è una nota
 - > <span style="color: skyblue;">RICORDA:</span> Questo è un blocco ricordo
 - <span style="background-color: yellow;">Questa è una riga evidenziata</span>
+- <span style="text-decoration: underline;">Questo é un testo sottolineato</span>
 
 1. <span style="color: brown;">Gli elenchi numerati di una guida da seguire vanno in marrone </span>
 
 > <span style="color: orange;">NOTA:</span> Le evidenziazioni vengono **sempre** sostituite con i colori personalizzati `hl*` (quindi `yellow` = `hlyellow`) che sono presenti nel conversion-template.tex che rende i colori dell'evidenziatore nel pdf più gradevoli ma mantenendo la visualizzabilità in Preview real time. Se ne vengono aggiunti altri, aggiungerli anche a `.lua`
+
+> <span style="color: orange;">NOTA:</span> Il testo sottolineato non é compreso in markdown con un simbolo come `*` per il grassetto e `_` per il corsivo quindi occorre usare il blocco `<span>` convertito con il filtro lua.
 
 _Es:_ inserimento immagine
 

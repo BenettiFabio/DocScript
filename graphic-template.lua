@@ -3,49 +3,50 @@
 -- https://ulriklyngs.com/post/2019/02/20/how-to-use-pandoc-filters-for-advanced-customisation-of-your-r-markdown-documents/
 
 function Span(el)
-  if el.attributes.style then
-    local stylestr = el.attributes.style
+  local stylestr = el.attributes.style or ""
+  stylestr = stylestr:gsub("%s+", " ")  -- Normalizza spazi
 
-    -- Normalizza gli spazi nello stile per evitare problemi
-    stylestr = stylestr:gsub("%s+", " ")
+  -- Estrazione proprietà CSS
+  local fg_color = string.match(stylestr, "color:%s*([^;]+);")
+  local bg_color = string.match(stylestr, "background%-color:%s*([^;]+);")
+  local underline = string.match(stylestr, "text%-decoration:%s*underline") or el.classes:includes("underline")
 
-    -- Estrazione dei colori
-    local fg_color = string.match(stylestr, "color:%s*([^;]+);")           -- Colore del testo
-    local bg_color = string.match(stylestr, "background%-color:%s*([^;]+);") -- Colore di sfondo
+  -- Mappa colori di sfondo → LaTeX custom colors
+  local color_map = {
+    yellow = "hlyellow",
+    red = "hlred",
+    green = "hlgreen",
+    violet = "hlviolet",
+    orange = "hlorange",
+    skyblue = "hlskyblue"
+  }
 
-    -- Mappa dei colori standard verso i colori personalizzati (solo per lo sfondo)
-    local color_map = {
-      yellow = "hlyellow",      -- Giallo pastello
-      red = "hlred",            -- Rosso chiaro/pesca
-      green = "hlgreen",        -- Verde menta chiaro
-      violet = "hlviolet",      -- Viola chiaro/lilla
-      orange = "hlorange",      -- Arancione tenue
-      skyblue = "hlskyblue"     -- Azzurro pastello
-    }
+  if bg_color and color_map[bg_color] then
+    bg_color = color_map[bg_color]
+  end
 
-    -- Se è presente il background-color, usa la mappa per convertirlo
-    if bg_color and color_map[bg_color] then
-      bg_color = color_map[bg_color]
+  -- Generazione LaTeX
+  if FORMAT:match('latex') then
+    local inner = pandoc.utils.stringify(el.content)
+
+    -- Applica colore del testo solo se non c'è l'evidenziatore
+    if fg_color and not bg_color then
+      inner = "\\textcolor{" .. fg_color .. "}{" .. inner .. "}"
     end
 
-    if FORMAT:match('latex') then
-      local inner = pandoc.utils.stringify(el.content)
-      -- Gestione prioritaria del background-color
-      if bg_color then
-        local colored = "\\colorbox{"..bg_color.."}{"..inner.."}"
-        return pandoc.RawInline("latex", colored)
-      elseif fg_color then
-        local colored = "\\textcolor{"..fg_color.."}{"..inner.."}"
-        return pandoc.RawInline("latex", colored)
-      else
-        -- Nessun colore specificato
-        return el
-      end
-    else
-      -- In altri formati (HTML, ecc.), lasciamo invariato l'elemento
-      return el
+    -- Applica sfondo (evidenziazione)
+    if bg_color then
+      inner = "\\colorbox{" .. bg_color .. "}{" .. inner .. "}"
     end
+
+    -- Applica sottolineatura
+    if underline then
+      inner = "\\underline{" .. inner .. "}"
+    end
+
+    return pandoc.RawInline("latex", inner)
   else
+    -- In altri formati (HTML, ecc.) non alteriamo l'output
     return el
   end
 end
@@ -98,7 +99,7 @@ function CodeBlock(el)
   return pandoc.CodeBlock(text, el.attr)
 end
 
--- -- per convertire i blocchi delle immagini con dimensione
+-- per convertire i blocchi delle immagini con dimensione
 function Image(img)
   local width = img.attributes["width"] or "\\linewidth"
   local path = img.src
