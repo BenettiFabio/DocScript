@@ -7,3 +7,5 @@
 <div style="page-break-after: always;"></div>
 
 # TITOLO
+
+![immagine di test](../assets/main-arg1/test-image.jpg)
