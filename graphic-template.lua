@@ -100,12 +100,36 @@ function CodeBlock(el)
 end
 
 -- per convertire i blocchi delle immagini con dimensione
+-- function Image(img)
+--   local width = img.attributes["width"] or "\\linewidth"
+--   local path = img.src
+--   local latex = string.format("\\includegraphics[width=%s]{%s}", width, path)
+
+--   -- Restituisce sempre RawInline
+--   return pandoc.RawInline("latex", latex)
+-- end
+
 function Image(img)
-  local width = img.attributes["width"] or "\\linewidth"
+  local raw_width = img.attributes["width"]
+  local width
+
+  if raw_width then
+    -- Se è una percentuale (es. 50%), converti in frazione di \linewidth
+    local percent = raw_width:match("^(%d+)%%$")
+    if percent then
+      local fraction = tonumber(percent) / 100
+      width = string.format("%.3f\\linewidth", fraction)
+    else
+      -- Usa il valore così com'è (es. "5cm" o "\\linewidth")
+      width = raw_width
+    end
+  else
+    width = "\\linewidth"
+  end
+
   local path = img.src
   local latex = string.format("\\includegraphics[width=%s]{%s}", width, path)
 
-  -- Restituisce sempre RawInline
   return pandoc.RawInline("latex", latex)
 end
 

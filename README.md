@@ -84,6 +84,7 @@ _Es:_ inserimento immagine
 
 ```markdown
 ![Titolo immagine](../assets/macro-arg/imgs/nome-immagine.png){width=\linewidth}
+![Titolo immagine](../assets/macro-arg/imgs/nome-immagine.png){width=50%}
 ```
 
 > <span style="color: orange;">NOTA:</span> In certi casi andando ad aggiungere una immagine puó venire spostata all'inizio e quindi in una posizione errata. Per evitare che accada prima dell'immagine o prima dell'argomento meglio cambiare pagine
