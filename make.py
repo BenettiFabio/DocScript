@@ -472,10 +472,13 @@ def main():
     global custom
     
     # Creazione del parser
-    parser = argparse.ArgumentParser(description="Make script per gestire la conversione di note in PDF. Consiglio: genera un repo git vuoto e inserisci questo come un sottomodulo prima di lanciare un --init")
-
+    parser = argparse.ArgumentParser(
+        prog="make.py",
+        description="Make script per gestire la conversione di note in PDF. Tips: genera un repo git vuoto e inserisci questo come un sottomodulo prima di lanciare un --init",
+        epilog="Freeware Licence 2025 Fabio. Maintainer: BenettiFabio"
+    )
     # Aggiunta delle opzioni
-    parser.add_argument("-i", "--init",     action="store_true",                         help="Inizializza la struttura del vault in modo che sia conforme al make.py")
+    parser.add_argument("-i", "--init",     action="store_true",                         help="Inizializza la struttura del vault in modo che sia consistente per il make.py")
     parser.add_argument("-a", "--all",                  metavar="OUTPUT",                help="Converte tutto il repository in un unico file di output, usando il main.md come ordinamento")
     parser.add_argument("-g", "--group",    nargs=2,    metavar=("ARGOMENTO", "OUTPUT"), help="Converte un macro-argomento specificato in un file di output, usando main.md come ordinamento")
     parser.add_argument("-n", "--note",     nargs=2,    metavar=("NOTA", "OUTPUT"),      help="Converte una nota specificata in un file di output")
