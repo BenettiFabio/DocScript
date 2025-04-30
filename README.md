@@ -5,7 +5,7 @@ Consiglio: genera un repo vuoto, e iniserisci questo repo come un sottomodulo gi
 
 # Struttura del progetto
 
-0. **REGOLA FONDAMENTALE DELLE NOTE:** I nomi delle note devono essere tutti in <span style="color:red">_minuscolo_</span>, le parole separate da `-`. I nomi delle note sono **TUTTI** descittivi del loro albero di posizione:
+0. **REGOLA FONDAMENTALE DELLE NOTE:** I nomi delle note devono essere tutti in <span style="color: red;">_minuscolo_</span>, le parole separate da `-`. I nomi delle note sono **TUTTI** descittivi del loro albero di posizione:
 
    _es:_
 
@@ -30,7 +30,7 @@ Consiglio: genera un repo vuoto, e iniserisci questo repo come un sottomodulo gi
 
 2. **vault:** Il Vault è la cartella contenente tutte le note, i nomi delle note sono divisi in macro-argomenti nelle sottocartelle del Vault. Dentro il file `main.md` puoi creare un indice che contiene tutte le note per navigare piú facilmente. Se vuoi convertirle tutte in una volte verrá usato l'ordine del main come ordine delle note nel pdf finale.
 
-   > <span style="color: orange">NOTA:</span> se vuoi convertire solo un certo gruppo ristretto di note sconnesse tra loro in un unico file pdf, puoi creare un file `custom.md` e inserire lí un indice come se fosse un main, con solo le note che desideri e poi usare l'opzione `-c`
+   > <span style="color: orange;">NOTA:</span> se vuoi convertire solo un certo gruppo ristretto di note sconnesse tra loro in un unico file pdf, puoi creare un file `custom.md` e inserire lí un indice come se fosse un main, con solo le note che desideri e poi usare l'opzione `-c`
 
 3. **Assets:** La cartella assets contiene tutti i documenti e le immagini utili al progetto che sono linkate all'interno delle varie note, dentro la cartella `assets/macro-argomento/` ci sono i relativi docs, imgs, ... la struttura della cartella `assets/` deve essere identica a quella fuori in modo da mantenere semplice il ritrovamento dei file e documenti salvati.
 
