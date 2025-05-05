@@ -8,6 +8,7 @@ from pathlib import Path
 ## DEFINES ##
 NOTE_PATH = None
 OUTPUT_PATH = None
+TEMPORARY_DIR = "rusco"  # Macro per la cartella temporanea
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # Directory dello script
 TEMPLATE = os.path.join(SCRIPT_DIR, "conversion-template.tex")
 LUA_FILTER = os.path.join(SCRIPT_DIR, "graphic-template.lua")
@@ -213,9 +214,15 @@ def checkInconsistency(matching_files_main, matching_files_root):
     Se mancano delle note nel main, stampa un errore con i file mancanti.
     I percorsi vengono normalizzati per il confronto.
     """
+    # Filtra i file per escludere quelli nella cartella temporanea
+    filtered_matching_files_root = [
+        path for path in matching_files_root
+        if not path.startswith(f"{TEMPORARY_DIR}/") and not os.path.basename(path).startswith("main.rusco.")
+    ]
+
     normalized_actual_list = [
         os.path.relpath(path, os.path.join("..")).replace("\\", "/")
-        for path in matching_files_root
+        for path in filtered_matching_files_root
     ]
     
     main_set = set(matching_files_main)
