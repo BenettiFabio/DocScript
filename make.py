@@ -259,6 +259,11 @@ def RemoveHeaderFromFile(file_path):
         if content_started:
             filtered_lines.append(line)
 
+    # Se l'header non è stato trovato, restituisci l'intero contenuto
+    if not content_started:
+        print(f"Avviso: header non trovato nel file '{file_path}'. Restituisco il contenuto completo.")
+        return lines
+
     return filtered_lines
 
 ##############################
