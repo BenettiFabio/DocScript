@@ -18,6 +18,23 @@ OUTPUT_DIR = MAKE_DIR
 custom = False # variabile per gestire la conversione di un file custom.md
 
 ## FUNCTIONS ##
+def DeleteTempFile(temp_file_path):
+    try:
+        os.remove(temp_file_path)
+    except Exception as e:
+        print(f"Errore durante l'eliminazione del file temporaneo: {e}")
+        sys.exit(1)
+
+def MoveToCorrectPath(output_path):
+    # Sposta il file di output nella cartella corretta
+    try:
+        print(f"Sposto il file{OUTPUT_PATH} in {output_path}")
+        shutil.move(OUTPUT_PATH, os.path.join(output_path, OUTPUT_PATH.name))
+        print(f"File di output spostato in: {os.path.join(output_path, OUTPUT_PATH.name)}")
+    except Exception as e:
+        print(f"Errore durante lo spostamento del file di output: {e}")
+        sys.exit(1)
+
 def validate_output(output):
     """
     Verifica che il file di output abbia un'estensione valida (.pdf o .tex).
@@ -327,6 +344,54 @@ def InitVault():
         print(f"Errore durante la costruzione del Vault: {e}")
         sys.exit(1)
 
+def ConversionSingleTikzNote(nota):
+    global NOTE_PATH
+    NOTE_PATH = None  # Inizializza come None per indicare che non è stato trovato
+    # Directory di partenza
+    asset_path = os.path.join("..", "assets")	
+
+    # Cerca il file nelle sottocartelle di assets, escludendo tutto che non sia .md
+    for root, dirs, files in os.walk(asset_path):
+        # Cerca il file .md corrispondente
+        for file in files:
+            if file == nota and file.endswith(".md"):
+                NOTE_PATH = Path(os.path.join(root, file)).resolve()
+                break
+        if NOTE_PATH:
+            break
+    
+    # Se non trovato
+    if not NOTE_PATH:
+        print(f"Errore: il file '{nota}' non è stato trovato negli assets.")
+        sys.exit(1)
+
+    # Verifica che il file si trovi nel percorso corretto
+    relative_path = os.path.relpath(NOTE_PATH, os.path.join("..", "assets")).replace("\\", "/")
+    if not re.match(r"^[^/]+/pdfs/tikz-pdfs/.*\.md$", relative_path):
+        print(f"Errore: il file '{relative_path}' non si trova nel percorso corretto. Deve essere in 'assets/macro-argomento/pdfs/tikz-pdfs'.")
+        sys.exit(1)
+    
+    # Se la nota é presente nel punto corretto allora la cartella esiste per forza non la creo    
+    output_path = Path(os.path.join(NOTE_PATH, "..", "..")).resolve()
+    
+    # Verifica che il sistema abbia i requisiti necessari alla conversione    
+    CheckPreconditions()
+
+    # Ottieni il contenuto senza header
+    filtered_lines = RemoveHeaderFromFile(NOTE_PATH)
+
+    # Scrivi il contenuto filtrato in un file temporaneo
+    temp_file_path = os.path.join(MAKE_DIR, "temp_note.md")
+    with open(temp_file_path, "w", encoding="utf-8") as temp_file:
+        temp_file.writelines(filtered_lines)
+
+    # Esegui la conversione sul file temporaneo
+    NoteConversion(temp_file_path)
+    
+    # Elimina il file temporaneo
+    DeleteTempFile(temp_file_path)
+    MoveToCorrectPath(output_path)
+
 def ConversionSingleNote(nota):
     global NOTE_PATH
     NOTE_PATH = None  # Inizializza come None per indicare che non è stato trovato
@@ -368,6 +433,12 @@ def ConversionSingleNote(nota):
 
     # Esegui la conversione sul file temporaneo
     NoteConversion(temp_file_path)
+        
+    # Elimina il file temporaneo
+    try:
+        os.remove(temp_file_path)
+    except Exception as e:
+        print(f"Errore durante l'eliminazione del file temporaneo: {e}")
 
 def ConversionGroupNote(argomento):
     # Ottieni i file corrispondenti all'argomento
@@ -496,6 +567,7 @@ def main():
     parser.add_argument("-n", "--note",     nargs=2,    metavar=("NOTA", "OUTPUT"),      help="Converte una nota specificata in un file di output")
     parser.add_argument("-s", "--start",                metavar="NOTE_PATH",             help="Aggiunge una nuova nota specificata in NOTE_PATH")
     parser.add_argument("-c", "--custom",               metavar="OUTPUT",                help="Converte tutte le note incluse nel file custom.md in un file di output")
+    parser.add_argument("-nt", "--note-tikz",nargs=2,   metavar=("NOTA", "OUTPUT"),      help="Converte una nota specificata considerandola come un file TikZ -> output in assets/")
 
     # Parsing degli argomenti
     args = parser.parse_args()
@@ -529,6 +601,16 @@ def main():
         print(f"Opzione --note selezionata. Nota: {nota}, Output: {output}")
         # Inizio conversione
         ConversionSingleNote(nota)
+    
+    elif args.note_tikz:
+        if len(args.note_tikz) < 2:
+            print("Errore: l'opzione --note-tikz richiede due argomenti: NOTA e OUTPUT (in formato .pdf o .tex).")
+            sys.exit(1)
+        nota, output = args.note_tikz
+        validate_output(output)
+        print(f"Opzione --note selezionata. Nota: {nota}, Output: {output}")
+        # Inizio conversione
+        ConversionSingleTikzNote(nota)
         
     elif args.start:
         print(f"Opzione --start selezionata. Creazione della nuova nota: {args.start}")
