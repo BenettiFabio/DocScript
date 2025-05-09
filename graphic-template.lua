@@ -150,3 +150,19 @@ function Div(el)
     return el
   end
 end
+
+-- include-pdf 
+function Para(el)
+  -- Se il paragrafo contiene esattamente un Link
+  if #el.content == 1 and el.content[1].t == "Link" then
+    local link = el.content[1]
+    local target = link.target
+    if target:match("%.pdf$") then
+      if FORMAT == "latex" then
+        return pandoc.RawBlock("latex", "\\includepdf[pages=-]{\"" .. target .. "\"}")
+      else
+        return el  -- normale link per HTML/preview
+      end
+    end
+  end
+end

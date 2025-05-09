@@ -15,6 +15,7 @@ LUA_FILTER = os.path.join(SCRIPT_DIR, "graphic-template.lua")
 MAKE_DIR = os.path.join(SCRIPT_DIR, "..", "vault", "build")
 OUTPUT_DIR = MAKE_DIR
 
+service_flag = False # variabile per gestire varianti della stessa funzione nel comportamento normale o di servizio
 custom = False # variabile per gestire la conversione di un file custom.md
 
 ## FUNCTIONS ##
@@ -537,8 +538,10 @@ def NoteConversion(combined_note_path):
     path_note = os.path.basename(note_name)
     
     # Comando per la conversione
-    command = f"pandoc \"{path_note}\" -o \"{OUTPUT_PATH}\" --toc --toc-depth=3 --template=\"{TEMPLATE}\" --lua-filter=\"{LUA_FILTER}\" --listings --pdf-engine=xelatex"
-    #command = f"pandoc \"{path_note}\" -o \"{OUTPUT_PATH}\" --template=\"{TEMPLATE}\" --lua-filter=\"{LUA_FILTER}\" --listings --pdf-engine=xelatex"
+    if not service_flag:
+        command = f"pandoc \"{path_note}\" -o \"{OUTPUT_PATH}\" --toc --toc-depth=3 --template=\"{TEMPLATE}\" --lua-filter=\"{LUA_FILTER}\" --listings --pdf-engine=xelatex"
+    else:
+        command = f"pandoc \"{path_note}\" -o \"{OUTPUT_PATH}\" --template=\"{TEMPLATE}\" --lua-filter=\"{LUA_FILTER}\" --listings --pdf-engine=xelatex"
     
     # Esegui il comando
     print(f"Eseguo il comando: {command}")
@@ -603,6 +606,7 @@ def main():
         ConversionSingleNote(nota)
     
     elif args.note_tikz:
+        global service_flag
         if len(args.note_tikz) < 2:
             print("Errore: l'opzione --note-tikz richiede due argomenti: NOTA e OUTPUT (in formato .pdf o .tex).")
             sys.exit(1)
@@ -610,6 +614,7 @@ def main():
         validate_output(output)
         print(f"Opzione --note selezionata. Nota: {nota}, Output: {output}")
         # Inizio conversione
+        service_flag = True
         ConversionSingleTikzNote(nota)
         
     elif args.start:

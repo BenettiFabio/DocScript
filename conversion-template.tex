@@ -1,26 +1,36 @@
 \documentclass{article}
-\usepackage{xcolor} % Pacchetto per i colori
-\usepackage{color}    % per Shaded
-\usepackage{graphicx} % per immagini
-\usepackage{float}   % per le immagini
-\usepackage{caption}   % per le immagini
-\usepackage{tcolorbox} % per le evidenziature
-\usepackage{hyperref} % Per i link
-\usepackage{framed}   % per i blocchi di codice
+
+\usepackage{xcolor}     % Pacchetto per i colori
+\usepackage{color}      % per Shaded
+\usepackage{tcolorbox}  % per le evidenziature
+\usepackage{hyperref}   % Per i link
+\usepackage{framed}     % per i blocchi di codice
 \usepackage{url}        % per mandare a capo url molto lunghi
 \usepackage{listings}   % per lo stile di indentazione
 \usepackage{enumitem}   % per gli indici
+
+\usepackage{graphicx}   % per immagini
+\usepackage{float}
+\usepackage{caption}
+
 \usepackage{longtable}  % per le tabelle
-\usepackage{booktabs}   % per le tabelle
-\usepackage{array}      % per le tabelle
-\usepackage{calc}       % per le tabelle
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{calc}
+
+\usepackage{multicol}   % per il toc a due colonne
+\usepackage{tocloft}    % per il numero di pagina sul toc
+
 \usepackage{fontspec}   % per i box-drawing
 \setmainfont{FreeSans}
 \setmonofont{FreeMono}
-\usepackage{multicol}   % per il toc a due colonne
-\usepackage{tocloft}    % per il numero di pagina sul toc
-\usepackage{tikz}
+
+\usepackage{tikz}       % per gli schemi con Tikz
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, shadows, calc, backgrounds}
+
+
+\usepackage{pdfpages}    % per le pagine in PDF
 
 % Imposta le dimensioni della pagina
 \usepackage[a4paper, margin=0.7in]{geometry}
@@ -105,6 +115,8 @@ $highlighting-macros$
 $endif$
 
 \begin{document}
+$if(toc)$
 \tableofcontents % Questo inserisce l'indice
+$endif$
 $body$
 \end{document}
