@@ -159,7 +159,7 @@ function Para(el)
     local target = link.target
     if target:match("%.pdf$") then
       if FORMAT == "latex" then
-        return pandoc.RawBlock("latex", "\\includepdf[pages=-]{\"" .. target .. "\"}")
+        return pandoc.RawBlock("latex", "\\includepdf[pages=-]{" .. target .. "}")
       else
         return el  -- normale link per HTML/preview
       end
