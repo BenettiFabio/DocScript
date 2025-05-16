@@ -133,6 +133,12 @@ Es: inserimento di un elemento centrato
 </div>
 ```
 
+Es: inserimento di un pdf "srotolato" direttamente all'interno delle note
+
+```markdown
+[Nome Del Pdf](../assets/macro-arg/pdfs/nome-file.pdf)
+```
+
 # Dipendenze librerie
 
 1. Pandoc: serve a convertire da .tex a .pdf
