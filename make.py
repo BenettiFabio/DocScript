@@ -33,8 +33,8 @@ def to_unc_slash_path(windows_path: str) -> str:
     elif ':' not in cleaned:  # UNC path senza lettera di unità
         return '//' + cleaned.lstrip('/')
     else:
-        return cleaned
 
+        return cleaned
 def DeleteTempFile(temp_file_path):
     try:
         os.remove(temp_file_path)
@@ -773,21 +773,33 @@ def NoteConversion(combined_note_path):
         
     note_name = combined_note_path
     path_note = os.path.basename(note_name)
-    print(f"mi trovo in {os.getcwd()}")
-    print(f"Path nota: {note_name}")
     
-    path_note = to_unc_slash_path(path_note)
-    out_path = to_unc_slash_path(OUTPUT_PATH)
-    template = to_unc_slash_path(TEMPLATE)
-    lua_filter = to_unc_slash_path(LUA_FILTER)
+    # Check se il path di output è in rete (UNC path)
+    copy_before_conversion = False
+    here = str(os.getcwd())
+    if here.startswith("\\\\") or here.startswith("//"):
+        copy_before_conversion = True
+        print("Percorso di output su rete rilevato, verrà usata la conversione UNC.")
+
     
-    # Se mi accorgo di essere in una cartella di rete
-    # - copia il file combined_note.md o temp_note.md in una cartella temponanea locale in C:/users/utente
-    # - copia il file template e lua_filter
-    # - fai una ricerca degli assets solo dei collaboratori richiesti inseriti nel custom.md
-    # - esegui il comando pandoc in locale da quella cartella temponanea
-    # - sposta l'output dalla build temp a quella effettiva di rete da cui é stato lanciato il comando
-    # - elimina la cartella temporanea locale
+    if copy_before_conversion and is_bank:
+        # Se mi accorgo di essere in una cartella di rete
+        # - copia il file combined_note.md o temp_note.md in una cartella temponanea locale in C:/users/utente
+        # - copia il file template e lua_filter
+        # - fai una ricerca degli assets solo dei collaboratori richiesti inseriti nel custom.md
+        # - esegui il comando pandoc in locale da quella cartella temponanea
+        # - sposta l'output dalla build temp a quella effettiva di rete da cui é stato lanciato il comando
+        # - elimina la cartella temporanea locale
+        
+        path_note = to_unc_slash_path(path_note) # da cambiare con quelli salvati in locale
+        out_path = to_unc_slash_path(OUTPUT_PATH)
+        template = to_unc_slash_path(TEMPLATE)
+        lua_filter = to_unc_slash_path(LUA_FILTER)
+    else:
+        # Altrimenti converto normalmente nella cartella di build in quanto sono giá offline
+        out_path = OUTPUT_PATH
+        template = TEMPLATE
+        lua_filter = LUA_FILTER
     
     # Comando per la conversione
     if not service_flag:
