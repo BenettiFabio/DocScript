@@ -18,6 +18,7 @@ COLLAB_FILE = "collaborator.md"
 
 service_flag = False # variabile per gestire varianti della stessa funzione nel comportamento normale o di servizio
 custom = False # variabile per gestire la conversione di un file custom.md
+is_bank = False
 
 ## FUNCTIONS ##
 def to_unc_slash_path(windows_path: str) -> str:
@@ -684,7 +685,7 @@ def ConversionAllNote(custom):
     global OUTPUT_DIR
     bank_dir = os.path.join(SCRIPT_DIR, "..", "bank") 
     collab_file = os.path.join(bank_dir, COLLAB_FILE)
-    is_bank = False
+    global is_bank
     
     if os.path.exists(collab_file):
         is_bank = True
@@ -718,7 +719,6 @@ def ConversionAllNote(custom):
         combined_note_path = CombineNotes(matching_files_main)
     else:
         combined_note_path = SearchAndCombineNotes(matching_files_main)
-    # sys.exit(1)
 
     # Se arrivato qui allora può eseguire la conversione
     NoteConversion(os.path.basename(combined_note_path)) # deve prendere la nota combinata dal build
@@ -776,11 +776,24 @@ def NoteConversion(combined_note_path):
     print(f"mi trovo in {os.getcwd()}")
     print(f"Path nota: {note_name}")
     
+    path_note = to_unc_slash_path(path_note)
+    out_path = to_unc_slash_path(OUTPUT_PATH)
+    template = to_unc_slash_path(TEMPLATE)
+    lua_filter = to_unc_slash_path(LUA_FILTER)
+    
+    # Se mi accorgo di essere in una cartella di rete
+    # - copia il file combined_note.md o temp_note.md in una cartella temponanea locale in C:/users/utente
+    # - copia il file template e lua_filter
+    # - fai una ricerca degli assets solo dei collaboratori richiesti inseriti nel custom.md
+    # - esegui il comando pandoc in locale da quella cartella temponanea
+    # - sposta l'output dalla build temp a quella effettiva di rete da cui é stato lanciato il comando
+    # - elimina la cartella temporanea locale
+    
     # Comando per la conversione
     if not service_flag:
-        command = f"pandoc \"{path_note}\" -o \"{OUTPUT_PATH}\" --toc --toc-depth=3 --template=\"{TEMPLATE}\" --lua-filter=\"{LUA_FILTER}\" --listings --pdf-engine=xelatex"
+        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --toc --toc-depth=3 --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
     else:
-        command = f"pandoc \"{path_note}\" -o \"{OUTPUT_PATH}\" --template=\"{TEMPLATE}\" --lua-filter=\"{LUA_FILTER}\" --listings --pdf-engine=xelatex"
+        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
     
     # Esegui il comando
     print(f"Eseguo il comando: {command}")
@@ -798,9 +811,9 @@ def main():
     global OUTPUT_DIR
     
     if not os.path.exists(collab_path):
-        if os.path.exists(vault_path):
+        if not os.path.exists(vault_path):
             os.makedirs(OUTPUT_DIR) # Entra nella cartella di build solo se esiste e se non é una banca dati
-            os.chdir(MAKE_DIR)
+        os.chdir(MAKE_DIR)
     else:
         # Aggiorno i path nel caso ci si trovi in una banca dati
         build_dir = Path(os.path.join(bank_path, "build")).resolve()
