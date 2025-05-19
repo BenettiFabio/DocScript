@@ -14,6 +14,7 @@ TEMPLATE = os.path.join(SCRIPT_DIR, "conversion-template.tex")
 LUA_FILTER = os.path.join(SCRIPT_DIR, "graphic-template.lua")
 MAKE_DIR = os.path.join(SCRIPT_DIR, "..", "vault", "build")
 OUTPUT_DIR = MAKE_DIR
+COLLAB_FILE = "collaborator.md"
 
 service_flag = False # variabile per gestire varianti della stessa funzione nel comportamento normale o di servizio
 custom = False # variabile per gestire la conversione di un file custom.md
@@ -118,6 +119,72 @@ def get_all_files_from_main(custom):
         
     return matching_files
 
+def get_all_files_from_collab_main(custom):
+    """
+    Legge il file main.md (o custom.md) della banca dati e il file collaborator.md.
+    Per ogni sezione ## NOME COLLABORATORE prende solo le note elencate sotto quella sezione,
+    cerca il path relativo nel main.md del collaboratore e restituisce il path assoluto.
+    """
+    bank_dir = os.path.join(SCRIPT_DIR, "..", "bank")
+    if custom:
+        main_md_path = os.path.join(bank_dir, "custom.md")
+    else:
+        main_md_path = os.path.join(bank_dir, "main.md")
+    collab_file = os.path.join(bank_dir, COLLAB_FILE)
+
+    if not os.path.exists(collab_file):
+        print(f"Errore: il file '{collab_file}' non esiste.")
+        sys.exit(1)
+    if not os.path.exists(main_md_path):
+        print(f"Errore: il file main.md non è stato trovato in {os.path.dirname(main_md_path)} .")
+        sys.exit(1)
+
+    # Mappa nome collaboratore -> path main.md collaboratore
+    collaborators = {}
+    with open(collab_file, "r", encoding="utf-8") as cf:
+        current_name = None
+        for line in cf:
+            line = line.strip()
+            if line.startswith("##"):
+                current_name = line[2:].strip()
+            match = re.search(r'\[main\.md\]\((.*?)\)', line)
+            if match and current_name:
+                main_md_path_collab = os.path.join(os.path.dirname(cf.name), match.group(1))
+                collaborators[current_name] = main_md_path_collab
+
+    # Leggi il custom.ms o main.md e raccogli le note per collaboratore
+    with open(main_md_path, "r", encoding="utf-8") as mf:
+        lines = mf.readlines()
+
+    matching_files = []
+    current_collab = None
+    for line in lines:
+        line = line.strip()
+        if line.startswith("##"):
+            current_collab = line[2:].strip()
+        elif line.startswith("[") and "]" in line and "(" in line and ")" in line and current_collab:
+            # Estrai il path relativo della nota
+            note_match = re.search(r'\[.*\]\((.*\.md)\)', line)
+            if note_match:
+                note_rel_path = note_match.group(1)
+                # Cerca il main.md del collaboratore
+                main_md_path_collab = collaborators.get(current_collab)
+                if not main_md_path_collab or not os.path.exists(main_md_path_collab):
+                    print(f"main.md non trovato per {current_collab} in {main_md_path_collab}")
+                    continue
+                # Risolvi il path assoluto rispetto al vault del collaboratore
+                note_abs_path = os.path.abspath(os.path.join(os.path.dirname(main_md_path_collab), note_rel_path))
+                if os.path.exists(note_abs_path):
+                    matching_files.append(note_abs_path)
+                else:
+                    print(f"Nota '{note_rel_path}' non trovata per {current_collab} in {note_abs_path}")
+
+    if not matching_files:
+        print(f"Errore: nessun file trovato in {'custom.md' if custom else 'main.md'}.")
+        sys.exit(1)
+
+    return matching_files
+    
 def get_files_for_argument_from_main(argomento):
     """
     Legge il file main.md e restituisce una lista di file che corrispondono all'argomento specificato.
@@ -196,8 +263,38 @@ def get_files_for_argument_from_root(argomento):
             if file.endswith(".md") and pattern.match(file):
                 full_path = os.path.join(root, file)
                 matched_files.append(full_path)
-
+                
+    print(matched_files)
+    sys.exit(1)
+    
     return matched_files
+
+def SearchAndCombineNotes(matching_files):
+    """
+    Combina le note corrispondenti in un unico file .md, rimuovendo l'header specificato.
+    """
+    combined_file_path_temp = Path(os.path.join(MAKE_DIR, "combined_notes.md"))
+    combined_file_path = combined_file_path_temp.resolve()
+
+    # Crea la directory di output se non esiste
+    if not os.path.exists(MAKE_DIR):
+        os.makedirs(MAKE_DIR)
+
+    with open(combined_file_path, "w", encoding="utf-8") as combined_md_file:
+        for file in matching_files:
+            file_path = os.path.join("..", file)
+            if os.path.exists(file_path):
+                # Ottieni il contenuto senza header
+                filtered_lines = RemoveHeaderFromFile(file_path)
+
+                # Scrivi il contenuto filtrato nel file combinato
+                combined_md_file.writelines(filtered_lines)
+                combined_md_file.write("\n")
+            else:
+                print(f"Avviso: il file '{file}' non è stato trovato e sarà ignorato.")
+
+    print(f"File combinato creato: {combined_file_path}")
+    return combined_file_path
 
 def CombineNotes(matching_files):
     """
@@ -287,6 +384,50 @@ def RemoveHeaderFromFile(file_path):
 ##############################
 ## FUNCTIONS FOR CONVERSION ##
 ##############################
+def InitBank():
+    print("Inizializzazione della banca dati collaborativa...")
+    parent_dir = Path(os.path.join(SCRIPT_DIR, "..")).resolve()
+    template_dir = Path(os.path.join(SCRIPT_DIR, "templates", "init-bank")).resolve()
+    collab_file = Path(os.path.join(parent_dir, COLLAB_FILE)).resolve()
+    bank_dir = Path(os.path.join(parent_dir, "bank")).resolve()
+    vault_dir = Path(os.path.join(parent_dir, "vault")).resolve()
+    
+    if os.path.exists(collab_file):
+        print("Errore: il file dei collaboratori esiste già, se giá compilato puoi lanciare un -u per aggiornarlo.")
+        sys.exit(1)
+        
+    if os.path.exists(vault_dir):
+        print("Errore: la cartella corrente é giá un vault, non puoi inizializzare una banca dati collaborativa.")
+        sys.exit(1)
+    
+    if os.path.exists(bank_dir):
+        print("Errore: la cartella corrente é giá inizializzata come banca dati, puoi giá usarla modificando il file collaborator.md.")
+        sys.exit(1)
+
+    try:
+        if not os.path.exists(template_dir):
+            print(f"Errore: la cartella template '{template_dir}' non esiste.")
+            sys.exit(1)
+        
+        # Copia il contenuto della cartella init-bank nella cartella superiore
+        for root, dirs, files in os.walk(template_dir):
+            relative_path = os.path.relpath(root, template_dir)
+            target_dir = os.path.join(bank_dir, relative_path)
+            if not os.path.exists(target_dir):
+                os.makedirs(target_dir)
+            for file in files:
+                src_file = os.path.join(root, file)
+                dest_file = os.path.join(target_dir, file)
+                shutil.copy(src_file, dest_file)
+        print(f"Struttura del banca dati costruita con successo")
+        print(f"Per iniziare compila il file {COLLAB_FILE} con i tuoi collaboratori.")
+        print(f"Successivamente lancia un -u (--update) per aggiornare il file main.md")
+        print(f"Enjoy working with you team mates! <3")
+        
+    except Exception as e:
+        print(f"Errore durante l'inizializzazione: {e}")
+        sys.exit(1)
+
 def InitVault():
     """
     Inizializza la struttura del vault copiando i file e le cartelle necessarie.
@@ -295,7 +436,12 @@ def InitVault():
     vault_dir = Path(os.path.join(parent_dir, "vault")).resolve()
     template_dir = Path(os.path.join(SCRIPT_DIR, "templates", "init-vault")).resolve()
     setup_dir = Path(os.path.join(SCRIPT_DIR, "templates", "setup-vault")).resolve()
+    bank_dir = Path(os.path.join(parent_dir, "bank")).resolve()
 
+    if os.path.exists(bank_dir):
+        print("Errore: la cartella corrente é giá inizializzata come banca dati, non puoi inizializzare un vault.")
+        sys.exit(1)
+    
     # Controlla se esiste già una cartella chiamata 'vault'
     if os.path.exists(vault_dir):
         # Ottieni il contenuto della cartella 'vault'
@@ -344,6 +490,64 @@ def InitVault():
     except Exception as e:
         print(f"Errore durante la costruzione del Vault: {e}")
         sys.exit(1)
+
+def UpdateBank():
+    print("Aggiornamento della banca dati collaborativa...")
+    
+    collab_file = os.path.join("..", COLLAB_FILE)
+    main_bank_path = os.path.join("..", "main.md")
+    
+    if not os.path.exists(collab_file):
+        print(f"Errore: il file '{collab_file}' non esiste.")
+        sys.exit(1)
+
+    # Check del file collaborator.md
+    with open(collab_file, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+        
+    collaborator = None
+    errors = []
+    collab_mainmd = []  # Lista di tuple (nome, path_mainmd)
+    for line in lines:
+        line = line.strip()
+        if line.startswith("##"):
+            collaborator = line[2:].strip()
+        # Cerca link markdown a main.md
+        match = re.search(r'\[main\.md\]\((.*?)\)', line)
+        if match:
+            main_md_path = os.path.join("..", match.group(1))
+            if not os.path.exists(main_md_path):
+                errors.append(f"Collaboratore '{collaborator}': main.md non trovato in '{main_md_path}'")
+            else:
+                print(f"Collaboratore '{collaborator}': main.md trovato in '{main_md_path}'")
+                collab_mainmd.append((collaborator, main_md_path))
+
+    if errors:
+        print("Sono stati trovati i seguenti errori nei link ai main.md:")
+        for err in errors:
+            print(f"- {err}")
+        sys.exit(1)
+        
+    else:
+        print("Tutti i link ai main.md dei collaboratori sono validi.")
+        
+    # Proseguo alla lettura dei singoli main.md
+    with open(main_bank_path, "w", encoding="utf-8") as out:
+        out.write("# Indice complessivo\n\n")
+        for collaborator, main_md_path in collab_mainmd:
+            out.write(f"## {collaborator}\n\n")
+            with open(main_md_path, "r", encoding="utf-8") as mf:
+                for line in mf:
+                    # Salta titoli con un solo #
+                    if re.match(r"^#(?!#)", line):
+                        continue
+                    # Trasforma i sottotitoli ## in ###
+                    if line.startswith("##"):
+                        line = "#" + line
+                    # Altrimenti copia semplcicemente il contenuto
+                    out.write(line)
+                out.write("\n")
+    print(f"main.md complessivo aggiornato in {main_bank_path}")
 
 def ConversionSingleTikzNote(nota):
     global NOTE_PATH
@@ -463,12 +667,22 @@ def ConversionGroupNote(argomento):
     NoteConversion(combined_note_path) # deve prendere la nota combinata dal build
 
 def ConversionAllNote(custom):
+    bank_dir = os.path.join(SCRIPT_DIR, "..", "bank") 
+    collab_file = os.path.join(bank_dir, COLLAB_FILE)
+    is_bank = False
+    
+    if os.path.exists(collab_file):
+        is_bank = True
+
     matching_files_main = []
     matching_files_root = []
-    # Ottieni i file corrispondenti all'argomento
-    matching_files_main = get_all_files_from_main(custom)
-    matching_files_root = get_all_files_from_root()
-    
+    if not is_bank:
+        # Ottieni i file corrispondenti all'argomento
+        matching_files_main = get_all_files_from_main(custom)
+        matching_files_root = get_all_files_from_root()
+    else:
+        matching_files_main = get_all_files_from_collab_main(custom)
+
     if not custom:
         checkInconsistency(matching_files_main, matching_files_root)
 
@@ -480,7 +694,10 @@ def ConversionAllNote(custom):
     CheckPreconditions()
 
     # Crea la nota .md unita
-    combined_note_path = CombineNotes(matching_files_main)
+    if not is_bank:
+        combined_note_path = CombineNotes(matching_files_main)
+    else:
+        combined_note_path = SearchAndCombineNotes(matching_files_main)
     # sys.exit(1)
 
     # Se arrivato qui allora può eseguire la conversione
@@ -571,6 +788,8 @@ def main():
     parser.add_argument("-s", "--start",                metavar="NOTE_PATH",             help="Aggiunge una nuova nota specificata in NOTE_PATH")
     parser.add_argument("-c", "--custom",               metavar="OUTPUT",                help="Converte tutte le note incluse nel file custom.md in un file di output")
     parser.add_argument("-nt", "--note-tikz",nargs=2,   metavar=("NOTA", "OUTPUT"),      help="Converte una nota specificata considerandola come un file TikZ -> output in assets/")
+    parser.add_argument("-ib", "--init-bank",action="store_true",                        help="Inizializza vault-bank per la gestione condivisa delle note con collaboratori")
+    parser.add_argument("-u",  "--update",   action="store_true",                        help="Aggiorna il file main.md della banca dati, necessaria inizializzazione con -ib")
 
     # Parsing degli argomenti
     args = parser.parse_args()
@@ -634,6 +853,14 @@ def main():
     elif args.init:
         print(f"Opzione --init selezionata. Creazione di un vault di partenza.")
         InitVault()
+        
+    elif args.init_bank:
+        print(f"Opzione --init-bank selezionata. Creazione di una banca dati collaborativa.")
+        InitBank()
+        
+    elif args.update:
+        print(f"Opzione --update selezionata. Lettura dei main.md dei collaboratori e costruzione del main.md complessivo.")
+        UpdateBank()
         
     else:
         print("Errore: nessuna opzione valida selezionata.")
