@@ -10,9 +10,9 @@ NOTE_PATH = None
 OUTPUT_PATH = None
 TEMPORARY_DIR = "rusco"  # Macro per la cartella temporanea
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # Directory dello script
-TEMPLATE = os.path.join(SCRIPT_DIR, "conversion-template.tex")
-LUA_FILTER = os.path.join(SCRIPT_DIR, "graphic-template.lua")
-MAKE_DIR = os.path.join(SCRIPT_DIR, "..", "vault", "build")
+TEMPLATE = Path(os.path.join(SCRIPT_DIR, "conversion-template.tex")).resolve()
+LUA_FILTER = Path(os.path.join(SCRIPT_DIR, "graphic-template.lua")).resolve()
+MAKE_DIR = Path(os.path.join(SCRIPT_DIR, "..", "vault", "build")).resolve()
 OUTPUT_DIR = MAKE_DIR
 COLLAB_FILE = "collaborator.md"
 
@@ -20,6 +20,20 @@ service_flag = False # variabile per gestire varianti della stessa funzione nel 
 custom = False # variabile per gestire la conversione di un file custom.md
 
 ## FUNCTIONS ##
+def to_unc_slash_path(windows_path: str) -> str:
+    """
+    Converte un path UNC di Windows con backslash (\\server\share\path)
+    in un path UNC compatibile con strumenti esterni (//server/share/path).
+    """
+    path_str = str(windows_path)
+    cleaned = path_str.replace('\\\\?\\', '').replace('\\', '/')
+    if cleaned.startswith('//'):
+        return cleaned
+    elif ':' not in cleaned:  # UNC path senza lettera di unità
+        return '//' + cleaned.lstrip('/')
+    else:
+        return cleaned
+
 def DeleteTempFile(temp_file_path):
     try:
         os.remove(temp_file_path)
@@ -127,10 +141,10 @@ def get_all_files_from_collab_main(custom):
     """
     bank_dir = os.path.join(SCRIPT_DIR, "..", "bank")
     if custom:
-        main_md_path = os.path.join(bank_dir, "custom.md")
+        main_md_path = Path(os.path.join(bank_dir, "custom.md")).resolve()
     else:
-        main_md_path = os.path.join(bank_dir, "main.md")
-    collab_file = os.path.join(bank_dir, COLLAB_FILE)
+        main_md_path = Path(os.path.join(bank_dir, "main.md")).resolve()
+    collab_file = Path(os.path.join(bank_dir, COLLAB_FILE)).resolve()
 
     if not os.path.exists(collab_file):
         print(f"Errore: il file '{collab_file}' non esiste.")
@@ -147,7 +161,7 @@ def get_all_files_from_collab_main(custom):
             line = line.strip()
             if line.startswith("##"):
                 current_name = line[2:].strip()
-            match = re.search(r'\[main\.md\]\((.*?)\)', line)
+            match = re.search(r'\[.*\]\((.*\.md)\)', line)
             if match and current_name:
                 main_md_path_collab = os.path.join(os.path.dirname(cf.name), match.group(1))
                 collaborators[current_name] = main_md_path_collab
@@ -160,11 +174,11 @@ def get_all_files_from_collab_main(custom):
     current_collab = None
     for line in lines:
         line = line.strip()
-        if line.startswith("##"):
+        if line.startswith("##") or line.startswith("#"):
             current_collab = line[2:].strip()
-        elif line.startswith("[") and "]" in line and "(" in line and ")" in line and current_collab:
+        elif re.search(r'\[.*?\]\([^)]+\.md\)', line) and current_collab:
             # Estrai il path relativo della nota
-            note_match = re.search(r'\[.*\]\((.*\.md)\)', line)
+            note_match = re.search(r'\[.*?\]\(([^)]+\.md)\)', line)
             if note_match:
                 note_rel_path = note_match.group(1)
                 # Cerca il main.md del collaboratore
@@ -275,7 +289,7 @@ def SearchAndCombineNotes(matching_files):
     """
     combined_file_path_temp = Path(os.path.join(MAKE_DIR, "combined_notes.md"))
     combined_file_path = combined_file_path_temp.resolve()
-
+    
     # Crea la directory di output se non esiste
     if not os.path.exists(MAKE_DIR):
         os.makedirs(MAKE_DIR)
@@ -493,10 +507,10 @@ def InitVault():
 
 def UpdateBank():
     print("Aggiornamento della banca dati collaborativa...")
-    
-    collab_file = os.path.join("..", COLLAB_FILE)
-    main_bank_path = os.path.join("..", "main.md")
-    
+    bank_dir = Path(os.path.join(SCRIPT_DIR, "..", "bank")).resolve()
+    collab_file = os.path.join(bank_dir, COLLAB_FILE)
+    main_bank_path = os.path.join(bank_dir, "main.md")
+    print("mi trovo in ", os.getcwd())
     if not os.path.exists(collab_file):
         print(f"Errore: il file '{collab_file}' non esiste.")
         sys.exit(1)
@@ -513,7 +527,7 @@ def UpdateBank():
         if line.startswith("##"):
             collaborator = line[2:].strip()
         # Cerca link markdown a main.md
-        match = re.search(r'\[main\.md\]\((.*?)\)', line)
+        match = re.search(r'\[.*?\]\((.*?main\.md)\)', line)
         if match:
             main_md_path = os.path.join("..", match.group(1))
             if not os.path.exists(main_md_path):
@@ -667,6 +681,7 @@ def ConversionGroupNote(argomento):
     NoteConversion(combined_note_path) # deve prendere la nota combinata dal build
 
 def ConversionAllNote(custom):
+    global OUTPUT_DIR
     bank_dir = os.path.join(SCRIPT_DIR, "..", "bank") 
     collab_file = os.path.join(bank_dir, COLLAB_FILE)
     is_bank = False
@@ -687,8 +702,13 @@ def ConversionAllNote(custom):
         checkInconsistency(matching_files_main, matching_files_root)
 
     # Crea la directory di output se non esiste
+    if is_bank:
+        OUTPUT_DIR = Path(os.path.join(bank_dir, "build")).resolve()
+        
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
+    
+    os.chdir(MAKE_DIR)
 
     # Verifica che il sistema abbia i prerequisiti necessari alla conversione
     CheckPreconditions()
@@ -701,7 +721,7 @@ def ConversionAllNote(custom):
     # sys.exit(1)
 
     # Se arrivato qui allora può eseguire la conversione
-    NoteConversion(combined_note_path) # deve prendere la nota combinata dal build
+    NoteConversion(os.path.basename(combined_note_path)) # deve prendere la nota combinata dal build
 
 def AddStartNewNote(note_path):
     """
@@ -753,6 +773,8 @@ def NoteConversion(combined_note_path):
         
     note_name = combined_note_path
     path_note = os.path.basename(note_name)
+    print(f"mi trovo in {os.getcwd()}")
+    print(f"Path nota: {note_name}")
     
     # Comando per la conversione
     if not service_flag:
@@ -768,10 +790,23 @@ def NoteConversion(combined_note_path):
 def main():
     # Entro nella cartella build prima di eseguire il comando
     # Crea la directory di output se non esiste
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR)
-
-    os.chdir(MAKE_DIR)
+    vault_path = Path(os.path.join(SCRIPT_DIR, "..", "vault")).resolve()
+    bank_path = Path(os.path.join(SCRIPT_DIR, "..", "bank")).resolve()
+    collab_path = Path(os.path.join(bank_path, COLLAB_FILE)).resolve()
+    
+    global MAKE_DIR
+    global OUTPUT_DIR
+    
+    if not os.path.exists(collab_path):
+        if os.path.exists(vault_path):
+            os.makedirs(OUTPUT_DIR) # Entra nella cartella di build solo se esiste e se non é una banca dati
+            os.chdir(MAKE_DIR)
+    else:
+        # Aggiorno i path nel caso ci si trovi in una banca dati
+        build_dir = Path(os.path.join(bank_path, "build")).resolve()
+        OUTPUT_DIR = build_dir
+        MAKE_DIR = OUTPUT_DIR
+    
     global custom
     
     # Creazione del parser
