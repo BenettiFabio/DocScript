@@ -321,9 +321,6 @@ def get_files_for_argument_from_root(argomento):
             if file.endswith(".md") and pattern.match(file):
                 full_path = os.path.join(root, file)
                 matched_files.append(full_path)
-                
-    print(matched_files)
-    sys.exit(1)
     
     return matched_files
 
