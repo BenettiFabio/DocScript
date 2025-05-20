@@ -151,6 +151,40 @@ Es: inserimento di un pdf "srotolato" direttamente all'interno delle note
 
 Ovunque ci si trovi é possibile richiamare il `make.py` e questo genererá le note.pdf con le opzioni specificate, usare `-h` o `--help` per avere maggiori informazioni di funzionamento.
 
+- Iniziare generando un vault con `-i` Verranno generati file e cartelle in cui lavorare
+
+- inserire nuove note e nuovi argomenti dentro il vault mediante `-s`
+
+- convertire note, gruppi di note o l'intero vault con rispettivamente `-n` `-g` e `-a`
+
+# Build di un documento con collaboratori
+
+- Nel caso si inizializzi una banca dati con `-ib` (vedi help per altre info), verrá creato un file `collaborator.md` in questo file é possibile andare a specificare i nomi dei collaboratori e i link ai loro `main.md` dei rispettivi vault inizializzati normalmente con `-i`.
+
+- Successivamente lanciando un `-u` verranno letti i singoli `main.md` creando un main complessivo.
+
+- Una volta completato si conoscono tutte le note di tutti i collaboratori ed é possibile effettuare una nota `custom.md` andando a scrivere la o le note degli specifici collaboratori nell'ordine in cui si vogliono ad esempio, anche ripetendoli nel caso si vogliano in un ordine specifico:
+
+  ```md
+  ## Pippo
+
+  - [nota 1](link/alla/nota/1.md)
+  - [nota 2](link/alla/nota/2.md)
+
+  ## Paperino
+
+  - [nota 3](link/alla/nota/3.md)
+  - [nota 4](link/alla/nota/4.md)
+
+  ## Pippo
+
+  - [nota 5](link/alla/nota/5.md)
+  ```
+
+- lanciando poi `-c` verrá convertita come di consueto.
+
+<span style="color: orange;">NOTA:</span> convertendo una nota in questo modo vengono copiate la nota di partenza e tutti gli asset (dei collaboratori specificati nel `custom.md`) nella cartella `C:\Users\<User>\Documents\DocuBank` e vengono immediatamente cancellati dopo la conversione per liberare spazio. Questo implica di avere spazio a disposizione quando si effettua una conversione.
+
 ## Eseguire il make python
 
 É un eseguibile che indipendentemente da dove ci si trova quando viene lanciato si entra nel progetto, e genera dentro la cartella `vault/build` l'output generato.
@@ -160,6 +194,7 @@ Ovunque ci si trovi é possibile richiamare il `make.py` e questo genererá le n
 \scripts\make.py -h
 # inizializzazione repo
 \scripts\make.py -i
+\scripts\make.py -ib
 # aggiunta di una nota md
 \scripts\make.py -s nome-macro-argomento/nome-nuova-nota.md
 # generazione di pdf

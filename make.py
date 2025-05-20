@@ -4,22 +4,73 @@ import re
 import sys
 import shutil
 from pathlib import Path
+import time
+import stat
+import pyfiglet
 
 ## DEFINES ##
 NOTE_PATH = None
 OUTPUT_PATH = None
 TEMPORARY_DIR = "rusco"  # Macro per la cartella temporanea
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # Directory dello script
-TEMPLATE = os.path.join(SCRIPT_DIR, "conversion-template.tex")
-LUA_FILTER = os.path.join(SCRIPT_DIR, "graphic-template.lua")
-MAKE_DIR = os.path.join(SCRIPT_DIR, "..", "vault", "build")
-OUTPUT_DIR = MAKE_DIR
+TEMPLATE_NAME = "conversion-template.tex"  # Nome del template
+LUA_FILTER_NAME = "graphic-template.lua"  # Nome del filtro Lua
 COLLAB_FILE = "collaborator.md"
+COMBINED_FILE_NAME = "combined_notes.md"
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # Directory dello script
+TEMPLATE = Path(os.path.join(SCRIPT_DIR, TEMPLATE_NAME)).resolve()
+LUA_FILTER = Path(os.path.join(SCRIPT_DIR, LUA_FILTER_NAME)).resolve()
+MAKE_DIR = Path(os.path.join(SCRIPT_DIR, "..", "vault", "build")).resolve()
+OUTPUT_DIR = MAKE_DIR
+HOME_DIR = Path.home()
+APPLICATION_DIR = Path(os.path.join(HOME_DIR, "Documents", "DocuBank")).resolve()
 
 service_flag = False # variabile per gestire varianti della stessa funzione nel comportamento normale o di servizio
 custom = False # variabile per gestire la conversione di un file custom.md
+is_bank = False
 
 ## FUNCTIONS ##
+def remove_readonly(func, path, excinfo):
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
+    
+def CopyAssets(output_dir, collaborators):
+    """
+    Copia il contenuto delle cartelle assets di tutti i collaboratori dentro output_dir.
+    Se due collaboratori hanno cartelle di argomento con lo stesso nome, unisce i contenuti.
+    Le sottocartelle (es: imgs, pdfs) vengono unite, non sovrascritte.
+    """
+    for name, main_md_path in collaborators.items():
+        collab_assets_dir = os.path.join(os.path.dirname(main_md_path), "assets")
+        if os.path.exists(collab_assets_dir):
+            for root, dirs, files in os.walk(collab_assets_dir):
+                # Calcola il path relativo rispetto alla cartella assets del collaboratore
+                rel_path = os.path.relpath(root, collab_assets_dir)
+                dest_dir = os.path.join(output_dir, rel_path) if rel_path != "." else output_dir
+                if not os.path.exists(dest_dir):
+                    os.makedirs(dest_dir)
+                for file in files:
+                    src_file = os.path.join(root, file)
+                    dest_file = os.path.join(dest_dir, file)
+                    shutil.copy2(src_file, dest_file)
+            print(f"Assets copiati per {name} in {output_dir}")
+        else:
+            print(f"Attenzione: assets non trovati per {name} in {collab_assets_dir}")
+
+def to_unc_slash_path(windows_path: str) -> str:
+    """
+    Converte un path UNC di Windows con backslash (\\server\share\path)
+    in un path UNC compatibile con strumenti esterni (//server/share/path).
+    """
+    path_str = str(windows_path)
+    cleaned = path_str.replace('\\\\?\\', '').replace('\\', '/')
+    if cleaned.startswith('//'):
+        return cleaned
+    elif ':' not in cleaned:  # UNC path senza lettera di unità
+        return '//' + cleaned.lstrip('/')
+    else:
+
+        return cleaned
 def DeleteTempFile(temp_file_path):
     try:
         os.remove(temp_file_path)
@@ -127,10 +178,10 @@ def get_all_files_from_collab_main(custom):
     """
     bank_dir = os.path.join(SCRIPT_DIR, "..", "bank")
     if custom:
-        main_md_path = os.path.join(bank_dir, "custom.md")
+        main_md_path = Path(os.path.join(bank_dir, "custom.md")).resolve()
     else:
-        main_md_path = os.path.join(bank_dir, "main.md")
-    collab_file = os.path.join(bank_dir, COLLAB_FILE)
+        main_md_path = Path(os.path.join(bank_dir, "main.md")).resolve()
+    collab_file = Path(os.path.join(bank_dir, COLLAB_FILE)).resolve()
 
     if not os.path.exists(collab_file):
         print(f"Errore: il file '{collab_file}' non esiste.")
@@ -147,7 +198,7 @@ def get_all_files_from_collab_main(custom):
             line = line.strip()
             if line.startswith("##"):
                 current_name = line[2:].strip()
-            match = re.search(r'\[main\.md\]\((.*?)\)', line)
+            match = re.search(r'\[.*\]\((.*\.md)\)', line)
             if match and current_name:
                 main_md_path_collab = os.path.join(os.path.dirname(cf.name), match.group(1))
                 collaborators[current_name] = main_md_path_collab
@@ -160,11 +211,11 @@ def get_all_files_from_collab_main(custom):
     current_collab = None
     for line in lines:
         line = line.strip()
-        if line.startswith("##"):
+        if line.startswith("##") or line.startswith("#"):
             current_collab = line[2:].strip()
-        elif line.startswith("[") and "]" in line and "(" in line and ")" in line and current_collab:
+        elif re.search(r'\[.*?\]\([^)]+\.md\)', line) and current_collab:
             # Estrai il path relativo della nota
-            note_match = re.search(r'\[.*\]\((.*\.md)\)', line)
+            note_match = re.search(r'\[.*?\]\(([^)]+\.md)\)', line)
             if note_match:
                 note_rel_path = note_match.group(1)
                 # Cerca il main.md del collaboratore
@@ -183,7 +234,7 @@ def get_all_files_from_collab_main(custom):
         print(f"Errore: nessun file trovato in {'custom.md' if custom else 'main.md'}.")
         sys.exit(1)
 
-    return matching_files
+    return matching_files, collaborators
     
 def get_files_for_argument_from_main(argomento):
     """
@@ -273,9 +324,9 @@ def SearchAndCombineNotes(matching_files):
     """
     Combina le note corrispondenti in un unico file .md, rimuovendo l'header specificato.
     """
-    combined_file_path_temp = Path(os.path.join(MAKE_DIR, "combined_notes.md"))
+    combined_file_path_temp = Path(os.path.join(MAKE_DIR, COMBINED_FILE_NAME))
     combined_file_path = combined_file_path_temp.resolve()
-
+    
     # Crea la directory di output se non esiste
     if not os.path.exists(MAKE_DIR):
         os.makedirs(MAKE_DIR)
@@ -300,7 +351,7 @@ def CombineNotes(matching_files):
     """
     Combina le note corrispondenti in un unico file .md, rimuovendo l'header specificato.
     """
-    combined_file_path_temp = Path(os.path.join(MAKE_DIR, "combined_notes.md"))
+    combined_file_path_temp = Path(os.path.join(MAKE_DIR, COMBINED_FILE_NAME))
     combined_file_path = combined_file_path_temp.resolve()
 
     # Crea la directory di output se non esiste
@@ -493,10 +544,10 @@ def InitVault():
 
 def UpdateBank():
     print("Aggiornamento della banca dati collaborativa...")
-    
-    collab_file = os.path.join("..", COLLAB_FILE)
-    main_bank_path = os.path.join("..", "main.md")
-    
+    bank_dir = Path(os.path.join(SCRIPT_DIR, "..", "bank")).resolve()
+    collab_file = os.path.join(bank_dir, COLLAB_FILE)
+    main_bank_path = os.path.join(bank_dir, "main.md")
+    print("mi trovo in ", os.getcwd())
     if not os.path.exists(collab_file):
         print(f"Errore: il file '{collab_file}' non esiste.")
         sys.exit(1)
@@ -513,7 +564,7 @@ def UpdateBank():
         if line.startswith("##"):
             collaborator = line[2:].strip()
         # Cerca link markdown a main.md
-        match = re.search(r'\[main\.md\]\((.*?)\)', line)
+        match = re.search(r'\[.*?\]\((.*?main\.md)\)', line)
         if match:
             main_md_path = os.path.join("..", match.group(1))
             if not os.path.exists(main_md_path):
@@ -586,7 +637,7 @@ def ConversionSingleTikzNote(nota):
     filtered_lines = RemoveHeaderFromFile(NOTE_PATH)
 
     # Scrivi il contenuto filtrato in un file temporaneo
-    temp_file_path = os.path.join(MAKE_DIR, "temp_note.md")
+    temp_file_path = os.path.join(MAKE_DIR, COMBINED_FILE_NAME)
     with open(temp_file_path, "w", encoding="utf-8") as temp_file:
         temp_file.writelines(filtered_lines)
 
@@ -632,7 +683,7 @@ def ConversionSingleNote(nota):
     filtered_lines = RemoveHeaderFromFile(NOTE_PATH)
 
     # Scrivi il contenuto filtrato in un file temporaneo
-    temp_file_path = os.path.join(MAKE_DIR, "temp_note.md")
+    temp_file_path = os.path.join(MAKE_DIR, COMBINED_FILE_NAME)
     with open(temp_file_path, "w", encoding="utf-8") as temp_file:
         temp_file.writelines(filtered_lines)
 
@@ -667,41 +718,94 @@ def ConversionGroupNote(argomento):
     NoteConversion(combined_note_path) # deve prendere la nota combinata dal build
 
 def ConversionAllNote(custom):
+    global OUTPUT_DIR
     bank_dir = os.path.join(SCRIPT_DIR, "..", "bank") 
     collab_file = os.path.join(bank_dir, COLLAB_FILE)
-    is_bank = False
+    global is_bank
     
     if os.path.exists(collab_file):
         is_bank = True
-
-    matching_files_main = []
-    matching_files_root = []
+        
     if not is_bank:
+        """
+        comportamento di default in un vault classico
+        - crea la cartella di build
+        - ci inserisce la nota combinata
+        - la converte nella cartella di build 
+        """
         # Ottieni i file corrispondenti all'argomento
+        matching_files_main = []
+        matching_files_root = []
         matching_files_main = get_all_files_from_main(custom)
         matching_files_root = get_all_files_from_root()
-    else:
-        matching_files_main = get_all_files_from_collab_main(custom)
-
-    if not custom:
-        checkInconsistency(matching_files_main, matching_files_root)
-
-    # Crea la directory di output se non esiste
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR)
-
-    # Verifica che il sistema abbia i prerequisiti necessari alla conversione
-    CheckPreconditions()
-
-    # Crea la nota .md unita
-    if not is_bank:
+        
+        if not custom:
+            checkInconsistency(matching_files_main, matching_files_root)
+            
+        if not os.path.exists(OUTPUT_DIR):
+            os.makedirs(OUTPUT_DIR)
+    
+        os.chdir(OUTPUT_DIR)
+        
+        # Verifica che il sistema abbia i prerequisiti necessari alla conversione
+        CheckPreconditions()
+        
         combined_note_path = CombineNotes(matching_files_main)
-    else:
-        combined_note_path = SearchAndCombineNotes(matching_files_main)
-    # sys.exit(1)
 
+    else:
+        """
+        comportamento in una banca dati collaborativa
+        - crea la cartella di build nei documenti del pc
+        - ci inserisce la nota combinata in Documents/DocuBank/build
+        - ci copia gli assets in in Documents/DocuBank/assets
+        - ci copia i file template e lua_filter in Documents/DocuBank/template
+        """
+        matching_files_main = []
+        matching_files_main, collaborators = get_all_files_from_collab_main(custom)
+        
+        OUTPUT_DIR = Path(os.path.join(APPLICATION_DIR, "build")).resolve()
+        if not os.path.exists(OUTPUT_DIR):
+            os.makedirs(OUTPUT_DIR)
+        
+        os.chdir(OUTPUT_DIR)
+        
+        # No consistency check
+        
+        # Verifica che il sistema abbia i prerequisiti necessari alla conversione
+        CheckPreconditions()
+        
+        combined_note_path = SearchAndCombineNotes(matching_files_main)
+        
+        # Copia la nota combinata nella cartella di build
+        shutil.copy2(combined_note_path, OUTPUT_DIR / combined_note_path.name)
+        
+        # Copia gli assets nella cartella di build
+        assets_dir = Path(os.path.join(APPLICATION_DIR, "assets")).resolve()
+        CopyAssets(assets_dir, collaborators)
+        
+        # Copia dei template e lua_filter
+        template_dir = Path(os.path.join(APPLICATION_DIR, "templates")).resolve()
+        template_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(TEMPLATE, template_dir / TEMPLATE_NAME)
+        shutil.copy2(LUA_FILTER, template_dir / LUA_FILTER_NAME)
+        
     # Se arrivato qui allora può eseguire la conversione
-    NoteConversion(combined_note_path) # deve prendere la nota combinata dal build
+    NoteConversion(os.path.basename(combined_note_path)) # deve prendere la nota combinata dal build
+    
+    if is_bank:
+        # Copia l'output nella cartella di build della banca dati
+        MAKE_DIR.mkdir(parents=True, exist_ok=True)
+        out_name = Path(OUTPUT_PATH).name
+        shutil.copy2(Path(os.path.join(APPLICATION_DIR, "build", out_name)).resolve(), Path(MAKE_DIR).resolve())
+        
+        # Cancella la cartella di build temporanea
+        
+        for _ in range(3):
+            try:
+                shutil.rmtree(APPLICATION_DIR, onerror=remove_readonly)
+                break
+            except Exception as e:
+                time.sleep(1)
 
 def AddStartNewNote(note_path):
     """
@@ -754,11 +858,27 @@ def NoteConversion(combined_note_path):
     note_name = combined_note_path
     path_note = os.path.basename(note_name)
     
+    if is_bank:
+        
+        # - esegui il comando pandoc in locale da quella cartella temponanea
+        # - sposta l'output dalla build temp a quella effettiva di rete da cui é stato lanciato il comando
+        # - elimina la cartella temporanea locale
+        
+        path_note = Path(os.path.join(APPLICATION_DIR, "build", COMBINED_FILE_NAME)).resolve()
+        out_path = Path(os.path.join(APPLICATION_DIR, "build", Path(OUTPUT_PATH).name)).resolve()
+        template = Path(os.path.join(APPLICATION_DIR, "templates", TEMPLATE_NAME)).resolve()
+        lua_filter = Path(os.path.join(APPLICATION_DIR, "templates", LUA_FILTER_NAME)).resolve()
+    else:
+        # Altrimenti converto normalmente nella cartella di build in quanto sono giá offline
+        out_path = OUTPUT_PATH
+        template = TEMPLATE
+        lua_filter = LUA_FILTER
+    
     # Comando per la conversione
     if not service_flag:
-        command = f"pandoc \"{path_note}\" -o \"{OUTPUT_PATH}\" --toc --toc-depth=3 --template=\"{TEMPLATE}\" --lua-filter=\"{LUA_FILTER}\" --listings --pdf-engine=xelatex"
+        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --toc --toc-depth=3 --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
     else:
-        command = f"pandoc \"{path_note}\" -o \"{OUTPUT_PATH}\" --template=\"{TEMPLATE}\" --lua-filter=\"{LUA_FILTER}\" --listings --pdf-engine=xelatex"
+        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
     
     # Esegui il comando
     print(f"Eseguo il comando: {command}")
@@ -768,10 +888,23 @@ def NoteConversion(combined_note_path):
 def main():
     # Entro nella cartella build prima di eseguire il comando
     # Crea la directory di output se non esiste
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR)
-
-    os.chdir(MAKE_DIR)
+    vault_path = Path(os.path.join(SCRIPT_DIR, "..", "vault")).resolve()
+    bank_path = Path(os.path.join(SCRIPT_DIR, "..", "bank")).resolve()
+    collab_path = Path(os.path.join(bank_path, COLLAB_FILE)).resolve()
+    
+    global MAKE_DIR
+    global OUTPUT_DIR
+    
+    if not os.path.exists(collab_path):
+        if not os.path.exists(vault_path):
+            os.makedirs(OUTPUT_DIR) # Entra nella cartella di build solo se esiste e se non é una banca dati
+        os.chdir(MAKE_DIR)
+    else:
+        # Aggiorno i path nel caso ci si trovi in una banca dati
+        build_dir = Path(os.path.join(bank_path, "build")).resolve()
+        OUTPUT_DIR = build_dir
+        MAKE_DIR = OUTPUT_DIR
+    
     global custom
     
     # Creazione del parser
@@ -864,6 +997,7 @@ def main():
         
     else:
         print("Errore: nessuna opzione valida selezionata.")
+        print(pyfiglet.figlet_format("DocuBank", font="slant"))
         parser.print_help()
 
 if __name__ == "__main__":
