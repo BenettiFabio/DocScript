@@ -7,6 +7,7 @@ from pathlib import Path
 import time
 import stat
 import pyfiglet
+import win32net # need pywin32
 
 ## DEFINES ##
 NOTE_PATH = None
@@ -41,7 +42,7 @@ def remove_readonly(func, path, excinfo):
     os.chmod(path, stat.S_IWRITE)
     func(path)
     
-def CopyAssets(output_dir, collaborators):
+def CopyAssets(output_dir, collaborators):    
     """
     Copia il contenuto delle cartelle assets di tutti i collaboratori dentro output_dir.
     Se due collaboratori hanno cartelle di argomento con lo stesso nome, unisce i contenuti.
@@ -67,17 +68,35 @@ def CopyAssets(output_dir, collaborators):
 def to_unc_slash_path(windows_path: str) -> str:
     """
     Converte un path UNC di Windows con backslash (\\server\share\path)
-    in un path UNC compatibile con strumenti esterni (//server/share/path).
+    in un path UNC compatibile con strumenti esterni come pandoc (//server/share/path).
     """
-    path_str = str(windows_path)
-    cleaned = path_str.replace('\\\\?\\', '').replace('\\', '/')
-    if cleaned.startswith('//'):
-        return cleaned
-    elif ':' not in cleaned:  # UNC path senza lettera di unità
-        return '//' + cleaned.lstrip('/')
-    else:
+    
+    # Se inizia con \\ è un UNC path → rete
+    if windows_path.startswith('\\\\'):
+        # Rimuove eventuale prefisso \\?\ (che può apparire nei path Windows "lunghi")
+        path_str = windows_path.replace('\\\\?\\', '')
+        
+        # trova tutti i drive di rete
+        mapped_drives = []
+        try:
+            # Ottiene tutte le connessioni di rete mappate
+            entries, _, _ = win32net.NetUseEnum(None, 1)
+            for entry in entries:
+                local = entry['local']
+                remote = entry['remote']
+                if local:  # Se ha una lettera di drive (es. Z:)
+                    mapped_drives.append((local, remote))
 
-        return cleaned
+            for local, remote in mapped_drives:
+                print(f"{local} -> {remote}")
+                
+        except Exception as e:
+            print("Errore:", e)
+            
+        return windows_path # bypass
+    else:
+        return windows_path
+
 def DeleteTempFile(temp_file_path):
     try:
         os.remove(temp_file_path)
@@ -870,9 +889,10 @@ def NoteConversion(combined_note_path):
         lua_filter = Path(os.path.join(APPLICATION_DIR, "templates", LUA_FILTER_NAME)).resolve()
     else:
         # Altrimenti converto normalmente nella cartella di build in quanto sono giá offline
-        out_path = OUTPUT_PATH
-        template = TEMPLATE
-        lua_filter = LUA_FILTER
+        path_note = Path(to_unc_slash_path(str(path_note))).resolve()
+        out_path = Path(to_unc_slash_path(str(OUTPUT_PATH))).resolve()
+        template = Path(to_unc_slash_path(str(TEMPLATE))).resolve()
+        lua_filter = Path(to_unc_slash_path(str(LUA_FILTER))).resolve()
     
     # Comando per la conversione
     if not service_flag:
