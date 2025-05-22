@@ -67,10 +67,9 @@ def CopyAssets(output_dir, collaborators):
 
 def to_unc_slash_path(windows_path: str) -> str:
     """
-    Converte un path UNC di Windows con backslash (\\server\share\path)
+    Converte un path UNC di Windows con backslash (\\\\server\\share\\path)
     in un path UNC compatibile con strumenti esterni come pandoc (//server/share/path).
     """
-    
     # Se inizia con \\ è un UNC path → rete
     if windows_path.startswith('\\\\'):
         # Rimuove eventuale prefisso \\?\ (che può apparire nei path Windows "lunghi")

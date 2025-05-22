@@ -60,7 +60,7 @@ Consiglio: genera un repo vuoto, e iniserisci questo repo come un sottomodulo gi
 
 4. **DocScripts:** Questo sottomodulo contiene tutti gli script e le automazioni che possono essere eseguiti nel progetto. in modo da aggiungere pagine standardizzate, comandi di conversione da `.md` a `.pdf` o `tex` con `pandoc` in modo semplice mediante il `make.py`.
 
-5. **./vault/rusco:** É una cartella temporanea in questo modo quando si converte l'intero repo con il comando `-a` queste note vengono escluse dal check di consistenza in modo che si possano fare note temporanee senza preoccuparsi di inserire le `main.md`.
+5. **./vault/rusco:** É una cartella temporanea in questo modo quando si converte l'intero repo con il comando `-a` queste note vengono escluse dal check di consistenza in modo che si possano fare note temporanee senza preoccuparsi di inserirle nel `main.md`.
 
 # Dipendenze utili VSCode
 
@@ -71,7 +71,7 @@ Consiglio: genera un repo vuoto, e iniserisci questo repo come un sottomodulo gi
    - usa il comando: `Markdown TOC: Insert TOC`
    - usa il comando: `Markdown TOC: Update TOC`
 
-2. **Markdown Preview Enhanced:** Questa serve ad utilizzare componenti di CSS e HTML direttamente nelle note, in questo modo è possibile vedere in preview parole colorate e indentate direttamente sull'editor e non conflitta con `pandoc` durante eventuali conversioni. Permette di sfruttare lo schema colori presente in "Legenda dei colori"
+2. **Markdown Preview Enhanced:** Questa serve ad utilizzare componenti di CSS e HTML direttamente nelle note, in questo modo è possibile vedere in preview parole colorate e indentate direttamente sull'editor e non conflitta con `pandoc` durante eventuali conversioni. Permette di sfruttare lo schema colori presente in "Legenda di aiuto alla coerenza"
 
 3. **Markdown Preview Mermaid Support:** Usare il mermaid per creare grafici, i file .md devono chiamarsi con lo stesso nome dell'immagine che andranno a generare e saranno nella cartella vault/assets/macro-argomento/mermaid/.
 
