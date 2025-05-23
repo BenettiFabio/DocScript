@@ -7,7 +7,8 @@ from pathlib import Path
 import time
 import stat
 import pyfiglet
-import win32net # need pywin32
+# import win32net # need pywin32
+import subprocess
 
 ## DEFINES ##
 NOTE_PATH = None
@@ -75,23 +76,45 @@ def to_unc_slash_path(windows_path: str) -> str:
         # Rimuove eventuale prefisso \\?\ (che può apparire nei path Windows "lunghi")
         path_str = windows_path.replace('\\\\?\\', '')
         
-        # trova tutti i drive di rete
-        mapped_drives = []
-        try:
-            # Ottiene tutte le connessioni di rete mappate
-            entries, _, _ = win32net.NetUseEnum(None, 1)
-            for entry in entries:
-                local = entry['local']
-                remote = entry['remote']
-                if local:  # Se ha una lettera di drive (es. Z:)
-                    mapped_drives.append((local, remote))
+        
+        # ottengo tutti i drivedi rete inseriti nel sistema
+        result = subprocess.run("net use", capture_output=True, text=True, shell=True)
+        lines = result.stdout.splitlines()
+        mapped_drives = {}
+        
+        for line in lines:
+            parts = line.strip().split()
+            if len(parts) >= 2 and parts[0].endswith(":") and parts[1].startswith("\\\\"):
+                drive_letter = parts[0]
+                unc_path = parts[1]
+                mapped_drives[drive_letter] = unc_path
+        
+        # for drive, unc_path in mapped_drives.items():
+        #     print(f"{drive} -> {unc_path}")
+        
+        # Normalizza il path
+        full_path = str(Path(path_str).resolve())
+        normalized_path = full_path.replace("\\", "/")
 
-            for local, remote in mapped_drives:
-                print(f"{local} -> {remote}")
-                
-        except Exception as e:
-            print("Errore:", e)
+        # Prova a sostituire con lettera di drive, se matcha
+        for drive, unc in sorted(mapped_drives.items(), key=lambda x: len(x[1]), reverse=True):
+            unc_norm = unc.replace("\\", "/")
+            unc_parts = unc_norm.strip("/").split("/")
+            full_parts = normalized_path.strip("/").split("/")
             
+            try:
+                # Trova la prima cartella condivisa
+                idx = full_parts.index(unc_parts[-1])
+
+                # Costruisci il path a partire dalla prima cartella trovata
+                relative_parts = full_parts[idx + 1:]
+                final_path = str(Path(drive + "/") / Path(*relative_parts)).replace("\\", "/")
+                print(f"Match parziale trovato: {final_path}")
+                return final_path
+            except ValueError:
+                continue  # La cartella finale non è nel path completo, prova con il prossimo
+
+        # Se non trovato, restituisco il path originale
         return windows_path # bypass
     else:
         return windows_path
@@ -569,7 +592,6 @@ def UpdateBank():
     bank_dir = Path(os.path.join(SCRIPT_DIR, "..", "bank")).resolve()
     collab_file = os.path.join(bank_dir, COLLAB_FILE)
     main_bank_path = os.path.join(bank_dir, "main.md")
-    print("mi trovo in ", os.getcwd())
     if not os.path.exists(collab_file):
         print(f"Errore: il file '{collab_file}' non esiste.")
         sys.exit(1)
@@ -695,8 +717,8 @@ def ConversionSingleNote(nota):
         sys.exit(1)
 
     # Crea la directory di output se non esiste
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR)
+    if not os.path.exists(Path(to_unc_slash_path(str(OUTPUT_DIR)))):
+        os.makedirs(Path(to_unc_slash_path(str(OUTPUT_DIR))))
     
     # Verifica che il sistema abbia i requisiti necessari alla conversione    
     CheckPreconditions()
@@ -706,6 +728,7 @@ def ConversionSingleNote(nota):
 
     # Scrivi il contenuto filtrato in un file temporaneo
     temp_file_path = os.path.join(MAKE_DIR, COMBINED_FILE_NAME)
+    temp_file_path = Path(to_unc_slash_path(str(temp_file_path)))
     with open(temp_file_path, "w", encoding="utf-8") as temp_file:
         temp_file.writelines(filtered_lines)
 
@@ -875,9 +898,6 @@ def AddStartNewNote(note_path):
         sys.exit(1)
 
 def NoteConversion(combined_note_path):
-        
-    note_name = combined_note_path
-    path_note = os.path.basename(note_name)
     
     if is_bank:
         # - esegui il comando pandoc in locale da quella cartella temponanea
@@ -888,10 +908,10 @@ def NoteConversion(combined_note_path):
         lua_filter = Path(os.path.join(APPLICATION_DIR, "templates", LUA_FILTER_NAME)).resolve()
     else:
         # Altrimenti converto normalmente nella cartella di build in quanto sono giá offline
-        path_note = Path(to_unc_slash_path(str(path_note))).resolve()
-        out_path = Path(to_unc_slash_path(str(OUTPUT_PATH))).resolve()
-        template = Path(to_unc_slash_path(str(TEMPLATE))).resolve()
-        lua_filter = Path(to_unc_slash_path(str(LUA_FILTER))).resolve()
+        path_note = Path(to_unc_slash_path(str(combined_note_path)))
+        out_path = Path(to_unc_slash_path(str(OUTPUT_PATH)))
+        template = Path(to_unc_slash_path(str(TEMPLATE)))
+        lua_filter = Path(to_unc_slash_path(str(LUA_FILTER)))
     
     # Comando per la conversione
     if not service_flag:
