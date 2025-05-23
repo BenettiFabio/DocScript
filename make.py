@@ -39,6 +39,22 @@ custom = False # variabile per gestire la conversione di un file custom.md
 is_bank = False
 
 ## FUNCTIONS ##
+def convert_link_to_absolute(markdown_text, base_path):
+    """
+    Converte i link relativi Markdown in link assoluti mantenendo la sintassi Markdown.
+    """
+    base_path = Path(base_path).parent.resolve()
+
+    def replacer(match):
+        label = match.group(1)
+        rel_path = match.group(2)
+        abs_path = (base_path / rel_path).resolve()
+        return f"[{label}]({abs_path})"
+
+    # Match Markdown links come [text](relative/path.md)
+    pattern = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+    return pattern.sub(replacer, markdown_text).replace("\\", "/")
+
 def remove_readonly(func, path, excinfo):
     os.chmod(path, stat.S_IWRITE)
     func(path)
@@ -612,7 +628,7 @@ def UpdateBank():
         match = re.search(r'\[.*?\]\((.*?main\.md)\)', line)
         if match:
             main_md_path = os.path.join("..", match.group(1))
-            if not os.path.exists(main_md_path):
+            if not os.path.exists(Path(to_unc_slash_path(str(main_md_path)))):
                 errors.append(f"Collaboratore '{collaborator}': main.md non trovato in '{main_md_path}'")
             else:
                 print(f"Collaboratore '{collaborator}': main.md trovato in '{main_md_path}'")
@@ -640,8 +656,9 @@ def UpdateBank():
                     # Trasforma i sottotitoli ## in ###
                     if line.startswith("##"):
                         line = "#" + line
-                    # Altrimenti copia semplcicemente il contenuto
-                    out.write(line)
+                    # Altrimenti copia semplcicemente il contenuto aggiungendo il path del collaboratore
+                    newline = convert_link_to_absolute(line, main_md_path)
+                    out.write(newline)
                 out.write("\n")
     print(f"main.md complessivo aggiornato in {main_bank_path}")
 
@@ -966,15 +983,18 @@ def main():
     global MAKE_DIR
     global OUTPUT_DIR
     
-    if not os.path.exists(collab_path):
-        if not os.path.exists(vault_path):
-            os.makedirs(OUTPUT_DIR) # Entra nella cartella di build solo se esiste e se non é una banca dati
-        os.chdir(MAKE_DIR)
+    if not os.path.exists(bank_path) and os.path.exists(vault_path):
+        print("Il sistema non é inizializzato")
     else:
-        # Aggiorno i path nel caso ci si trovi in una banca dati
-        build_dir = Path(os.path.join(bank_path, "build")).resolve()
-        OUTPUT_DIR = build_dir
-        MAKE_DIR = OUTPUT_DIR
+        if not os.path.exists(collab_path):
+            if not os.path.exists(vault_path):
+                os.makedirs(OUTPUT_DIR) # Entra nella cartella di build solo se esiste e se non é una banca dati
+            os.chdir(MAKE_DIR)
+        else:
+            # Aggiorno i path nel caso ci si trovi in una banca dati
+            build_dir = Path(os.path.join(bank_path, "build")).resolve()
+            OUTPUT_DIR = build_dir
+            MAKE_DIR = OUTPUT_DIR
     
     global custom
     
