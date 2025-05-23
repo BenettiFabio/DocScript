@@ -66,16 +66,21 @@ def CopyAssets(output_dir, collaborators):
         else:
             print(f"Attenzione: assets non trovati per {name} in {collab_assets_dir}")
 
+def isNetworkPath():
+    here = os.getcwd()
+    return here.startswith('\\\\')   
+
 def to_unc_slash_path(windows_path: str) -> str:
     """
     Converte un path UNC di Windows con backslash (\\\\server\\share\\path)
     in un path UNC compatibile con strumenti esterni come pandoc (//server/share/path).
     """
+    
     # Se inizia con \\ è un UNC path → rete
     if windows_path.startswith('\\\\'):
+        
         # Rimuove eventuale prefisso \\?\ (che può apparire nei path Windows "lunghi")
         path_str = windows_path.replace('\\\\?\\', '')
-        
         
         # ottengo tutti i drivedi rete inseriti nel sistema
         result = subprocess.run("net use", capture_output=True, text=True, shell=True)
@@ -88,9 +93,6 @@ def to_unc_slash_path(windows_path: str) -> str:
                 drive_letter = parts[0]
                 unc_path = parts[1]
                 mapped_drives[drive_letter] = unc_path
-        
-        # for drive, unc_path in mapped_drives.items():
-        #     print(f"{drive} -> {unc_path}")
         
         # Normalizza il path
         full_path = str(Path(path_str).resolve())
@@ -109,7 +111,6 @@ def to_unc_slash_path(windows_path: str) -> str:
                 # Costruisci il path a partire dalla prima cartella trovata
                 relative_parts = full_parts[idx + 1:]
                 final_path = str(Path(drive + "/") / Path(*relative_parts)).replace("\\", "/")
-                print(f"Match parziale trovato: {final_path}")
                 return final_path
             except ValueError:
                 continue  # La cartella finale non è nel path completo, prova con il prossimo
@@ -912,16 +913,47 @@ def NoteConversion(combined_note_path):
         out_path = Path(to_unc_slash_path(str(OUTPUT_PATH)))
         template = Path(to_unc_slash_path(str(TEMPLATE)))
         lua_filter = Path(to_unc_slash_path(str(LUA_FILTER)))
-    
-    # Comando per la conversione
-    if not service_flag:
-        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --toc --toc-depth=3 --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
+        
+    if isNetworkPath():
+        # Eseguo prima la conversione in tex con pandoc
+        out_path = out_path.with_suffix(".tex")
+        if not service_flag:
+            command = f"pandoc \"{path_note}\" -o \"{out_path}\" --toc --toc-depth=3 --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
+        else:
+            command = f"pandoc \"{path_note}\" -o \"{out_path}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
+        
+        print(f"Eseguo il comando: {command}")
+        os.system(command)
+        
+        # Eseguo poi la conversione in pdf con latexmk
+        subprocess.run(
+            ["latexmk", "-xelatex", out_path.name],
+            cwd=out_path.parent,
+            shell=True
+        )
+        
+        # Pulizia della cartella di build
+        path = Path(out_path)
+        folder = path.parent
+        filename = path.stem  # es. 'file' da 'file.pdf'
+        allowed = {f"{filename}.pdf", f"{filename}.tex"}
+
+        for item in folder.iterdir():
+            if item.is_file() and item.name.startswith(filename) and item.name not in allowed:
+                print(f"Rimuovo: {item}")
+                item.unlink()  # Cancella il file
+        
     else:
-        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
-    
-    # Esegui il comando
-    print(f"Eseguo il comando: {command}")
-    os.system(command)
+        # Comando per la conversione pulita con pandoc
+        if not service_flag:
+            command = f"pandoc \"{path_note}\" -o \"{out_path}\" --toc --toc-depth=3 --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
+        else:
+            command = f"pandoc \"{path_note}\" -o \"{out_path}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
+        
+        # Esegui il comando
+        print(f"Eseguo il comando: {command}")
+        os.system(command)
+
 
 ## MAIN FUNCTION ##
 def main():
