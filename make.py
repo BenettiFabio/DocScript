@@ -84,7 +84,7 @@ def CopyAssets(output_dir, collaborators):
 
 def isNetworkPath():
     here = os.getcwd()
-    return here.startswith('\\\\')   
+    return (here.startswith('\\\\') or not here.startswith('C:')) 
 
 def to_unc_slash_path(windows_path: str) -> str:
     """
@@ -198,11 +198,12 @@ def get_all_files_from_main(custom):
     Legge il file main.md (o custom.md) e restituisce una lista di tutti i file .md referenziati.
     """
     # Percorso del file main.md o custom.md
-    main_md_path = None
+    main_md_path = Path(to_unc_slash_path(str(Path(os.path.join(SCRIPT_DIR, "..", "vault")).resolve())))
+    print(main_md_path)
     if (custom):
-        main_md_path = os.path.join("..", "custom.md")
+        main_md_path = os.path.join(main_md_path, "custom.md")
     else:
-        main_md_path = os.path.join("..", "main.md")
+        main_md_path = os.path.join(main_md_path, "main.md")
 
     # Controlla se il file main.md esiste
     if not os.path.exists(main_md_path):
@@ -306,7 +307,7 @@ def get_files_for_argument_from_main(argomento):
     Legge il file main.md e restituisce una lista di file che corrispondono all'argomento specificato.
     """
     # Percorso del file main.md
-    main_md_path = os.path.join("..", "main.md")
+    main_md_path = Path(to_unc_slash_path(str(Path(os.path.join(SCRIPT_DIR, "..", "vault", "main.md")).resolve())))
 
     # Controlla se il file main.md esiste
     if not os.path.exists(main_md_path):
@@ -342,7 +343,7 @@ def get_all_files_from_root():
     Legge tutti i file nel vault e restituisce una lista di tutti i file .md.
     """
     # Percorso del file main.md
-    root_vault_path = os.path.join("..")
+    root_vault_path = Path(to_unc_slash_path(str(Path(os.path.join(SCRIPT_DIR, "..", "vault")).resolve())))
     matched_files = []
 
     for root, dirs, files in os.walk(root_vault_path):
@@ -444,16 +445,21 @@ def checkInconsistency(matching_files_main, matching_files_root):
     """
     # Filtra i file per escludere quelli nella cartella temporanea
     filtered_matching_files_root = [
-        path for path in matching_files_root
-        if not path.startswith(f"{TEMPORARY_DIR}/") and not os.path.basename(path).startswith("main.rusco.")
+        Path(path).name for path in matching_files_root
+        if not path.startswith(f"{TEMPORARY_DIR}/") and not Path(path).name.startswith("main.rusco.")
     ]
 
     normalized_actual_list = [
-        os.path.relpath(path, os.path.join("..")).replace("\\", "/")
-        for path in filtered_matching_files_root
+        # os.path.relpath(path, os.path.join("..")).replace("\\", "/")
+        Path(path).name for path in filtered_matching_files_root
     ]
     
-    main_set = set(matching_files_main)
+    normalized_main_list = [
+        # os.path.relpath(path, os.path.join("..")).replace("\\", "/")
+        Path(path).name for path in matching_files_main
+    ]
+    
+    main_set = set(normalized_main_list)
     actual_set = set(normalized_actual_list)
 
     missing_in_main = actual_set - main_set
@@ -808,7 +814,7 @@ def ConversionAllNote(custom):
         if not os.path.exists(OUTPUT_DIR):
             os.makedirs(OUTPUT_DIR)
     
-        os.chdir(OUTPUT_DIR)
+        os.chdir(Path(to_unc_slash_path(str(OUTPUT_DIR))))
         
         # Verifica che il sistema abbia i prerequisiti necessari alla conversione
         CheckPreconditions()
