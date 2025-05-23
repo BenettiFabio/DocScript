@@ -388,15 +388,16 @@ def SearchAndCombineNotes(matching_files):
     Combina le note corrispondenti in un unico file .md, rimuovendo l'header specificato.
     """
     combined_file_path_temp = Path(os.path.join(MAKE_DIR, COMBINED_FILE_NAME))
-    combined_file_path = combined_file_path_temp.resolve()
+    combined_file_path =  Path(to_unc_slash_path(str(combined_file_path_temp.resolve())))
     
     # Crea la directory di output se non esiste
     if not os.path.exists(MAKE_DIR):
         os.makedirs(MAKE_DIR)
 
+    vault_dir = Path(to_unc_slash_path(str(Path(os.path.join(SCRIPT_DIR, "..", "vault")).resolve())))
     with open(combined_file_path, "w", encoding="utf-8") as combined_md_file:
         for file in matching_files:
-            file_path = os.path.join("..", file)
+            file_path = os.path.join(vault_dir, file)
             if os.path.exists(file_path):
                 # Ottieni il contenuto senza header
                 filtered_lines = RemoveHeaderFromFile(file_path)
@@ -415,15 +416,17 @@ def CombineNotes(matching_files):
     Combina le note corrispondenti in un unico file .md, rimuovendo l'header specificato.
     """
     combined_file_path_temp = Path(os.path.join(MAKE_DIR, COMBINED_FILE_NAME))
-    combined_file_path = combined_file_path_temp.resolve()
+    combined_file_path = Path(to_unc_slash_path(str(combined_file_path_temp.resolve())))
 
     # Crea la directory di output se non esiste
     if not os.path.exists(MAKE_DIR):
         os.makedirs(MAKE_DIR)
 
+    vault_dir = Path(to_unc_slash_path(str(Path(os.path.join(SCRIPT_DIR, "..", "vault")).resolve())))
+    
     with open(combined_file_path, "w", encoding="utf-8") as combined_md_file:
         for file in matching_files:
-            file_path = os.path.join("..", file)
+            file_path = os.path.join(vault_dir, file)
             if os.path.exists(file_path):
                 # Ottieni il contenuto senza header
                 filtered_lines = RemoveHeaderFromFile(file_path)
