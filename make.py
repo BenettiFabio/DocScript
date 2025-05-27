@@ -902,11 +902,8 @@ def AddStartNewNote(note_path):
     # Verifica che il macro-argomento esista
     macro_argomento_dir = Path(to_unc_slash_path(str(Path(os.path.join(vault_path, note_path.split("/")[0])).resolve())))
     print(macro_argomento_dir)
-    if not os.path.exists(macro_argomento_dir):
-        if not os.path.isdir(macro_argomento_dir):
-            print(f"Errore: il macro-argomento '{note_path.split('/')[0]}' non esiste. Crealo manualmente prima di aggiungere note.")
-            sys.exit(1)
-        print(f"Errore: il macro-argomento '{note_path.split('/')[0]}' non esiste. ciao.")
+    if not os.path.exists(macro_argomento_dir) or not os.path.isdir(macro_argomento_dir):
+        print(f"Errore: il macro-argomento '{note_path.split('/')[0]}' non esiste. Crealo manualmente prima di aggiungere note.")
         sys.exit(1)
         
     # Verifica che il nome della nota sia valido
