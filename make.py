@@ -911,7 +911,7 @@ def AddStartNewNote(note_path):
         
     # Verifica che il nome della nota sia valido
     note_name = os.path.basename(note_path)
-    if not re.match(rf"^main\.{note_path.split('/')[0]}\..*\.md$", note_name):
+    if not re.match(rf"^main\.{note_path.split('/')[0]}(?:\..+)?\.md$", note_name):
         print(f"Errore: il nome della nota '{note_name}' non è valido. Deve iniziare con 'main.macro-argomento1.' e terminare con '.md'.")
         sys.exit(1)
 
