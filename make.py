@@ -98,7 +98,7 @@ def to_unc_slash_path(windows_path: str) -> str:
         # Rimuove eventuale prefisso \\?\ (che può apparire nei path Windows "lunghi")
         path_str = windows_path.replace('\\\\?\\', '')
         
-        # ottengo tutti i drivedi rete inseriti nel sistema
+        # ottengo tutti i drive di rete inseriti nel sistema
         result = subprocess.run("net use", capture_output=True, text=True, shell=True)
         lines = result.stdout.splitlines()
         mapped_drives = {}
@@ -199,7 +199,6 @@ def get_all_files_from_main(custom):
     """
     # Percorso del file main.md o custom.md
     main_md_path = Path(to_unc_slash_path(str(Path(os.path.join(SCRIPT_DIR, "..", "vault")).resolve())))
-    print(main_md_path)
     if (custom):
         main_md_path = os.path.join(main_md_path, "custom.md")
     else:
@@ -242,7 +241,7 @@ def get_all_files_from_collab_main(custom):
     Per ogni sezione ## NOME COLLABORATORE prende solo le note elencate sotto quella sezione,
     cerca il path relativo nel main.md del collaboratore e restituisce il path assoluto.
     """
-    bank_dir = os.path.join(SCRIPT_DIR, "..", "bank")
+    bank_dir = Path(to_unc_slash_path(str(os.path.join(SCRIPT_DIR, "..", "bank"))))
     if custom:
         main_md_path = Path(os.path.join(bank_dir, "custom.md")).resolve()
     else:
@@ -364,7 +363,7 @@ def get_files_for_argument_from_root(argomento):
     Legge tutti i file nel vault e restituisce una lista di file che corrispondono all'argomento specificato.
     """
     # Percorso del file main.md
-    root_vault_path = os.path.join("..", "vault")
+    root_vault_path = Path(to_unc_slash_path(str(Path(os.path.join("..", "vault")))))
     matched_files = []
 
     # Pattern da cercare nel nome del file
@@ -883,7 +882,7 @@ def AddStartNewNote(note_path):
     Aggiunge una nuova nota copiando il file void-notes.md e spostandolo nella posizione specificata.
     """
     # Percorso del file template
-    template_path = os.path.join(SCRIPT_DIR, "templates", "void-notes.md")
+    template_path = Path(to_unc_slash_path(str(os.path.join(SCRIPT_DIR, "templates", "void-notes.md"))))
     
     # Verifica che il file template esista
     if not os.path.exists(template_path):
@@ -986,16 +985,14 @@ def NoteConversion(combined_note_path):
 def main():
     # Entro nella cartella build prima di eseguire il comando
     # Crea la directory di output se non esiste
-    vault_path = Path(os.path.join(SCRIPT_DIR, "..", "vault")).resolve()
-    bank_path = Path(os.path.join(SCRIPT_DIR, "..", "bank")).resolve()
-    collab_path = Path(os.path.join(bank_path, COLLAB_FILE)).resolve()
+    vault_path = Path(to_unc_slash_path(str(Path(os.path.join(SCRIPT_DIR, "..", "vault")).resolve())))
+    bank_path = Path(to_unc_slash_path(str(Path(os.path.join(SCRIPT_DIR, "..", "bank")).resolve())))
+    collab_path = Path(to_unc_slash_path(str(Path(os.path.join(bank_path, COLLAB_FILE)).resolve())))
     
     global MAKE_DIR
     global OUTPUT_DIR
     
-    if not os.path.exists(bank_path) and os.path.exists(vault_path):
-        print("Il sistema non é inizializzato")
-    else:
+    if os.path.exists(bank_path) or os.path.exists(vault_path):
         if not os.path.exists(collab_path):
             if not os.path.exists(vault_path):
                 os.makedirs(OUTPUT_DIR) # Entra nella cartella di build solo se esiste e se non é una banca dati
@@ -1012,18 +1009,20 @@ def main():
     parser = argparse.ArgumentParser(
         prog="make.py",
         description="Make script per gestire la conversione di note in PDF. Tips: genera un repo git vuoto e inserisci questo come un sottomodulo prima di lanciare un --init",
-        epilog="Freeware Licence 2025 Fabio. Maintainer: BenettiFabio"
+        epilog="Freeware Licence 2025 Fabio. Maintainer: BenettiFabio",
+        add_help=False
     )
     # Aggiunta delle opzioni
-    parser.add_argument("-i", "--init",     action="store_true",                         help="Inizializza la struttura del vault in modo che sia consistente per il make.py")
-    parser.add_argument("-a", "--all",                  metavar="OUTPUT",                help="Converte tutto il repository in un unico file di output, usando il main.md come ordinamento")
-    parser.add_argument("-g", "--group",    nargs=2,    metavar=("ARGOMENTO", "OUTPUT"), help="Converte un macro-argomento specificato in un file di output, usando main.md come ordinamento")
-    parser.add_argument("-n", "--note",     nargs=2,    metavar=("NOTA", "OUTPUT"),      help="Converte una nota specificata in un file di output")
-    parser.add_argument("-s", "--start",                metavar="NOTE_PATH",             help="Aggiunge una nuova nota specificata in NOTE_PATH")
-    parser.add_argument("-c", "--custom",               metavar="OUTPUT",                help="Converte tutte le note incluse nel file custom.md in un file di output")
-    parser.add_argument("-nt", "--note-tikz",nargs=2,   metavar=("NOTA", "OUTPUT"),      help="Converte una nota specificata considerandola come un file TikZ -> output in assets/")
-    parser.add_argument("-ib", "--init-bank",action="store_true",                        help="Inizializza vault-bank per la gestione condivisa delle note con collaboratori")
-    parser.add_argument("-u",  "--update",   action="store_true",                        help="Aggiorna il file main.md della banca dati, necessaria inizializzazione con -ib")
+    parser.add_argument("-i", "--init",         action="store_true",                            help="Inizializza la struttura del vault in modo che sia consistente per il make.py")
+    parser.add_argument("-a", "--all",                      metavar="OUTPUT",                   help="Converte tutto il repository in un unico file di output, usando il main.md come ordinamento")
+    parser.add_argument("-g", "--group",        nargs=2,    metavar=("ARGOMENTO", "OUTPUT"),    help="Converte un macro-argomento specificato in un file di output, usando main.md come ordinamento")
+    parser.add_argument("-n", "--note",         nargs=2,    metavar=("NOTA", "OUTPUT"),         help="Converte una nota specificata in un file di output")
+    parser.add_argument("-s", "--start",                    metavar="NOTE_PATH",                help="Aggiunge una nuova nota specificata in NOTE_PATH")
+    parser.add_argument("-c", "--custom",                   metavar="OUTPUT",                   help="Converte tutte le note incluse nel file custom.md in un file di output")
+    parser.add_argument("-nt", "--note-tikz",   nargs=2,    metavar=("NOTA", "OUTPUT"),         help="Converte una nota specificata considerandola come un file TikZ -> output in assets/")
+    parser.add_argument("-ib", "--init-bank",   action="store_true",                            help="Inizializza vault-bank per la gestione condivisa delle note con collaboratori")
+    parser.add_argument("-u",  "--update",      action="store_true",                            help="Aggiorna il file main.md della banca dati, necessaria inizializzazione con -ib")
+    parser.add_argument("-h",  "--help",        action="store_true",                            help="Stampa l'help ed esce")
 
     # Parsing degli argomenti
     args = parser.parse_args()
@@ -1096,10 +1095,14 @@ def main():
         print(f"Opzione --update selezionata. Lettura dei main.md dei collaboratori e costruzione del main.md complessivo.")
         UpdateBank()
         
-    else:
-        print("Errore: nessuna opzione valida selezionata.")
+    elif args.help:
         print(pyfiglet.figlet_format("DocuBank", font="slant"))
         parser.print_help()
+        sys.exit(0)
+    else:
+        print(pyfiglet.figlet_format("DocuBank", font="slant"))
+        parser.print_help()
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()
