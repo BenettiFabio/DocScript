@@ -1,7 +1,62 @@
 # Documentation Stucture
 
 Developer Documentation Structure
-Consiglio: genera un repo vuoto, e iniserisci questo repo come un sottomodulo git, dopo potrai inizializzare la tua struttura di appunti con il comando `--init` garantendo una struttura stabile. Questo ti permette anche di avere gli script e le tue note separate.
+Consiglio: genera un repo vuoto per le note in modo da versionarle separate dal sottomodulo, inserisci questo repo come un sottomodulo git, dopo potrai inizializzare la tua struttura di appunti con il comando `--init` garantendo una struttura stabile. Questo ti permette anche di avere gli script e le tue note separate.
+
+Per maggiori informazioni sulle operazioni che puó fare questo sottomodulo lanciare:
+
+```bash
+python DocScript/make.py --help
+```
+
+## Guida all'inizializzazione
+
+1. <span style="color: brown;">Creazione del repo personale</span>
+
+   Su GitHub o in locale creare un repo git con:
+
+   ```bash
+   git init --bare MyDocumentation
+   ```
+
+2. <span style="color: brown;">Clonare il repo ed inserire il sottomodulo</span>
+
+   ```bash
+   git clone /path/to/MyDocumentation MyDocs
+   cd MyDocs
+   git submodules add https://github.com/BenettiFabio/DocScript
+   ```
+
+3. <span style="color: brown;">Inizializzare il vault</span>
+
+   A questo punto grazie agli script si puó inizializzare un vault in cui iniziare a scrivere la propria documentazione. Ricorda di stare dentro la cartella `MyDocs/`.
+
+   ```bash
+   python DocScript/make.py --help
+   python DocScript/make.py --init
+   ```
+
+   Verrá creato un **vault** con una struttura standard basata un un **macro-argomento** con una nota al suo interno, una cartella **assets** per gli allegati e al di fuori i file per le indentazioni di **markdownlint** e **prettier**.
+
+   Per maggiori informazioni sulla struttura base del progetto proseguire con la lettura.
+
+   Se Hai giá un vault e sai giá come usarlo, ma hai dei collaboratori e vuoi iniziare ad usarlo in gruppo allora puoi inizializzare una banca dati con
+
+   ```bash
+   python DocScript/make.py --init-bank
+   ```
+
+   Questo genererá 3 file dentro la cartella `bank/`:
+
+   - `collaborator.md` : in cui specificare con chi lavori
+   - `main.md` : sará un indice complessivo delle note di tutti i collaboratori
+   - `custom.md` : che puoi riempire per compilare le tue note personalizzate
+
+4. <span style="color: brown;">Compilare le note per creare .pdf e .tex</span>
+
+   A questo punto o hai un Vault o hai una banca dati, se sai giá usarli benissimo! **Enjoy!** in caso contrario vai pure alle procedure di conversione per un vault personale [Qui](#build-di-un-documento) e per una nota con collaboratori in una banca dati [Qui](#build-di-un-documento-con-collaboratori).
+
+   Ricorda peró che le conversioni dei documenti devono rispettare dei constraint specifici quindi se é la tua prima volta qui prosegui pure la lettura con la [struttura del progetto](#struttura-del-progetto)!
 
 # Struttura del progetto
 
@@ -60,6 +115,8 @@ Consiglio: genera un repo vuoto, e iniserisci questo repo come un sottomodulo gi
 
 4. **DocScripts:** Questo sottomodulo contiene tutti gli script e le automazioni che possono essere eseguiti nel progetto. in modo da aggiungere pagine standardizzate, comandi di conversione da `.md` a `.pdf` o `tex` con `pandoc` in modo semplice mediante il `make.py`.
 
+   Dentro il sottomodulo é presente la cartella `requirements/` dove sono presenti giá i fonts e altri componenti per velocizzare la messa in servizio del vault.
+
 5. **./vault/rusco:** É una cartella temporanea in questo modo quando si converte l'intero repo con il comando `-a` queste note vengono escluse dal check di consistenza in modo che si possano fare note temporanee senza preoccuparsi di inserirle nel `main.md`.
 
 # Dipendenze utili VSCode
@@ -109,6 +166,9 @@ Il comando di pandoc per la conversione da markdown a pdf rispetta delle regole 
 _Es:_ inserimento immagine
 
 ```markdown
+Come si vede nella immagine Fig.\ref{img: titolo-image} _Titolo immagine_
+![Titolo immagine.\label{img: titolo-image}](../assets/macro-arg/imgs/nome-immagine.png){width=\linewidth}
+
 ![Titolo immagine](../assets/macro-arg/imgs/nome-immagine.png){width=\linewidth}
 ![Titolo immagine](../assets/macro-arg/imgs/nome-immagine.png){width=50%}
 ```
@@ -157,6 +217,8 @@ Ovunque ci si trovi é possibile richiamare il `make.py` e questo genererá le n
 
 - convertire note, gruppi di note o l'intero vault con rispettivamente `-n` `-g` e `-a`
 
+Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#eseguire-il-make-python).
+
 # Build di un documento con collaboratori
 
 - Nel caso si inizializzi una banca dati con `-ib` (vedi help per altre info), verrá creato un file `collaborator.md` in questo file é possibile andare a specificare i nomi dei collaboratori e i link ai loro `main.md` dei rispettivi vault inizializzati normalmente con `-i`.
@@ -184,6 +246,8 @@ Ovunque ci si trovi é possibile richiamare il `make.py` e questo genererá le n
 - lanciando poi `-c` verrá convertita come di consueto.
 
 <span style="color: orange;">NOTA:</span> convertendo una nota in questo modo vengono copiate la nota di partenza e tutti gli asset (dei collaboratori specificati nel `custom.md`) nella cartella `C:\Users\<User>\Documents\DocuBank` e vengono immediatamente cancellati dopo la conversione per liberare spazio. Questo implica di avere spazio a disposizione quando si effettua una conversione.
+
+Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#eseguire-il-make-python).
 
 ## Eseguire il make python
 
