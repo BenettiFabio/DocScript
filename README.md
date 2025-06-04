@@ -119,6 +119,13 @@ python DocScript/make.py --help
 
 5. **./vault/rusco:** É una cartella temporanea in questo modo quando si converte l'intero repo con il comando `-a` queste note vengono escluse dal check di consistenza in modo che si possano fare note temporanee senza preoccuparsi di inserirle nel `main.md`.
 
+# Dipendenze librerie
+
+1. Pandoc: serve a convertire da .tex a .pdf (da inserire negli env Path)
+2. MikTeX: serve ad avere LateX installato
+3. Strowberry Perl (da inserire negli env Path)
+4. Fonts: GNU FreeFonts (FreeSans e FreeMono)
+
 # Dipendenze utili VSCode
 
 1. **Markdown TOC:** Gestisce la possibilità di creare Table of content, ovvero degli indici autogenerati in note molto lunghe, in questo modo sono più facilmente navigabili _es:_
@@ -136,7 +143,9 @@ python DocScript/make.py --help
 
    In Questo modo se si vuole modificare una immagine si può avere direttamente il file generatore con estensione del nome -mermaid.md e l'immagine generata per poter fare modifiche rapide se necessarie. Nel caso in cui si trovasse una immagine inserita nel progetto è anche semplice capire se è una immagine scaricata e aggiunta o una generata e quindi modificabile guardando semplicemente il link.
 
-4. **Markdownlint** + **Prettier:** sono una combo di estensioni che permette di segnalare errori di formattazione all'interno di un md file attraverso regole presenti nel file `.markdownlint.json` nella root. Unito a Prettier per correggere direttamente la formattazione.
+4. **vscode-pdf:** Visualizza direttamente i pdf sull'Editor senza dover passare per la discovery dei file.
+
+5. **Markdownlint** + **Prettier:** sono una combo di estensioni che permette di segnalare errori di formattazione all'interno di un md file attraverso regole presenti nel file `.markdownlint.json` nella root. Unito a Prettier per correggere direttamente la formattazione.
 
    > <span style="color: darkviolet;">OSS:</span> per implementarli, dopo aver installato le
    > estensioni seguire i seguenti passaggisu `VSCode`:
@@ -198,14 +207,6 @@ Es: inserimento di un pdf "srotolato" direttamente all'interno delle note
 ```markdown
 [Nome Del Pdf](../assets/macro-arg/pdfs/nome-file.pdf)
 ```
-
-# Dipendenze librerie
-
-1. Pandoc: serve a convertire da .tex a .pdf
-
-2. MikTeX: serve ad avere LateX installato
-
-3. Fonts: GNU FreeFonts (FreeSans e FreeMono)
 
 # Build di un documento
 
