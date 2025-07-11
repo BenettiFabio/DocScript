@@ -995,7 +995,9 @@ def main():
     if os.path.exists(bank_path) or os.path.exists(vault_path):
         if not os.path.exists(collab_path):
             if os.path.exists(vault_path):
-                os.makedirs(Path(to_unc_slash_path(str(OUTPUT_DIR)))) # Entra nella cartella di build solo se esiste e se non é una banca dati
+                build_dir = Path(to_unc_slash_path(str(OUTPUT_DIR)));
+                if not os.path.exists(build_dir):
+                    os.makedirs(build_dir) # Entra nella cartella di build solo se esiste e se non é una banca dati
             os.chdir(Path(to_unc_slash_path(str(MAKE_DIR))))
         else:
             # Aggiorno i path nel caso ci si trovi in una banca dati
