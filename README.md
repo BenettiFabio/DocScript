@@ -208,6 +208,18 @@ Es: inserimento di un pdf "srotolato" direttamente all'interno delle note
 [Nome Del Pdf](../assets/macro-arg/pdfs/nome-file.pdf)
 ```
 
+Es: inserimento di una o piú equazioni matematiche una sotto l'altra racchiudere dentro un blocco verbosity (\`\`\`) specificando il linguaggio `{=latex}`, il contenuto sará quindi latex puro:
+
+```markdown
+\begin{align*}
+equazione_1\\
+equazione_2\\
+equazione_3
+\end{align*}
+```
+
+> <span style="color: orange;">NOTA:</span> non si vedrá in anteprima di VSCode ma in pdf renderá bene.
+
 # Build di un documento
 
 Ovunque ci si trovi é possibile richiamare il `make.py` e questo genererá le note.pdf con le opzioni specificate, usare `-h` o `--help` per avere maggiori informazioni di funzionamento.
@@ -244,6 +256,8 @@ Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#es
   - [nota 5](link/alla/nota/5.md)
   ```
 
+````
+
 - lanciando poi `-c` verrá convertita come di consueto.
 
 <span style="color: orange;">NOTA:</span> convertendo una nota in questo modo vengono copiate la nota di partenza e tutti gli asset (dei collaboratori specificati nel `custom.md`) nella cartella `C:\Users\<User>\Documents\DocuBank` e vengono immediatamente cancellati dopo la conversione per liberare spazio. Questo implica di avere spazio a disposizione quando si effettua una conversione.
@@ -270,3 +284,4 @@ Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#es
 # conversione immagine tikz
 \scripts\make.py -nt nome-nota-src.md output.pdf
 ```
+````
