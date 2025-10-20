@@ -24,7 +24,7 @@ python DocScript/make.py --help
    ```bash
    git clone /path/to/MyDocumentation MyDocs
    cd MyDocs
-   git submodules add https://github.com/BenettiFabio/DocScript
+   git submodule add https://github.com/BenettiFabio/DocScript
    ```
 
 3. <span style="color: brown;">Inizializzare il vault</span>
