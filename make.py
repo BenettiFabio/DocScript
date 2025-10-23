@@ -34,7 +34,6 @@ OUTPUT_DIR = MAKE_DIR
 HOME_DIR = Path.home()
 APPLICATION_DIR = Path(os.path.join(HOME_DIR, "Documents", "DocuBank")).resolve()
 
-service_flag = False # variabile per gestire varianti della stessa funzione nel comportamento normale o di servizio
 custom = False # variabile per gestire la conversione di un file custom.md
 is_bank = False
 
@@ -85,6 +84,53 @@ def CopyAssets(output_dir, collaborators):
 def isNetworkPath():
     here = os.getcwd()
     return (here.startswith('\\\\') or not here.startswith('C:')) 
+
+def CopyYAMLInformation(combined_notes_path):
+    """
+    Cerca il blocco YAML all'inizio del file main.md e lo copia in cima al file combined_notes_path.
+    Se non trova il blocco YAML nel file main_path, non fa nulla.
+    
+    Args:
+        combined_notes_path (str): Percorso del file combined_notes.md
+    """
+    main_md_path = Path(to_unc_slash_path(str(Path(os.path.join(SCRIPT_DIR, "..", "vault", "main.md")).resolve())))
+    
+    try:
+        # Legge il contenuto del file main.md
+        with open(main_md_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        yaml_block = None
+        # Se il file inizia con '---' cerco il marcatore di chiusura ('---' o '...')
+        if content.lstrip().startswith('---'):
+            # Trova il primo marcatore di chiusura che compare su una linea a parte
+            m = re.search(r"\n(---|\.\.\.)(?:\r?\n)", content)
+            if m:
+                yaml_block = content[:m.end()]
+
+        if yaml_block:
+            # Legge il contenuto attuale del file combined_notes.md
+            with open(combined_notes_path, 'r', encoding='utf-8') as f:
+                combined_content = f.read()
+
+            # Se il file combined_notes.md ha già un blocco YAML lo rimuovo (se presente all'inizio)
+            if combined_content.lstrip().startswith('---'):
+                m2 = re.search(r"\n(---|\.\.\.)(?:\r?\n)", combined_content)
+                if m2:
+                    combined_content = combined_content[m2.end():].lstrip()
+
+            # Aggiunge il nuovo blocco YAML all'inizio
+            new_content = f"{yaml_block}\n\n{combined_content}"
+
+            # Scrive il nuovo contenuto nel file combined_notes.md
+            with open(combined_notes_path, 'w', encoding='utf-8') as f:
+                f.write(new_content)
+
+        else:
+            print(f"Nessun blocco YAML trovato in {main_md_path}")
+
+    except Exception as e:
+        print(f"Errore durante la copia del blocco YAML: {str(e)}")
 
 def to_unc_slash_path(windows_path: str) -> str:
     """
@@ -408,6 +454,11 @@ def SearchAndCombineNotes(matching_files):
                 print(f"Avviso: il file '{file}' non è stato trovato e sarà ignorato.")
 
     print(f"File combinato creato: {combined_file_path}")
+    # Aggiunge il blocco YAML da main.md se presente
+    try:
+        CopyYAMLInformation(combined_file_path)
+    except Exception:
+        pass
     return combined_file_path
 
 def CombineNotes(matching_files):
@@ -437,6 +488,11 @@ def CombineNotes(matching_files):
                 print(f"Avviso: il file '{file}' non è stato trovato e sarà ignorato.")
 
     print(f"File combinato creato: {combined_file_path}")
+    # Aggiunge il blocco YAML da main.md se presente
+    try:
+        CopyYAMLInformation(combined_file_path)
+    except Exception:
+        pass
     return combined_file_path
 
 def checkInconsistency(matching_files_main, matching_files_root):
@@ -747,8 +803,8 @@ def ConversionSingleNote(nota):
         os.makedirs(Path(to_unc_slash_path(str(OUTPUT_DIR))))
     
     # Verifica che il sistema abbia i requisiti necessari alla conversione    
-    CheckPreconditions()
 
+    CheckPreconditions()
     # Ottieni il contenuto senza header
     filtered_lines = RemoveHeaderFromFile(NOTE_PATH)
 
@@ -759,6 +815,11 @@ def ConversionSingleNote(nota):
         temp_file.writelines(filtered_lines)
 
     # Esegui la conversione sul file temporaneo
+    # Assicura che il blocco YAML di main.md sia presente in cima al file combinato
+    try:
+        CopyYAMLInformation(temp_file_path)
+    except Exception:
+        pass
     NoteConversion(temp_file_path)
         
     # Elimina il file temporaneo
@@ -943,10 +1004,8 @@ def NoteConversion(combined_note_path):
     if isNetworkPath():
         # Eseguo prima la conversione in tex con pandoc
         out_path = out_path.with_suffix(".tex")
-        if not service_flag:
-            command = f"pandoc \"{path_note}\" -o \"{out_path}\" --toc --toc-depth=3 --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
-        else:
-            command = f"pandoc \"{path_note}\" -o \"{out_path}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
+        
+        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
         
         print(f"Eseguo il comando: {command}")
         os.system(command)
@@ -971,15 +1030,11 @@ def NoteConversion(combined_note_path):
         
     else:
         # Comando per la conversione pulita con pandoc
-        if not service_flag:
-            command = f"pandoc \"{path_note}\" -o \"{out_path}\" --toc --toc-depth=3 --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
-        else:
-            command = f"pandoc \"{path_note}\" -o \"{out_path}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
+        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
         
         # Esegui il comando
         print(f"Eseguo il comando: {command}")
         os.system(command)
-
 
 ## MAIN FUNCTION ##
 def main():
@@ -1060,15 +1115,12 @@ def main():
         ConversionSingleNote(nota)
     
     elif args.note_tikz:
-        global service_flag
         if len(args.note_tikz) < 2:
             print("Errore: l'opzione --note-tikz richiede due argomenti: NOTA e OUTPUT (in formato .pdf o .tex).")
             sys.exit(1)
         nota, output = args.note_tikz
         validate_output(output)
         print(f"Opzione --note selezionata. Nota: {nota}, Output: {output}")
-        # Inizio conversione
-        service_flag = True
         ConversionSingleTikzNote(nota)
         
     elif args.start:

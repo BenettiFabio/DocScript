@@ -1,9 +1,35 @@
-\documentclass{article}
+%------------------------------------------------------------------------------
+% Document class configuration
+%------------------------------------------------------------------------------
+\documentclass[11pt,a4paper]{report}
+%\documentclass[11pt,a4paper]{article}
+
+%------------------------------------------------------------------------------
+% Company Command Definitions
+%------------------------------------------------------------------------------
+\newcommand{\mrplabel}[1]{\phantomsection\label{#1}}
+
+\newcommand{\colorbitbox}[3]{%
+\rlap{\bitbox{#2}{\color{#1}\rule{\width}{\height}}}%
+\bitbox{#2}{#3}}
+
+\newcommand{\bitlabel}[2]{%
+\bitbox[]{#1}{%
+\raisebox{0pt}[4ex][0pt]{%
+\turnbox{45}{\fontsize{8}{8}\selectfont#2}%
+}%
+}%
+}
+
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{naturalnames}{hyperref}
+%------------------------------------------------------------------------------
 
 \usepackage{xcolor}     % Pacchetto per i colori
 \usepackage{color}      % per Shaded
 \usepackage{tcolorbox}  % per le evidenziature
 \usepackage{hyperref}   % Per i link
+\usepackage[hypcap]{caption}
 \usepackage{framed}     % per i blocchi di codice
 \usepackage{url}        % per mandare a capo url molto lunghi
 \usepackage{listings}   % per lo stile di indentazione
@@ -34,11 +60,18 @@
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning}
 \usetikzlibrary{arrows.meta, positioning, shapes.geometric, shadows, calc, backgrounds}
 
-
 \usepackage{pdfpages}    % per le pagine in PDF
 
+\usepackage{fancyhdr}   % per gli header/footer
+\usepackage{lastpage}
+
+$if(draft)$
+\usepackage{draftwatermark} % watermark
+$endif$
+
 % Imposta le dimensioni della pagina
-\usepackage[a4paper, margin=0.7in]{geometry}
+% \usepackage[a4paper, margin=0.7in]{geometry}
+\usepackage[a4paper, margin=0.7in, includefoot, bottom=1in]{geometry}
 
 % Definisci i colori scritte personalizzati
 \definecolor{darkviolet}{rgb}{0.58, 0.0, 1.0}
@@ -98,18 +131,10 @@
 % Comportamento generale testo
 \sloppy % Permette di andare a capo se la parola è troppo lunga
 
-% nella conversione possono esserci dei \passthrugh che dicono a latex di non fare semplicemente niente
+% nella conversione possono esserci dei \passthrough che dicono a latex di non fare semplicemente niente
 \newcommand{\passthrough}[1]{#1}
 
 \providecommand{\pandocbounded}[2]{#2}
-
-% TOC in due colonne e con il numero di pagina
-% \renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
-% \setlength{\cftbeforesecskip}{5pt}
-% \setlength{\columnsep}{20pt}
-% \renewcommand{\contentsname}{Indice}
-% \AtBeginDocument{\addtocontents{toc}{\protect\begin{multicols}{2}}}
-% \AtEndDocument{\addtocontents{toc}{\protect\end{multicols}}}
 
 % Definizione fallback per \tightlist
 \providecommand{\tightlist}{%
@@ -119,9 +144,162 @@ $if(highlighting-macros)$
 $highlighting-macros$
 $endif$
 
-\begin{document}
-$if(toc)$
-\tableofcontents % Questo inserisce l'indice
+%------------------------------------------------------------------------------
+% Header and footer setup
+%------------------------------------------------------------------------------
+% Redefine the title page style
+$if(headerfooter)$
+\fancypagestyle{firststyle}
+{
+    \fancyhf{}
+    \renewcommand{\headrulewidth}{0pt} % Line at the header invisible
+    \renewcommand{\footrulewidth}{0pt} % Line at the footer invisible
+    \fancyfoot[C]{$footerText$}
+    \fancyfoot[R]{\footnotesize \thepage\ / \pageref{LastPage}}
+}
+
+% Redefine the plain page style => like the chapters
+\fancypagestyle{plain}{%
+    \fancyhf{}
+    \fancyfoot[R]{\thepage\ / \pageref{LastPage}}%
+    \renewcommand{\headrulewidth}{0pt} % Line at the header invisible
+    \renewcommand{\footrulewidth}{0.4pt} % Line at the footer visible
+}
+
+% Redefine the normal page style
+% \fancypagestyle{normal}
+\fancypagestyle{fancy}
+{
+    \fancyhf{}
+    \renewcommand{\headrulewidth}{1pt} % Line at the header visible
+    \renewcommand{\footrulewidth}{1pt} % Line at the footer visible
+
+    \fancyhead[L]{\includegraphics[height=40pt]{$LogoFileName$}}
+    \fancyhead[R]{$CompanyOffice$ \\\ TECHNICAL DESCRIPTION \\\ $CompanyDocumentCode$}
+    
+    \fancyfoot[C]{$footerText$}
+    \fancyfoot[R]{\thepage / \pageref{LastPage}}
+}
+
+\setlength{\headheight}{50pt}
+\setlength{\headsep}{10pt}
+\setlength{\footskip}{30pt}
+\makeatletter
+\let\ps@plain\ps@fancy
+\makeatother
 $endif$
+%------------------------------------------------------------------------------
+
+%------------------------------------------------------------------------------
+% Graphics ext+path declaration
+%------------------------------------------------------------------------------
+\graphicspath{{assets/}{../assets/}}
+
+%\overfullrule=2cm %useful to debug box overfull!
+
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+%------------------------------------------------------------------------------
+
+\begin{document}
+% Set the page style to "fancy"
+\pagestyle{fancy}
+\fancypagestyle{firststyle}
+
+$if(titlepage)$
+\begin{titlepage}
+
+$if(draft)$
+\DraftwatermarkOptions{stamp=false}
+$endif$
+
+\title{%
+\includegraphics[width=0.5\textwidth]{$LogoFileName$} 
+\\[1cm]
+$CompanyProject$
+$CompanyStudyTitle$
+}
+\author{$CompanyDesigner$}
+\date{\today}
+
+\maketitle % Insert the title, author and date
+\thispagestyle{firststyle}
+\pagestyle{fancy}
+\end{titlepage}
+$endif$
+
+$if(draft)$
+\SetWatermarkText{\texttt{$watermark_text$}}
+\SetWatermarkAngle{45}
+\SetWatermarkScale{1.0}
+\SetWatermarkFontSize{3cm}
+\SetWatermarkHorCenter{10cm}
+\SetWatermarkVerCenter{10cm}
+\DraftwatermarkOptions{%
+	color={[RGB]{255,191,191}}
+}
+$endif$
+
+
+$if(toc)$
+%------------------------------------------------------------------------------
+% Table of Contents
+%------------------------------------------------------------------------------
+\cleardoublepage
+\setcounter{secnumdepth}{$tocDepth$}
+\setcounter{tocdepth}{$tocDepth$}
+\tableofcontents
+\cleardoublepage
+$endif$
+
+$if(draft)$
+\DraftwatermarkOptions{stamp=true}
+$endif$
+
+%------------------------------------------------------------------------------
+% Document body content
+%------------------------------------------------------------------------------
+\pagestyle{fancy}
+
 $body$
+
+\pagestyle{fancy}
+
+
+%------------------------------------------------------------------------------
+% End of document content
+%------------------------------------------------------------------------------
+$if(listtables)$
+\cleardoublepage
+% \phantomsection
+\addcontentsline{toc}{chapter}{\listtablename}
+\listoftables
+$endif$
+
+$if(listfigures)$
+\cleardoublepage
+% \phantomsection
+\addcontentsline{toc}{chapter}{\listfigurename}
+\listoffigures
+$endif$
+
+%------------------------------------------------------------------------------
+% Last page
+%------------------------------------------------------------------------------
+\newpage
+\cleardoublepage
+
+\newpage
+\thispagestyle{empty}
+$if(draft)$
+\DraftwatermarkOptions{stamp=false}
+$endif$
+\vspace*{\fill}
+\noindent
+\hspace*{-\oddsidemargin}%
+\begin{center}
+This page has been intentionally left blank.
+\end{center}
+\vspace*{\fill}
+\newpage
+\cleardoublepage
 \end{document}

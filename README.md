@@ -81,13 +81,28 @@ python DocScript/make.py --help
    > <span style="color: red;">ATT!:</span> Ogni nuova pagina aggiunta va inserita direttamente
    > nell'indice totale (`main.md`)
 
-1. `main.md`: Questo file è l'indice di tutta la struttura, andrà a linkare tutte le pagine del progetto in modo da poterle trovare facilmente nel tempo.
+1. `main.md`: Questo file è l'indice di tutta la struttura.
 
-2. **vault:** Il Vault è la cartella contenente tutte le note, i nomi delle note sono divisi in macro-argomenti nelle sottocartelle del Vault. Dentro il file `main.md` puoi creare un indice che contiene tutte le note per navigare piú facilmente. Se vuoi convertirle tutte in una volte verrá usato l'ordine del main come ordine delle note nel pdf finale.
+   - Andrà a linkare tutte le pagine del progetto in modo da poterle trovare facilmente nel tempo.
 
-   > <span style="color: orange;">NOTA:</span> se vuoi convertire solo un certo gruppo ristretto di note sconnesse tra loro in un unico file pdf, puoi creare un file `custom.md` e inserire lí un indice come se fosse un main, con solo le note che desideri e poi usare l'opzione `-c`
+   - In questo file é presente anche uno `YAML` in cui inserire tutti i parametri che si vogliono attivare e configurare all'interno del template per rendere il sistema piú o meno complesso, piú o meno ufficiale.
 
-3. **Assets:** La cartella assets contiene tutti i documenti e le immagini utili al progetto che sono linkate all'interno delle varie note, dentro la cartella `assets/macro-argomento/` ci sono i relativi docs, imgs, ... la struttura della cartella `assets/` deve essere identica a quella fuori in modo da mantenere semplice il ritrovamento dei file e documenti salvati.
+   > <span style="color: orange;">NOTA:</span> se non presente si puó copiare direttamente dal main iniziale al path `DocScript/templates/init-vault/init-main.md` in questo modo si hanno tutte le informazioni e flag che sono attivabili nella generazione del documento
+
+2. **vault:** Il Vault è la cartella contenente tutte le note.
+
+   - I nomi delle note sono divisi in macro-argomenti nelle sottocartelle del Vault. Dentro il file `main.md` puoi creare un indice che contiene tutte le note per navigare piú facilmente.
+   - Se vuoi convertirle tutte in una volte verrá usato l'ordine del main come ordine delle note nel pdf finale.
+
+   > <span style="color: orange;">NOTA:</span> se vuoi convertire solo un certo gruppo ristretto di note sconnesse tra loro in un unico file pdf, puoi creare un file `custom.md` e inserire lí un indice come se fosse un main, con solo le note che desideri e poi usare l'opzione `-c`.
+   >
+   > <span style="color: red;">ATT!</span> in questo caso lo yaml per i parametri di conversione sono comunque quelli presenti nel `main.md`
+
+3. **Assets:** La cartella assets contiene tutti i documenti e le immagini utili al progetto che sono linkate all'interno delle varie note.
+
+   - Dentro la cartella `assets/macro-argomento/` ci sono i relativi docs, imgs, ...
+   - La struttura della cartella `assets/` deve essere identica a quella fuori in modo da mantenere semplice il ritrovamento dei file e documenti salvati.
+   - É possibile anche andare ad inserire un logo che va poi specificato nello yaml nel main. In questo modo é possibile generare un documento piú completo.
 
    > <span style="color: orange;">NOTA:</span> dentro gli assets ci possono essere le immagini costruite mediante `Python`, `Mermaid` e `TiKz` in base alle esigenze. Nello specifico per `Tikz` c'é un comando di conversione apposito in quanto é gestito come una nota `.md` ma la nota é negli asset e viene generato un output sempre negli assets, vedi `-nt --note-tikz`.
 
@@ -95,6 +110,8 @@ python DocScript/make.py --help
    >
    > ```bash
    > vault/assets/
+   >        ├── docfiles/
+   >        │   └── logo-image.png
    >        ├── macro-arg1/
    >        │   ├── imgs/
    >        │   │   ├── mermaid-imgs/
@@ -113,7 +130,7 @@ python DocScript/make.py --help
    > In questo modo so sempre che i sorgenti si chiamano con lo stesso nome dell'immagine o del pdf e sono separati dal resto.
    > _Es:_ `tikz1.pdf` é generato da `tikz1-tikz.md`
 
-4. **DocScripts:** Questo sottomodulo contiene tutti gli script e le automazioni che possono essere eseguiti nel progetto. in modo da aggiungere pagine standardizzate, comandi di conversione da `.md` a `.pdf` o `tex` con `pandoc` in modo semplice mediante il `make.py`.
+4. **DocScripts:** Questo sottomodulo contiene tutti gli script e le automazioni che possono essere eseguiti nel progetto. In modo da aggiungere pagine standardizzate, comandi di conversione da `.md` a `.pdf` o `tex` con `pandoc` in modo semplice mediante il `make.py`.
 
    Dentro il sottomodulo é presente la cartella `requirements/` dove sono presenti giá i fonts e altri componenti per velocizzare la messa in servizio del vault.
 
@@ -137,7 +154,7 @@ python DocScript/make.py --help
 
 2. **Markdown Preview Enhanced:** Questa serve ad utilizzare componenti di CSS e HTML direttamente nelle note, in questo modo è possibile vedere in preview parole colorate e indentate direttamente sull'editor e non conflitta con `pandoc` durante eventuali conversioni. Permette di sfruttare lo schema colori presente in "Legenda di aiuto alla coerenza"
 
-3. **Markdown Preview Mermaid Support:** Usare il mermaid per creare grafici, i file .md devono chiamarsi con lo stesso nome dell'immagine che andranno a generare e saranno nella cartella vault/assets/macro-argomento/mermaid/.
+3. **Markdown Preview Mermaid Support:** Usare il mermaid per creare grafici, i file .md devono chiamarsi con lo stesso nome dell'immagine che andranno a generare e saranno nella cartella `vault/assets/macro-argomento/mermaid/`.
 
    > <span style="color: orange;">NOTA:</span> Una volta creata l'immagine del grafico desiderata, tasto destro ed esporta come png e ritagliarla di conseguenza.
 
@@ -159,6 +176,7 @@ python DocScript/make.py --help
 
 Il comando di pandoc per la conversione da markdown a pdf rispetta delle regole e per mantenere il sistema piú longevo possibile non sono stati usati pacchetti troppo complessi. Per ovviare al problema sono state aggiunte regole e template che convertono in modo corretto questo tipo di blocchi css e evidenziature senza problemi, se rispettati questi blocchi non causeranno errori nel pdf finito.
 
+```markdown
 - > <span style="color: darkviolet;">OSS:</span> Questa è una osservazione
 - > <span style="color: red;">ATT!:</span> Questo è un attenzione
 - > <span style="color: orange;">NOTA:</span> Questa è una nota
@@ -167,6 +185,7 @@ Il comando di pandoc per la conversione da markdown a pdf rispetta delle regole 
 - <span style="text-decoration: underline;">Questo é un testo sottolineato</span>
 
 1. <span style="color: brown;">Gli elenchi numerati di una guida da seguire vanno in marrone </span>
+```
 
 > <span style="color: orange;">NOTA:</span> Le evidenziazioni vengono **sempre** sostituite con i colori personalizzati `hl*` (quindi `yellow` = `hlyellow`) che sono presenti nel conversion-template.tex che rende i colori dell'evidenziatore nel pdf più gradevoli ma mantenendo la visualizzabilità in Preview real time. Se ne vengono aggiunti altri, aggiungerli anche a `.lua`
 
@@ -220,6 +239,39 @@ equazione_3
 
 > <span style="color: orange;">NOTA:</span> non si vedrá in anteprima di VSCode ma in pdf renderá bene.
 
+Es: programmazione yaml pre-build
+
+```yaml
+---
+# Configurazioni di Base (Flags per includere/escludere sezioni)
+headerfooter: true # inserisce footer e header in ogni pagina
+draft: true # watermark con la scritta scelta successivamente
+toc: true # abilita o disabilita l'indice iniziale
+titlepage: true # permette di avere la pagina iniziale con logo e info sotto specificate
+
+# Dati Aziendali e Documento
+CompanyProject: Personal Documentation
+CompanyDepartment:
+CompanyOffice:
+CompanyDesigner: Benetti Fabio
+CompanyDesignerCode:
+CompanyTechnicalManager:
+CompanyTechnicalSupervisor:
+CompanyStudyTitle:
+CompanyDocumentCode:
+
+# Impostazioni di Layout e Assets
+LogoFileName: '../assets/docfiles/logo-docscript'
+footerText: 'RISERVATO - PROPRIETÀ DI Company S.p.A.'
+
+# Configurazione Watermark (se draft: true)
+watermark_text: 'Draft'
+
+# Configurazioni TOC
+tocDepth: 5
+---
+```
+
 # Build di un documento
 
 Ovunque ci si trovi é possibile richiamare il `make.py` e questo genererá le note.pdf con le opzioni specificate, usare `-h` o `--help` per avere maggiori informazioni di funzionamento.
@@ -227,6 +279,8 @@ Ovunque ci si trovi é possibile richiamare il `make.py` e questo genererá le n
 - Iniziare generando un vault con `-i` Verranno generati file e cartelle in cui lavorare
 
 - inserire nuove note e nuovi argomenti dentro il vault mediante `-s`
+
+- prima di convertire il documento ufficiale dare uno sguardo al `main.md` per impostare i parametri di conversione in modo da ottenere risultati piú o meno complessi in base alle esigenze.
 
 - convertire note, gruppi di note o l'intero vault con rispettivamente `-n` `-g` e `-a`
 
@@ -256,8 +310,6 @@ Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#es
   - [nota 5](link/alla/nota/5.md)
   ```
 
-````
-
 - lanciando poi `-c` verrá convertita come di consueto.
 
 <span style="color: orange;">NOTA:</span> convertendo una nota in questo modo vengono copiate la nota di partenza e tutti gli asset (dei collaboratori specificati nel `custom.md`) nella cartella `C:\Users\<User>\Documents\DocuBank` e vengono immediatamente cancellati dopo la conversione per liberare spazio. Questo implica di avere spazio a disposizione quando si effettua una conversione.
@@ -284,4 +336,3 @@ Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#es
 # conversione immagine tikz
 \scripts\make.py -nt nome-nota-src.md output.pdf
 ```
-````
