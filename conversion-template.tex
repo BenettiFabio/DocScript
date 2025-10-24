@@ -175,7 +175,7 @@ $if(headerfooter)$
     \renewcommand{\footrulewidth}{1pt} % Line at the footer visible
 
     \fancyhead[L]{\includegraphics[height=40pt]{$LogoFileName$}}
-    \fancyhead[R]{$CompanyOffice$ \\\ TECHNICAL DESCRIPTION \\\ $CompanyDocumentCode$}
+    \fancyhead[R]{$CompanyDepartment$ \\\ TECHNICAL DESCRIPTION \\\ $CompanyDocumentCode$}
     
     \fancyfoot[C]{$footerText$}
     \fancyfoot[R]{\thepage / \pageref{LastPage}}
@@ -215,7 +215,8 @@ $endif$
 \title{%
 \includegraphics[width=0.5\textwidth]{$LogoFileName$} 
 \\[1cm]
-$CompanyProject$
+$CompanyProject$ 
+\\
 $CompanyStudyTitle$
 }
 \author{$CompanyDesigner$}
