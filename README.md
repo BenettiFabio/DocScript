@@ -336,3 +336,4 @@ Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#es
 # conversione immagine tikz
 \scripts\make.py -nt nome-nota-src.md output.pdf
 ```
+
