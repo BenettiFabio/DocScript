@@ -1005,7 +1005,7 @@ def NoteConversion(combined_note_path):
         # Eseguo prima la conversione in tex con pandoc
         out_path = out_path.with_suffix(".tex")
         
-        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
+        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --top-level-division=chapter --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
         
         print(f"Eseguo il comando: {command}")
         os.system(command)
@@ -1030,7 +1030,7 @@ def NoteConversion(combined_note_path):
         
     else:
         # Comando per la conversione pulita con pandoc
-        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
+        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --top-level-division=chapter --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
         
         # Esegui il comando
         print(f"Eseguo il comando: {command}")
