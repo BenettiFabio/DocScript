@@ -1,4 +1,4 @@
-# Documentation Stucture
+# Documentation Structure
 
 Developer Documentation Structure
 Consiglio: genera un repo vuoto per le note in modo da versionarle separate dal sottomodulo, inserisci questo repo come un sottomodulo git, dopo potrai inizializzare la tua struttura di appunti con il comando `--init` garantendo una struttura stabile. Questo ti permette anche di avere gli script e le tue note separate.
