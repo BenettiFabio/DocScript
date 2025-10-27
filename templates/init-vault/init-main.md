@@ -2,10 +2,12 @@
 # ----------------------------------------------------------------------
 # Configurazioni di Base (Flags per includere/escludere sezioni)
 # ----------------------------------------------------------------------
+titlepage: false
 headerfooter: false
 draft: false
 toc: true
-titlepage: false
+listtables: false
+listfigures: false
 
 # ----------------------------------------------------------------------
 # Dati Aziendali e Documento

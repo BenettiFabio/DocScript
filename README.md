@@ -244,10 +244,12 @@ Es: programmazione yaml pre-build
 ```yaml
 ---
 # Configurazioni di Base (Flags per includere/escludere sezioni)
+titlepage: true # permette di avere la pagina iniziale con logo e info sotto specificate
 headerfooter: true # inserisce footer e header in ogni pagina
 draft: true # watermark con la scritta scelta successivamente
 toc: true # abilita o disabilita l'indice iniziale
-titlepage: true # permette di avere la pagina iniziale con logo e info sotto specificate
+listtables: true # abilita la lista delle tabelle in fondo al documento
+listfigures: true # abilita la lista delle figure in fondo al documento
 
 # Dati Aziendali e Documento
 CompanyProject: Personal Documentation
@@ -336,4 +338,3 @@ Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#es
 # conversione immagine tikz
 \scripts\make.py -nt nome-nota-src.md output.pdf
 ```
-
