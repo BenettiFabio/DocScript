@@ -338,3 +338,17 @@ Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#es
 # conversione immagine tikz
 \scripts\make.py -nt nome-nota-src.md output.pdf
 ```
+
+## TODO
+
+- Impostare una cartella .template dove inserire tutti quelli personalizzati che si vogliono
+- Impostare una cartella .yaml per avere piú yaml che puntano ai template in modo generico (default) o specifico --template:'../link'
+- Nel main scelgo lo yaml da usare, e dentro lo yaml ci sará il puntatore al template cosí le variabili sono sempre coerenti
+- ATT! deve copiare il
+
+- casi particolari:
+  - non c'é scelto lo yaml -> usa il template generico con tutto a false
+  - c'é lo yaml ma non specifica il template -> usa il template generico con tutto a false
+  - c'é lo yaml ma al link non esiste... -> si arrabbia
+  - c'é lo yaml e contiene un link al template sbagliato -> si arrabbia
+  - c'é lo yaml contiene un link corretto al template, ma le variabili che setta non centrano niente con il template -> fattacci tuoi
