@@ -18,12 +18,8 @@ TEMPLATE_NAME = "conversion-template.tex"  # Nome del template
 LUA_FILTER_NAME = "graphic-template.lua"  # Nome del filtro Lua
 COLLAB_FILE = "collaborator.md"
 COMBINED_FILE_NAME = "combined_notes.md"
-
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # Directory dello script
-TEMPLATE = Path(os.path.join(SCRIPT_DIR, TEMPLATE_NAME)).resolve()
-LUA_FILTER = Path(os.path.join(SCRIPT_DIR, LUA_FILTER_NAME)).resolve()
-MAKE_DIR = Path(os.path.join(SCRIPT_DIR, "..", "vault", "build")).resolve()
-OUTPUT_DIR = MAKE_DIR
+VAULT_TEMPLATE_DIR = ".template"
+VAULT_YAML_DIR = ".yaml"
 
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # Directory dello script
@@ -34,10 +30,22 @@ OUTPUT_DIR = MAKE_DIR
 HOME_DIR = Path.home()
 APPLICATION_DIR = Path(os.path.join(HOME_DIR, "Documents", "DocuBank")).resolve()
 
+EXCLUDED_DIRS = [
+    MAKE_DIR,
+    VAULT_TEMPLATE_DIR, 
+    VAULT_YAML_DIR,
+    TEMPORARY_DIR
+]
+
+
 custom = False # variabile per gestire la conversione di un file custom.md
 is_bank = False
 
 ## FUNCTIONS ##
+def should_skip_dir(dir_path):
+    """Verifica se una directory deve essere saltata nella scansione"""
+    return any(excluded in dir_path for excluded in EXCLUDED_DIRS)
+
 def convert_link_to_absolute(markdown_text, base_path):
     """
     Converte i link relativi Markdown in link assoluti mantenendo la sintassi Markdown.
@@ -393,7 +401,7 @@ def get_all_files_from_root():
 
     for root, dirs, files in os.walk(root_vault_path):
         # Escludi le directory non volute
-        dirs[:] = [d for d in dirs if d not in ('assets', 'build')]
+        dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
 
         for file in files:
             if file.endswith(".md"):
@@ -417,7 +425,9 @@ def get_files_for_argument_from_root(argomento):
 
     for root, dirs, files in os.walk(root_vault_path):
         # Escludi le directory non volute
-        dirs[:] = [d for d in dirs if d not in ('assets', 'build')]
+        # dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
+        if should_skip_dir(root):
+            continue
 
         for file in files:
             if file == "main.md" or file == "custom.md":
@@ -648,6 +658,15 @@ def InitVault():
                 if file == "init-main.md":
                     dest_file = os.path.join(target_dir, "main.md")
                 shutil.copy(src_file, dest_file)
+        
+        # Creazione delle cartelle per l'utente per template e yaml custom
+        target_dir = os.path.join(vault_dir, VAULT_TEMPLATE_DIR)
+        if not os.path.exists(target_dir):
+            os.makedirs(target_dir)
+        target_dir = os.path.join(vault_dir, VAULT_YAML_DIR)
+        if not os.path.exists(target_dir):
+            os.makedirs(target_dir)
+        
         print(f"Struttura del Vault costruita con successo")
 
         # Copia tutto il contenuto della cartella setup-vault fuori dalla cartella 'vault'
@@ -1160,4 +1179,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
