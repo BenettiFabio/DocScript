@@ -18,20 +18,23 @@ TEMPLATE_NAME = "conversion-template.tex"  # Nome del template
 LUA_FILTER_NAME = "graphic-template.lua"  # Nome del filtro Lua
 COLLAB_FILE = "collaborator.md"
 COMBINED_FILE_NAME = "combined_notes.md"
+BUILD_DIR_NAME = "build"    # Cartella con file prodotti dalla conversione
 VAULT_TEMPLATE_DIR = ".template"
 VAULT_YAML_DIR = ".yaml"
+ASSETS_DIR_NAME = "assets"
 
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # Directory dello script
 TEMPLATE = Path(os.path.join(SCRIPT_DIR, TEMPLATE_NAME)).resolve()
 LUA_FILTER = Path(os.path.join(SCRIPT_DIR, LUA_FILTER_NAME)).resolve()
-MAKE_DIR = Path(os.path.join(SCRIPT_DIR, "..", "vault", "build")).resolve()
+MAKE_DIR = Path(os.path.join(SCRIPT_DIR, "..", "vault", BUILD_DIR_NAME)).resolve()
 OUTPUT_DIR = MAKE_DIR
 HOME_DIR = Path.home()
 APPLICATION_DIR = Path(os.path.join(HOME_DIR, "Documents", "DocuBank")).resolve()
 
 EXCLUDED_DIRS = [
-    MAKE_DIR,
+    ASSETS_DIR_NAME,
+    BUILD_DIR_NAME,
     VAULT_TEMPLATE_DIR, 
     VAULT_YAML_DIR,
     TEMPORARY_DIR
@@ -44,7 +47,13 @@ is_bank = False
 ## FUNCTIONS ##
 def should_skip_dir(dir_path):
     """Verifica se una directory deve essere saltata nella scansione"""
-    return any(excluded in dir_path for excluded in EXCLUDED_DIRS)
+    NewPathList = []
+    
+    for dir in EXCLUDED_DIRS:
+        temp = Path(to_unc_slash_path(str(Path(os.path.join(SCRIPT_DIR, "..", "vault", dir)).resolve())))
+        NewPathList.append(str(temp))
+    
+    return any(excluded in dir_path for excluded in NewPathList)
 
 def convert_link_to_absolute(markdown_text, base_path):
     """
@@ -401,7 +410,8 @@ def get_all_files_from_root():
 
     for root, dirs, files in os.walk(root_vault_path):
         # Escludi le directory non volute
-        dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
+        if should_skip_dir(root):
+            continue
 
         for file in files:
             if file.endswith(".md"):
@@ -425,7 +435,6 @@ def get_files_for_argument_from_root(argomento):
 
     for root, dirs, files in os.walk(root_vault_path):
         # Escludi le directory non volute
-        # dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS]
         if should_skip_dir(root):
             continue
 
