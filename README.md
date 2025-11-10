@@ -104,7 +104,7 @@ python DocScript/make.py --help
    - La struttura della cartella `assets/` deve essere identica a quella fuori in modo da mantenere semplice il ritrovamento dei file e documenti salvati.
    - É possibile anche andare ad inserire un logo che va poi specificato nello yaml nel main. In questo modo é possibile generare un documento piú completo.
 
-   > <span style="color: orange;">NOTA:</span> dentro gli assets ci possono essere le immagini costruite mediante `Python`, `Mermaid` e `TiKz` in base alle esigenze. Nello specifico per `Tikz` c'é un comando di conversione apposito in quanto é gestito come una nota `.md` ma la nota é negli asset e viene generato un output sempre negli assets, vedi `-nt --note-tikz`.
+   > <span style="color: orange;">NOTA:</span> dentro gli assets ci possono essere le immagini costruite mediante `Python`, `Mermaid` e altro in base alle esigenze.
 
    > <span style="color: orange;">NOTA:</span> la struttura tipica della cartella di assets é la seguente
    >
@@ -121,14 +121,10 @@ python DocScript/make.py --help
    >        │   │   ├── img1.png
    >        │   │   └── img2.png
    >        │   └── pdfs/
-   >        │         ├── tikz-pdfs/
-   >        │         │   └── tikz1-tikz.md
-   >        │         └── tikz1.pdf
    >        └── macro-arg2/
    > ```
    >
    > In questo modo so sempre che i sorgenti si chiamano con lo stesso nome dell'immagine o del pdf e sono separati dal resto.
-   > _Es:_ `tikz1.pdf` é generato da `tikz1-tikz.md`
 
 4. **DocScripts:** Questo sottomodulo contiene tutti gli script e le automazioni che possono essere eseguiti nel progetto. In modo da aggiungere pagine standardizzate, comandi di conversione da `.md` a `.pdf` o `tex` con `pandoc` in modo semplice mediante il `make.py`.
 
@@ -140,8 +136,7 @@ python DocScript/make.py --help
 
 1. Pandoc: serve a convertire da .tex a .pdf (da inserire negli env Path)
 2. MikTeX: serve ad avere LateX installato
-3. Strowberry Perl (da inserire negli env Path)
-4. Fonts: GNU FreeFonts (FreeSans e FreeMono)
+3. Fonts: GNU FreeFonts (FreeSans e FreeMono)
 
 # Dipendenze utili VSCode
 
@@ -176,16 +171,14 @@ python DocScript/make.py --help
 
 Il comando di pandoc per la conversione da markdown a pdf rispetta delle regole e per mantenere il sistema piú longevo possibile non sono stati usati pacchetti troppo complessi. Per ovviare al problema sono state aggiunte regole e template che convertono in modo corretto questo tipo di blocchi css e evidenziature senza problemi, se rispettati questi blocchi non causeranno errori nel pdf finito.
 
-```markdown
-- > <span style="color: darkviolet;">OSS:</span> Questa è una osservazione
-- > <span style="color: red;">ATT!:</span> Questo è un attenzione
-- > <span style="color: orange;">NOTA:</span> Questa è una nota
-- > <span style="color: skyblue;">RICORDA:</span> Questo è un blocco ricordo
-- <span style="background-color: yellow;">Questa è una riga evidenziata</span>
-- <span style="text-decoration: underline;">Questo é un testo sottolineato</span>
+- `<span style="color: darkviolet;">OSS:</span>` `->` <span style="color: darkviolet;">OSS:</span> Questa è una osservazione
+- `<span style="color: red;">ATT!:</span>` `->` <span style="color: red;">ATT!:</span> Questo è un attenzione
+- `<span style="color: orange;">NOTA:</span>` `->` <span style="color: orange;">NOTA:</span> Questa è una nota
+- `<span style="color: skyblue;">RICORDA:</span>` `->` <span style="color: skyblue;">RICORDA:</span> Questo è un blocco ricordo
+- `<span style="background-color: yellow;">...</span>` `->` <span style="background-color: yellow;">Questa è una riga evidenziata</span>
+- `<span style="text-decoration: underline;">...</span>` `->` <span style="text-decoration: underline;">Questo é un testo sottolineato</span>
 
-1. <span style="color: brown;">Gli elenchi numerati di una guida da seguire vanno in marrone </span>
-```
+- `1. <span style="color: brown;">...</span>` `->` Gli elenchi numerati di una guida da seguire vanno in <span style="color: brown;"> marrone </span>.
 
 > <span style="color: orange;">NOTA:</span> Le evidenziazioni vengono **sempre** sostituite con i colori personalizzati `hl*` (quindi `yellow` = `hlyellow`) che sono presenti nel conversion-template.tex che rende i colori dell'evidenziatore nel pdf più gradevoli ma mantenendo la visualizzabilità in Preview real time. Se ne vengono aggiunti altri, aggiungerli anche a `.lua`
 
@@ -335,20 +328,4 @@ Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#es
 \scripts\make.py -g nome-macro-argomento output.pdf
 \scripts\make.py -a output.pdf
 \scripts\make.py -c output.pdf
-# conversione immagine tikz
-\scripts\make.py -nt nome-nota-src.md output.pdf
 ```
-
-## TODO
-
-- Impostare una cartella .template dove inserire tutti quelli personalizzati che si vogliono
-- Impostare una cartella .yaml per avere piú yaml che puntano ai template in modo generico (default) o specifico --template:'../link'
-- Nel main scelgo lo yaml da usare, e dentro lo yaml ci sará il puntatore al template cosí le variabili sono sempre coerenti
-- ATT! deve copiare il
-
-- casi particolari:
-  - non c'é scelto lo yaml -> usa il template generico con tutto a false
-  - c'é lo yaml ma non specifica il template -> usa il template generico con tutto a false
-  - c'é lo yaml ma al link non esiste... -> si arrabbia
-  - c'é lo yaml e contiene un link al template sbagliato -> si arrabbia
-  - c'é lo yaml contiene un link corretto al template, ma le variabili che setta non centrano niente con il template -> fattacci tuoi
