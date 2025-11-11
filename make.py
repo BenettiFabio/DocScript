@@ -999,6 +999,64 @@ def NoteConversion(combined_note_path):
         print(f"Eseguo il comando: {command}")
         os.system(command)
 
+def setup_argparse():
+    """Configura l'argparse con gruppi mutuamente esclusivi"""    
+    parser = argparse.ArgumentParser(
+        prog="make.py",
+        description="DocuBank - Conversione e gestione documentazione. Tips: genera un repo git vuoto e inserisci questo come un sottomodulo prima di lanciare un --init",
+        epilog="Freeware Licence 2025 Fabio. Maintainer: BenettiFabio",
+        add_help=False
+    )
+
+    # Gruppo 1: Operazioni singole (mutuamente esclusive fra loro, non accettano altri argomenti)
+    group_standalone = parser.add_mutually_exclusive_group()
+    group_standalone.add_argument("-i",     "--init",       action="store_true",        help="Inizializza un nuovo vault")
+    group_standalone.add_argument("-ib",    "--init-bank",  action="store_true",        help="Inizializza una banca dati collaborativa")
+    group_standalone.add_argument("-s",     "--start",          metavar="NOTE_NAME",    help="Crea una nuova nota")
+    group_standalone.add_argument("-u",     "--update",     action="store_true",        help="Aggiorna la banca dati")
+    group_standalone.add_argument("-h",     "--help",       action="store_true",        help="Mostra questo messaggio di aiuto")
+
+    # Gruppo 2: Operazioni di conversione (mutuamente esclusive fra loro, ma accettano opzioni aggiuntive)
+    group_conversion = parser.add_mutually_exclusive_group()
+    group_conversion.add_argument("-a",     "--all",        action="store_true",        help="Converte tutte le note")
+    group_conversion.add_argument("-g",     "--group",          metavar="GROUP_NAME",   help="Converte un gruppo di note")
+    group_conversion.add_argument("-n",     "--note",           nargs=2, metavar=("NOTE", "OUTPUT"), help="Converte una singola nota")
+    group_conversion.add_argument("-c",     "--custom",         metavar="OUTPUT",       help="Conversione custom da file custom.md")
+
+    # Gruppo 3: Opzioni aggiuntive (possono essere combinate con il gruppo 2)
+    parser.add_argument("-y",   "--yaml",       metavar="YAML_NAME",        help="Applica un file YAML personalizzato diverso da quello nel main.md")
+    parser.add_argument("-t",   "--template",   metavar="TEMPLATE_NAME",    help="Applica un file template.tex personalizzato diverso da quello di default")
+
+    return parser
+
+def validate_args(args):
+    """Valida la coerenza degli argomenti"""
+    # Se è un'operazione standalone, non deve avere altre opzioni
+    standalone_ops = [args.init, args.init_bank, args.start, args.update, args.help]
+    conversion_ops = [args.all, args.group, args.note, args.custom]
+
+    # Conta quante operazioni standalone sono attive
+    active_standalone = sum(1 for op in standalone_ops if op)
+
+    # Se c'è un'operazione standalone attiva
+    if active_standalone > 0:
+        # Controlla che non ci siano operazioni di conversione
+        active_conversion = sum(1 for op in conversion_ops if op)
+        if active_conversion > 0:
+            print("Errore: le operazioni -i, -ib, -s, -u, -h non possono essere combinate con -a, -g, -n, -c")
+            sys.exit(1)
+        # Controlla che non ci siano opzioni aggiuntive
+        if args.yaml or args.template:
+            print("Errore: le operazioni -i, -ib, -s, -u, -h non accettano opzioni aggiuntive")
+            sys.exit(1)
+
+    # Se non c'è nessuna operazione standalone, deve esserci almeno una di conversione
+    if active_standalone == 0:
+        active_conversion = sum(1 for op in conversion_ops if op)
+        if active_conversion == 0:
+            print("Errore: deve essere specificata almeno un'operazione (-a, -g, -n, -c, -i, -ib, -s, -u)")
+            sys.exit(1)
+
 ## MAIN FUNCTION ##
 def main():
     # Entro nella cartella build prima di eseguire il comando
@@ -1025,47 +1083,67 @@ def main():
     
     global custom
     
-    # Creazione del parser
-    parser = argparse.ArgumentParser(
-        prog="make.py",
-        description="Make script per gestire la conversione di note in PDF. Tips: genera un repo git vuoto e inserisci questo come un sottomodulo prima di lanciare un --init",
-        epilog="Freeware Licence 2025 Fabio. Maintainer: BenettiFabio",
-        add_help=False
-    )
-    # Aggiunta delle opzioni
-    parser.add_argument("-i", "--init",         action="store_true",                            help="Inizializza la struttura del vault in modo che sia consistente per il make.py")
-    parser.add_argument("-a", "--all",                      metavar="OUTPUT",                   help="Converte tutto il repository in un unico file di output, usando il main.md come ordinamento")
-    parser.add_argument("-g", "--group",        nargs=2,    metavar=("ARGOMENTO", "OUTPUT"),    help="Converte un macro-argomento specificato in un file di output, usando main.md come ordinamento")
-    parser.add_argument("-n", "--note",         nargs=2,    metavar=("NOTA", "OUTPUT"),         help="Converte una nota specificata in un file di output")
-    parser.add_argument("-s", "--start",                    metavar="NOTE_PATH",                help="Aggiunge una nuova nota specificata in NOTE_PATH")
-    parser.add_argument("-c", "--custom",                   metavar="OUTPUT",                   help="Converte tutte le note incluse nel file custom.md in un file di output")
-    parser.add_argument("-ib", "--init-bank",   action="store_true",                            help="Inizializza vault-bank per la gestione condivisa delle note con collaboratori")
-    parser.add_argument("-u",  "--update",      action="store_true",                            help="Aggiorna il file main.md della banca dati, necessaria inizializzazione con -ib")
-    parser.add_argument("-h",  "--help",        action="store_true",                            help="Stampa l'help ed esce")
-
-    # Parsing degli argomenti
+    parser = setup_argparse()
     args = parser.parse_args()
-
-    # Gestione delle opzioni
-    if args.all:
-        if not args.all:
-            print("Errore: l'opzione --all richiede un argomento OUTPUT (in formato .pdf o .tex).")
-            sys.exit(1)
-        validate_output(args.all)
-        print(f"Opzione --all selezionata. Output: {args.all}")
-        # Inizio conversione
-        ConversionAllNote(custom)
+    
+    if args.help and not any([args.all, args.group, args.note, args.custom]):
+        print(pyfiglet.figlet_format("DocuBank", font="slant"))
+        parser.print_help()
+        sys.exit(0)
         
+    # Valida gli argomenti
+    validate_args(args)
+
+    # Operazioni standalone
+    if args.init:
+        print("Opzione --init selezionata. Creazione di un vault di partenza.")
+        InitVault()
+
+    elif args.init_bank:
+        print("Opzione --init-bank selezionata. Creazione di una banca dati collaborativa.")
+        InitBank()
+
+    elif args.start:
+        print(f"Opzione --start selezionata. Creazione della nuova nota: {args.start}")
+        AddStartNewNote(args.start)
+
+    elif args.update:
+        print("Opzione --update selezionata. Lettura dei main.md dei collaboratori e costruzione del main.md complessivo.")
+        UpdateBank()
+
+    # Operazioni di conversione (con opzioni aggiuntive opzionali)
+    elif args.all:
+        custom = False
+        print("Opzione --all selezionata. Conversione di tutte le note.")
+        if args.yaml:
+            print(f"  - Con yaml personalizzato: {args.template}")
+            # todo : aggiungi qui un flag o il recupero del file yaml
+            # todo : aggiungi anche un controllo sul tipo di file
+        if args.template:
+            print(f"  - Con template personalizzato: {args.template}")
+            # todo : aggiungi qui un flag o il recupero del file template
+            # todo : aggiungi anche un controllo sul tipo di file
+        validate_output(args.all)
+        ConversionAllNote(custom)
+        # ConversionAllNote(custom, use_yaml=args.yaml, template_path=args.template)
+    
     elif args.group:
         if len(args.group) < 2:
             print("Errore: l'opzione --group richiede due argomenti: ARGOMENTO e OUTPUT (in formato .pdf o .tex).")
             sys.exit(1)
         argomento, output = args.group
-        validate_output(output)
-        print(f"Opzione --group selezionata. Argomento: {argomento}, Output: {output}")
-        # Inizio conversione
+        validate_output(argomento)
+        print(f"Opzione --group selezionata. Gruppo: {args.group}")
+        if args.yaml:
+            print("  - Con blocco YAML dal main.md")
+            # todo : aggiungi qui un flag o il recupero del file yaml
+            # todo : aggiungi anche un controllo sul tipo di file
+        if args.template:
+            print(f"  - Con template personalizzato: {args.template}")
+            # todo : aggiungi qui un flag o il recupero del file template
+            # todo : aggiungi anche un controllo sul tipo di file
         ConversionGroupNote(argomento)
-        
+
     elif args.note:
         if len(args.note) < 2:
             print("Errore: l'opzione --note richiede due argomenti: NOTA e OUTPUT (in formato .pdf o .tex).")
@@ -1073,13 +1151,17 @@ def main():
         nota, output = args.note
         validate_output(output)
         print(f"Opzione --note selezionata. Nota: {nota}, Output: {output}")
-        # Inizio conversione
+        if args.yaml:
+            print("  - Con blocco YAML dal main.md")
+            # todo : aggiungi qui un flag o il recupero del file yaml
+            # todo : aggiungi anche un controllo sul tipo di file
+        if args.template:
+            print(f"  - Con template personalizzato: {args.template}")
+            # todo : aggiungi qui un flag o il recupero del file template
+            # todo : aggiungi anche un controllo sul tipo di file
         ConversionSingleNote(nota)
-    
-    elif args.start:
-        print(f"Opzione --start selezionata. Creazione della nuova nota: {args.start}")
-        AddStartNewNote(args.start)
-        
+        # ConversionSingleNote(nota, use_yaml=args.yaml, template_path=args.template)
+
     elif args.custom:
         custom = True
         if not args.custom:
@@ -1087,25 +1169,17 @@ def main():
             sys.exit(1)
         validate_output(args.custom)
         print(f"Opzione --custom selezionata. Output: {args.custom}")
-        # Inizio conversione
+        if args.yaml:
+            print("  - Con blocco YAML dal main.md")
+            # todo : aggiungi qui un flag o il recupero del file yaml
+            # todo : aggiungi anche un controllo sul tipo di file
+        if args.template:
+            print(f"  - Con template personalizzato: {args.template}")
+            # todo : aggiungi qui un flag o il recupero del file template
+            # todo : aggiungi anche un controllo sul tipo di file
         ConversionAllNote(custom)
-        
-    elif args.init:
-        print(f"Opzione --init selezionata. Creazione di un vault di partenza.")
-        InitVault()
-        
-    elif args.init_bank:
-        print(f"Opzione --init-bank selezionata. Creazione di una banca dati collaborativa.")
-        InitBank()
-        
-    elif args.update:
-        print(f"Opzione --update selezionata. Lettura dei main.md dei collaboratori e costruzione del main.md complessivo.")
-        UpdateBank()
-        
-    elif args.help:
-        print(pyfiglet.figlet_format("DocuBank", font="slant"))
-        parser.print_help()
-        sys.exit(0)
+        # ConversionAllNote(custom, use_yaml=args.yaml, template_path=args.template)
+
     else:
         print(pyfiglet.figlet_format("DocuBank", font="slant"))
         parser.print_help()
