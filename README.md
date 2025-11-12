@@ -130,7 +130,13 @@ python DocScript/make.py --help
 
    Dentro il sottomodulo é presente la cartella `requirements/` dove sono presenti giá i fonts e altri componenti per velocizzare la messa in servizio del vault.
 
-5. **./vault/rusco:** É una cartella temporanea in questo modo quando si converte l'intero repo con il comando `-a` queste note vengono escluse dal check di consistenza in modo che si possano fare note temporanee senza preoccuparsi di inserirle nel `main.md`.
+5. **./vault/config:** É una cartella in cui sono presenti tutti i file custom che possono essere modificati per la conversione tra cui _yaml_, _template_, _lua filter_, e quale template usare per le _nuove note_. Dentro il file `vault/config/.conf` sono specificati quali devono essere usati nella conversione.
+
+   > - se non presente nulla vengono usati quelli di default.
+   > - se presenti solo alcuni vengono usati quelli e per tutti gli altri i default.
+   > - se presenti tutti ma vengon specificate le opzioni a terminale `-t --template`, `-y --yaml` e `-l --lua` questi ultimi hanno <span style="color: red;">massima prioritá</span>.
+
+6. **./vault/rusco:** É una cartella temporanea in questo modo quando si converte l'intero repo con il comando `-a` queste note vengono escluse dal check di consistenza in modo che si possano fare note temporanee senza preoccuparsi di inserirle nel `main.md`.
 
 # Dipendenze librerie
 
@@ -275,7 +281,7 @@ Ovunque ci si trovi é possibile richiamare il `make.py` e questo genererá le n
 
 - inserire nuove note e nuovi argomenti dentro il vault mediante `-s`
 
-- prima di convertire il documento ufficiale dare uno sguardo al `main.md` per impostare i parametri di conversione in modo da ottenere risultati piú o meno complessi in base alle esigenze.
+- prima di convertire il documento ufficiale dare uno sguardo al `/vault/config/.conf` per impostare i file da usare durante la conversione. Sopratutto per quanto riguarda il file `yaml/` il quale contiene i parametri di conversione che verranno usati nel `template/` scelto in modo da ottenere risultati piú o meno complessi in base alle esigenze.
 
 - convertire note, gruppi di note o l'intero vault con rispettivamente `-n` `-g` e `-a`
 
@@ -328,4 +334,8 @@ Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#es
 \scripts\make.py -g nome-macro-argomento output.pdf
 \scripts\make.py -a output.pdf
 \scripts\make.py -c output.pdf
+# queste ultime quattro opzioni -n -g -a -c accettano modifiche temporanee
+# aggiungendo -y -l -t per cambiare yaml lua e template
+# anche contemporaneamente
+\scripts\make.py -n nome-nota-src.md output.pdf -y path/to/yaml/file.yaml -t path/to/template/file.tex
 ```

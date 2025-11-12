@@ -2,31 +2,31 @@
 # ----------------------------------------------------------------------
 # Configurazioni di Base (Flags per includere/escludere sezioni)
 # ----------------------------------------------------------------------
-titlepage: false
-headerfooter: false
+titlepage: true
+headerfooter: true
 draft: false
 toc: true
-listtables: false
 listfigures: false
+listtables: false
 
 # ----------------------------------------------------------------------
 # Dati Aziendali e Documento
 # ----------------------------------------------------------------------
-CompanyProject:
-CompanyDepartment:
-CompanyOffice:
-CompanyDesigner:
+CompanyProject: MHQ.PSA.VAR0000199
+CompanyDepartment: CCS MNC LSH3
+CompanyOffice: QG
+CompanyDesigner: Benetti Fabio
 CompanyDesignerCode:
 CompanyTechnicalManager:
-CompanyTechnicalSupervisor:
-CompanyStudyTitle:
-CompanyDocumentCode:
+CompanyTechnicalSupervisor: Antonio De Renzis
+CompanyStudyTitle: P3IF High Speed UDP Pkt Description
+CompanyDocumentCode: BSV000F0035F
 
 # ----------------------------------------------------------------------
 # Impostazioni di Layout e Assets
 # ----------------------------------------------------------------------
-LogoFileName: '../assets/docfiles/logo_company'
-footerText: 'RISERVATO - PROPRIETÀ DI Company S.p.A.'
+LogoFileName: '../assets/docfiles/logo-marposs.eps'
+footerText: 'RISERVATO - PROPRIETÀ DI Marposs S.p.A.'
 
 # ----------------------------------------------------------------------
 # Configurazione Watermark (se draft: true)
@@ -39,6 +39,3 @@ watermark_text: 'Draft'
 tocDepth: 5
 ---
 
-# Argomento 1
-
-- [NomeArgomento1](main-arg1/main.main-arg1.first-note.md)
