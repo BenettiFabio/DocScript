@@ -173,8 +173,8 @@ $if(headerfooter)$
     \fancyhf{}
     \renewcommand{\headrulewidth}{1pt} % Line at the header visible
     \renewcommand{\footrulewidth}{1pt} % Line at the footer visible
-
-    \fancyhead[L]{\includegraphics[height=40pt]{$LogoFileName$}}
+    % If no logo bypass
+    $if(LogoFileName)$\fancyhead[L]{\includegraphics[height=40pt]{$LogoFileName$}}$else$~$endif$
     \fancyhead[R]{$CompanyDepartment$ \\\ TECHNICAL DESCRIPTION \\\ $CompanyDocumentCode$}
     
     \fancyfoot[C]{$footerText$}
@@ -212,18 +212,19 @@ $if(draft)$
 \DraftwatermarkOptions{stamp=false}
 $endif$
 
-\title{%
-\includegraphics[width=0.5\textwidth]{$LogoFileName$} 
+\thispagestyle{firststyle}
+\title{
+$if(LogoFileName)$\includegraphics[width=0.5\textwidth]{$LogoFileName$}$else$~$endif$
 \\[1cm]
-$CompanyProject$ 
+$if(CompanyProject)$$CompanyProject$$else$~$endif$
 \\
-$CompanyStudyTitle$
+$if(CompanyStudyTitle)$$CompanyStudyTitle$$else$~$endif$
+\\
 }
 \author{$CompanyDesigner$}
 \date{\today}
 
-\maketitle % Insert the title, author and date
-\thispagestyle{firststyle}
+\maketitle % genera il titolo
 \pagestyle{fancy}
 \end{titlepage}
 $endif$
