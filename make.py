@@ -786,10 +786,10 @@ def InitBank():
         print(f"- Struttura banca dati : ok")
         
         # Creazione delle cartelle per l'utente per i file di configurazione
-        create_config_dirs(vault_dir, CONFIG_DIR_NAME, CONFIG_DIRS)
+        create_config_dirs(bank_dir, CONFIG_DIR_NAME, CONFIG_DIRS)
         
         # Scrive il config file con i riferimenti di default
-        config_file = os.path.join(vault_dir, CONFIG_DIR_NAME, CONFIG_FILE_NAME)
+        config_file = os.path.join(bank_dir, CONFIG_DIR_NAME, CONFIG_FILE_NAME)
         contenuto = f'# default configuration\n.yaml="{YAML_PATH}"\n.template="{TEMPLATE_PATH}"\n.lua="{LUA_FILTER_PATH}"\n'
         with open(config_file, "w") as f:
             f.write(contenuto)
@@ -904,8 +904,9 @@ def UpdateBank():
         # Cerca link markdown a main.md
         match = re.search(r'\[.*?\]\((.*?main\.md)\)', line)
         if match:
+            main_md_path = safe_path("..", match.group(1))  # Definisci qui la variabile
             # if not os.path.exists(Path(to_unc_slash_path(str(os.path.join("..", match.group(1)))))):
-            if not os.path.exists(safe_path("..", match.group(1))):
+            if not os.path.exists(main_md_path):
                 errors.append(f"Collaboratore '{collaborator}': main.md non trovato in '{main_md_path}'")
             else:
                 print(f"Collaboratore '{collaborator}': main.md trovato in '{main_md_path}'")
