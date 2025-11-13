@@ -12,21 +12,21 @@ listtables: false
 # ----------------------------------------------------------------------
 # Dati Aziendali e Documento
 # ----------------------------------------------------------------------
-CompanyProject: MHQ.PSA.VAR0000199
-CompanyDepartment: CCS MNC LSH3
-CompanyOffice: QG
+CompanyProject:
+CompanyDepartment:
+CompanyOffice:
 CompanyDesigner: Benetti Fabio
 CompanyDesignerCode:
 CompanyTechnicalManager:
-CompanyTechnicalSupervisor: Antonio De Renzis
-CompanyStudyTitle: P3IF High Speed UDP Pkt Description
-CompanyDocumentCode: BSV000F0035F
+CompanyTechnicalSupervisor:
+CompanyStudyTitle:
+CompanyDocumentCode:
 
 # ----------------------------------------------------------------------
 # Impostazioni di Layout e Assets
 # ----------------------------------------------------------------------
-LogoFileName: '../assets/docfiles/logo-marposs.eps'
-footerText: 'RISERVATO - PROPRIETÀ DI Marposs S.p.A.'
+LogoFileName: '../assets/docfiles/logo-company.eps'
+footerText: 'RISERVATO - PROPRIETÀ DI Company S.p.A.'
 
 # ----------------------------------------------------------------------
 # Configurazione Watermark (se draft: true)
