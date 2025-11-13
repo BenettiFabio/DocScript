@@ -39,7 +39,7 @@ SCRIPT_DIR      = os.path.dirname(os.path.abspath(__file__))  # Directory dello 
 MAKE_DIR        = Path(os.path.join(SCRIPT_DIR, "..", "vault", BUILD_DIR_NAME)).resolve()
 OUTPUT_DIR      = MAKE_DIR
 HOME_DIR        = Path.home()
-APPLICATION_DIR = Path(os.path.join(HOME_DIR, "Documents", "DocuBank")).resolve()
+APPLICATION_DIR = Path(os.path.join(HOME_DIR, "Documents", "DocScript")).resolve()
 DEFAULT_CONF_DIR= Path(os.path.join(SCRIPT_DIR, CONFIG_DIR_NAME)).resolve()
 
 YAML_NAME       = "default-yaml.yaml"    # Nome del file YAML
@@ -1053,10 +1053,10 @@ def ConversionAllNote(custom):
         """
         comportamento in una banca dati collaborativa
         - crea la cartella di build nei documenti del pc
-        - ci inserisce la nota combinata in Documents/DocuBank/build
-        - ci copia gli assets in in Documents/DocuBank/assets
-        - ci copia i file di configurazione template e lua_filter in Documents/DocuBank/config
-        - ritorna alla cartella del vault copiando il risultato da Documents/DocuBank/build
+        - ci inserisce la nota combinata in Documents/DocScript/build
+        - ci copia gli assets in in Documents/DocScript/assets
+        - ci copia i file di configurazione template e lua_filter in Documents/DocScript/config
+        - ritorna alla cartella del vault copiando il risultato da Documents/DocScript/build
         """
         matching_files_main = []
         matching_files_main, collaborators = get_all_files_from_collab_main(custom)
@@ -1212,7 +1212,7 @@ def setup_argparse():
     """Configura l'argparse con gruppi mutuamente esclusivi"""    
     parser = argparse.ArgumentParser(
         prog="make.py",
-        description="DocuBank - Conversione e gestione documentazione. Tips: genera un repo git vuoto e inserisci questo come un sottomodulo prima di lanciare un --init",
+        description="DocScript - Conversione e gestione documentazione. Tips: genera un repo git vuoto e inserisci questo come un sottomodulo prima di lanciare un --init",
         epilog="Freeware Licence 2025 Fabio. Maintainer: BenettiFabio",
         add_help=False
     )
@@ -1261,11 +1261,11 @@ def validate_args(args):
             sys.exit(1)
 
     # Se non c'è nessuna operazione standalone, deve esserci almeno una di conversione
-    if active_standalone == 0:
-        active_conversion = sum(1 for op in conversion_ops if op)
-        if active_conversion == 0:
-            print("Errore: deve essere specificata almeno un'operazione (-a, -g, -n, -c, -i, -ib, -s, -u)")
-            sys.exit(1)
+    # if active_standalone == 0:
+    #     active_conversion = sum(1 for op in conversion_ops if op)
+    #     if active_conversion == 0:
+    #         print("Errore: deve essere specificata almeno un'operazione (-h, -a, -g, -n, -c, -i, -ib, -s, -u)")
+    #         sys.exit(1)
 
 ## MAIN FUNCTION ##
 def main():
@@ -1299,7 +1299,7 @@ def main():
     args = parser.parse_args()
     
     if args.help and not any([args.all, args.group, args.note, args.custom]):
-        print(pyfiglet.figlet_format("DocuBank", font="slant"))
+        print(pyfiglet.figlet_format("DocScript", font="slant"))
         parser.print_help()
         sys.exit(0)
         
@@ -1403,7 +1403,7 @@ def main():
         ConversionAllNote(custom)
 
     else:
-        print(pyfiglet.figlet_format("DocuBank", font="slant"))
+        print(pyfiglet.figlet_format("DocScript", font="slant"))
         parser.print_help()
         sys.exit(0)
 

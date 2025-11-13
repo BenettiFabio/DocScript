@@ -1,12 +1,17 @@
-# Documentation Structure
+# DocScript Docupementation Structure
 
-Developer Documentation Structure
+É una struttura che permette di gestire appunti, documentazione e note direttamente in markdown. Ha il vantaggio di avere una organizzazione per argomenti e permette di Convertire file e interi blocchi di file mediante il tool `pandoc`.
+
+Mediante questa architettura é possibile configurare un ambiente di conversione di pdf con template, yaml e lua filter di default nel caso in cui si utilizzino spesso sempre gli stessi, ma di cambiarli velocemente e temporaneamente senza intaccare l'architettura.
+
+Se inizializzata come banca dati in una cartella di rete condivisa con piú utenti é possibile anche creare un aggregatore di conoscenza tra persone, condividendo appunti, note, e documentazione e potendo prendere in prestito note altrui per farne una documentazione dinamica e piú completa.
+
 Consiglio: genera un repo vuoto per le note in modo da versionarle separate dal sottomodulo, inserisci questo repo come un sottomodulo git, dopo potrai inizializzare la tua struttura di appunti con il comando `--init` garantendo una struttura stabile. Questo ti permette anche di avere gli script e le tue note separate.
 
 Per maggiori informazioni sulle operazioni che puó fare questo sottomodulo lanciare:
 
 ```bash
-python DocScript/make.py --help
+python DocScript/DocScript.py --help
 ```
 
 ## Guida all'inizializzazione
@@ -19,6 +24,8 @@ python DocScript/make.py --help
    git init --bare MyDocumentation
    ```
 
+   Questo conterrá la tua documentazione completamente separata dal resto potendo farne backup e versionarla separatamente da tutto.
+
 2. <span style="color: brown;">Clonare il repo ed inserire il sottomodulo</span>
 
    ```bash
@@ -29,114 +36,119 @@ python DocScript/make.py --help
 
 3. <span style="color: brown;">Inizializzare il vault</span>
 
-   A questo punto grazie agli script si puó inizializzare un vault in cui iniziare a scrivere la propria documentazione. Ricorda di stare dentro la cartella `MyDocs/`.
+   A questo punto grazie a DocScript si puó inizializzare un vault in cui iniziare a scrivere la propria documentazione. Ricorda di stare dentro la cartella `MyDocs/`.
 
    ```bash
-   python DocScript/make.py --help
-   python DocScript/make.py --init
+   python DocScript/DocScript.py --help
+   python DocScript/DocScript.py --init
    ```
 
-   Verrá creato un **vault** con una struttura standard basata un un **macro-argomento** con una nota al suo interno, una cartella **assets** per gli allegati e al di fuori i file per le indentazioni di **markdownlint** e **prettier**.
+   Verrá creato:
+
+   - un **vault** con una struttura standard basata **macro-argomenti** con una note.
+   - All'interno del vault, una cartella **assets** per gli allegati dove é anche possibile inserire eventuali icone e loghi da inserire nei file finali.
+   - All'interno del vault, una cartella **config** in modo da organizzare tutti i template, lua e yaml personlizzati nel caso si vogliano ottenere risultati differenti. Se si punta ad usarne alcuni spesso é possibile specigicarli nel file **.conf**.
+   - Al di fuori del vault invece, i file per le indentazioni di **markdownlint** e **prettier** anch'essi personalizzabili, questo é solo un punto di partenza!.
 
    Per maggiori informazioni sulla struttura base del progetto proseguire con la lettura.
 
-   Se Hai giá un vault e sai giá come usarlo, ma hai dei collaboratori e vuoi iniziare ad usarlo in gruppo allora puoi inizializzare una banca dati con
+   Se Hai giá un vault e sai giá come usarlo, ma hai dei collaboratori e vuoi iniziare ad usarlo in gruppo allora puoi inizializzare una banca dati con:
 
    ```bash
-   python DocScript/make.py --init-bank
+   python DocScript/DocScript.py --init-bank
    ```
 
    Questo genererá 3 file dentro la cartella `bank/`:
 
-   - `collaborator.md` : in cui specificare con chi lavori
-   - `main.md` : sará un indice complessivo delle note di tutti i collaboratori
-   - `custom.md` : che puoi riempire per compilare le tue note personalizzate
+   - `collaborator.md` : in cui specificare con chi lavori.
+   - `main.md` : sará un indice complessivo delle note di tutti i collaboratori.
+   - `custom.md` : che puoi riempire per compilare le tue note personalizzate.
+   - **conf/** : come per il vault classico questo permette di personalizzare la conversione anche tra note di altri utenti che usano la banca.
 
 4. <span style="color: brown;">Compilare le note per creare .pdf e .tex</span>
 
-   A questo punto o hai un Vault o hai una banca dati, se sai giá usarli benissimo! **Enjoy!** in caso contrario vai pure alle procedure di conversione per un vault personale [Qui](#build-di-un-documento) e per una nota con collaboratori in una banca dati [Qui](#build-di-un-documento-con-collaboratori).
+   A questo punto o hai un _vault_ o hai una _banca_ dati, se sai giá usarli benissimo! **Enjoy!**, in caso contrario vai pure alle procedure di conversione per un vault personale [Qui](#build-di-un-documento) e per una nota con collaboratori in una banca dati [Qui](#build-di-un-documento-con-collaboratori).
 
    Ricorda peró che le conversioni dei documenti devono rispettare dei constraint specifici quindi se é la tua prima volta qui prosegui pure la lettura con la [struttura del progetto](#struttura-del-progetto)!
 
 # Struttura del progetto
 
-0. **REGOLA FONDAMENTALE DELLE NOTE:** I nomi delle note devono essere tutti in <span style="color: red;">_minuscolo_</span>, le parole separate da `-`. I nomi delle note sono **TUTTI** descrittivi del loro albero di posizione:
+0.  **REGOLA FONDAMENTALE DELLE NOTE:** I nomi delle note devono essere tutti in <span style="color: red;">_minuscolo_</span>, le parole separate da `-`. I nomi delle note sono **TUTTI** descrittivi del loro albero di posizione:
 
-   _es:_
+    _es:_
 
-   ```bash
-   vault/
-   ├── main.md
-   ├── macro-arg1/
-   │   ├── main.macro-arg1.sub-arg1.md
-   │   └── main.macro-arg1.sub-arg2.md
-   ├── macro-arg2/
-   │   └── main.macro-arg2.sub-arg1.md
-   └── macro-arg3/
-       └── main.macro-arg3.sub-arg1.md
-   ```
+    ```bash
+    vault/
+    ├── main.md
+    ├── macro-arg1/
+    │   ├── main.macro-arg1.sub-arg1.md
+    │   └── main.macro-arg1.sub-arg2.md
+    ├── macro-arg2/
+    │   └── main.macro-arg2.sub-arg1.md
+    └── macro-arg3/
+        └── main.macro-arg3.sub-arg1.md
+    ```
 
-   In Questo modo la ricerca dei file e dei loro contenuti si semplifica e semplifica l'utilizzo anche di eventuali script che possono sfruttare il nome per eventuali automazioni.
+    In Questo modo la ricerca dei file e dei loro contenuti si semplifica e semplifica l'utilizzo anche di eventuali script che possono sfruttare il nome per eventuali automazioni.
 
-   > <span style="color: red;">ATT!:</span> Ogni nuova pagina aggiunta va inserita direttamente
-   > nell'indice totale (`main.md`)
+    > <span style="color: red;">ATT!:</span> Ogni nuova pagina aggiunta va inserita direttamente
+    > nell'indice totale (`main.md`)
 
-1. `main.md`: Questo file è l'indice di tutta la struttura.
+1.  `main.md`: Questo file è l'indice di tutta la struttura.
 
-   - Andrà a linkare tutte le pagine del progetto in modo da poterle trovare facilmente nel tempo.
+    - Andrà a linkare tutte le pagine del progetto in modo da poterle trovare facilmente nel tempo.
+    - Il `main.md` verrá utilizzato come ordine di conversione in modo che, se convertito l'intero vault in un unico pdf si conosce in che ordine devono essere inseriti gli argomenti.
 
-   - In questo file é presente anche uno `YAML` in cui inserire tutti i parametri che si vogliono attivare e configurare all'interno del template per rendere il sistema piú o meno complesso, piú o meno ufficiale.
+2.  **vault:** Il Vault è la cartella contenente tutte le note.
 
-   > <span style="color: orange;">NOTA:</span> se non presente si puó copiare direttamente dal main iniziale al path `DocScript/templates/init-vault/init-main.md` in questo modo si hanno tutte le informazioni e flag che sono attivabili nella generazione del documento
+    - I nomi delle note sono divisi in _macro-argomenti_ nelle sottocartelle del Vault.
+    - Se vuoi convertirle tutte in una volte verrá usato l'ordine del main come ordine delle note nel pdf finale.
 
-2. **vault:** Il Vault è la cartella contenente tutte le note.
+    > <span style="color: orange;">NOTA:</span> se vuoi convertire solo un certo gruppo ristretto di note sconnesse tra loro in un unico file pdf, puoi creare un file `custom.md` e inserire lí un indice come se fosse un main, con solo le note che desideri e poi usare l'opzione `-c`.
 
-   - I nomi delle note sono divisi in macro-argomenti nelle sottocartelle del Vault. Dentro il file `main.md` puoi creare un indice che contiene tutte le note per navigare piú facilmente.
-   - Se vuoi convertirle tutte in una volte verrá usato l'ordine del main come ordine delle note nel pdf finale.
+3.  **Assets:** La cartella assets contiene tutti i documenti e le immagini utili al progetto che sono linkate all'interno delle varie note.
 
-   > <span style="color: orange;">NOTA:</span> se vuoi convertire solo un certo gruppo ristretto di note sconnesse tra loro in un unico file pdf, puoi creare un file `custom.md` e inserire lí un indice come se fosse un main, con solo le note che desideri e poi usare l'opzione `-c`.
-   >
-   > <span style="color: red;">ATT!</span> in questo caso lo yaml per i parametri di conversione sono comunque quelli presenti nel `main.md`
+    - Dentro la cartella `assets/macro-argomento/` ci sono i relativi docs, imgs, ...
+    - La struttura della cartella `assets/` deve essere identica a quella fuori in modo da mantenere semplice il ritrovamento dei file e documenti salvati.
+      > _P.S. puoi anche non farlo... a tuo rischio ;) mantenere l'ordine premia in futuro!_
+    - É possibile anche andare ad inserire un logo che va poi specificato nello yaml nel main. In questo modo é possibile generare un documento piú completo.
 
-3. **Assets:** La cartella assets contiene tutti i documenti e le immagini utili al progetto che sono linkate all'interno delle varie note.
+    Consiglio di organizzazione:
 
-   - Dentro la cartella `assets/macro-argomento/` ci sono i relativi docs, imgs, ...
-   - La struttura della cartella `assets/` deve essere identica a quella fuori in modo da mantenere semplice il ritrovamento dei file e documenti salvati.
-   - É possibile anche andare ad inserire un logo che va poi specificato nello yaml nel main. In questo modo é possibile generare un documento piú completo.
+    > <span style="color: orange;">NOTA:</span> dentro gli assets ci possono essere le immagini costruite mediante `Python`, `Mermaid` e altro in base alle esigenze.
+    > <span style="color: orange;">NOTA:</span> la struttura tipica della cartella di assets é la seguente
+    >
+    > ```bash
+    > vault/assets/
+    >        ├── docfiles/
+    >        │   └── logo-image.png
+    >        ├── macro-arg1/
+    >        │   ├── imgs/
+    >        │   │   ├── mermaid-imgs/
+    >        │   │   │   └── img1-mermaid.md
+    >        │   │   ├── python-imgs/
+    >        │   │   │   └── img2-python.py
+    >        │   │   ├── img1.png
+    >        │   │   └── img2.png
+    >        │   └── pdfs/
+    >        └── macro-arg2/
+    > ```
+    >
+    > In questo modo so sempre che i sorgenti si chiamano con lo stesso nome dell'immagine o del pdf e sono separati dal resto.
 
-   > <span style="color: orange;">NOTA:</span> dentro gli assets ci possono essere le immagini costruite mediante `Python`, `Mermaid` e altro in base alle esigenze.
+4.  **DocScripts:** Questo sottomodulo contiene tutti gli script e le automazioni di default che possono essere eseguiti nel progetto.
 
-   > <span style="color: orange;">NOTA:</span> la struttura tipica della cartella di assets é la seguente
-   >
-   > ```bash
-   > vault/assets/
-   >        ├── docfiles/
-   >        │   └── logo-image.png
-   >        ├── macro-arg1/
-   >        │   ├── imgs/
-   >        │   │   ├── mermaid-imgs/
-   >        │   │   │   └── img1-mermaid.md
-   >        │   │   ├── python-imgs/
-   >        │   │   │   └── img2-python.py
-   >        │   │   ├── img1.png
-   >        │   │   └── img2.png
-   >        │   └── pdfs/
-   >        └── macro-arg2/
-   > ```
-   >
-   > In questo modo so sempre che i sorgenti si chiamano con lo stesso nome dell'immagine o del pdf e sono separati dal resto.
+    Dentro il sottomodulo é presente la cartella `requirements/` dove sono presenti giá i fonts e altri componenti per velocizzare la messa in servizio del vault.
 
-4. **DocScripts:** Questo sottomodulo contiene tutti gli script e le automazioni che possono essere eseguiti nel progetto. In modo da aggiungere pagine standardizzate, comandi di conversione da `.md` a `.pdf` o `tex` con `pandoc` in modo semplice mediante il `make.py`.
+5.  **./vault/config:** É una cartella in cui sono presenti tutti i file custom che possono essere modificati per la conversione tra cui _yaml_, _template_, _lua filter_, e quale template usare per le _nuove note_. Dentro il file `vault/config/.conf` sono specificati quali devono essere usati nella conversione.
 
-   Dentro il sottomodulo é presente la cartella `requirements/` dove sono presenti giá i fonts e altri componenti per velocizzare la messa in servizio del vault.
+    L'ultilizzo del `.conf` non é strettamente necessario in quanto viene seguito un ordine gerarchico per effettuare le conversioni:
 
-5. **./vault/config:** É una cartella in cui sono presenti tutti i file custom che possono essere modificati per la conversione tra cui _yaml_, _template_, _lua filter_, e quale template usare per le _nuove note_. Dentro il file `vault/config/.conf` sono specificati quali devono essere usati nella conversione.
+    - se non presente nulla vengono usati quelli di default.
+    - se presenti solo alcuni vengono usati quelli e per tutti gli altri i default.
+    - se presenti tutti ma vengon specificate le opzioni a terminale `-t --template`, `-y --yaml` e `-l --lua` questi ultimi hanno <span style="color: red;">massima prioritá</span>.
 
-   > - se non presente nulla vengono usati quelli di default.
-   > - se presenti solo alcuni vengono usati quelli e per tutti gli altri i default.
-   > - se presenti tutti ma vengon specificate le opzioni a terminale `-t --template`, `-y --yaml` e `-l --lua` questi ultimi hanno <span style="color: red;">massima prioritá</span>.
-
-6. **./vault/rusco:** É una cartella temporanea in questo modo quando si converte l'intero repo con il comando `-a` queste note vengono escluse dal check di consistenza in modo che si possano fare note temporanee senza preoccuparsi di inserirle nel `main.md`.
+6.  **./vault/rusco:** É una cartella di note non molto importanti per tutte quelle cose che non si vuole che permangano nel repo, in questo modo quando si converte l'intero repo con il comando `-a` queste note vengono escluse dai check consistenza in modo che si possano fare note temporanee senza preoccuparsi di inserirle nel `main.md`.
 
 # Dipendenze librerie
 
@@ -153,17 +165,17 @@ python DocScript/make.py --help
    - usa il comando: `Markdown TOC: Insert TOC`
    - usa il comando: `Markdown TOC: Update TOC`
 
-2. **Markdown Preview Enhanced:** Questa serve ad utilizzare componenti di CSS e HTML direttamente nelle note, in questo modo è possibile vedere in preview parole colorate e indentate direttamente sull'editor e non conflitta con `pandoc` durante eventuali conversioni. Permette di sfruttare lo schema colori presente in "Legenda di aiuto alla coerenza"
+2. **Markdown Preview Enhanced:** Questa serve ad utilizzare componenti di CSS e HTML direttamente nelle note, in questo modo è possibile vedere in preview parole colorate e indentate direttamente sull'editor e non conflitta con `pandoc` durante eventuali conversioni (_a patto di rimanere nei limiti del filtro lua inserito_). Permette di sfruttare lo schema colori presente in "Legenda di aiuto alla coerenza"
 
-3. **Markdown Preview Mermaid Support:** Usare il mermaid per creare grafici, i file .md devono chiamarsi con lo stesso nome dell'immagine che andranno a generare e saranno nella cartella `vault/assets/macro-argomento/mermaid/`.
+3. **Markdown Preview Mermaid Support:** Per visualizzare in tempo reale il codice Mermaid direttamente nella preview di VSCode dirante la generazione di grafici.
 
-   > <span style="color: orange;">NOTA:</span> Una volta creata l'immagine del grafico desiderata, tasto destro ed esporta come png e ritagliarla di conseguenza.
+   > <span style="color: orange;">NOTA:</span> Una volta creata l'immagine del grafico desiderata, tasto destro ed esporta come png e ritagliarla di conseguenza per inserirla nel documento.
 
    In Questo modo se si vuole modificare una immagine si può avere direttamente il file generatore con estensione del nome -mermaid.md e l'immagine generata per poter fare modifiche rapide se necessarie. Nel caso in cui si trovasse una immagine inserita nel progetto è anche semplice capire se è una immagine scaricata e aggiunta o una generata e quindi modificabile guardando semplicemente il link.
 
 4. **vscode-pdf:** Visualizza direttamente i pdf sull'Editor senza dover passare per la discovery dei file.
 
-5. **Markdownlint** + **Prettier:** sono una combo di estensioni che permette di segnalare errori di formattazione all'interno di un md file attraverso regole presenti nel file `.markdownlint.json` nella root. Unito a Prettier per correggere direttamente la formattazione.
+5. **Markdownlint** + **Prettier:** sono una combo di estensioni che permette di segnalare errori di formattazione all'interno di un md file attraverso regole presenti nel file `.markdownlint.json` nella root del vault. Unito a Prettier per correggere direttamente la formattazione al salvataggio del file.
 
    > <span style="color: darkviolet;">OSS:</span> per implementarli, dopo aver installato le
    > estensioni seguire i seguenti passaggisu `VSCode`:
@@ -175,7 +187,7 @@ python DocScript/make.py --help
 
 # Legenda ed aiuto alla coerenza
 
-Il comando di pandoc per la conversione da markdown a pdf rispetta delle regole e per mantenere il sistema piú longevo possibile non sono stati usati pacchetti troppo complessi. Per ovviare al problema sono state aggiunte regole e template che convertono in modo corretto questo tipo di blocchi css e evidenziature senza problemi, se rispettati questi blocchi non causeranno errori nel pdf finito.
+Il comando di pandoc per la conversione da markdown a pdf rispetta delle regole (inserite nel `.lua`) e per mantenere il sistema piú longevo possibile non sono stati usati pacchetti troppo complessi. Per ovviare al problema sono state aggiunte regole e template che convertono in modo corretto questo tipo di blocchi css e evidenziature senza problemi, se rispettati questi blocchi non causeranno errori nel pdf finito.
 
 - `<span style="color: darkviolet;">OSS:</span>` `->` <span style="color: darkviolet;">OSS:</span> Questa è una osservazione
 - `<span style="color: red;">ATT!:</span>` `->` <span style="color: red;">ATT!:</span> Questo è un attenzione
@@ -238,7 +250,7 @@ equazione_3
 
 > <span style="color: orange;">NOTA:</span> non si vedrá in anteprima di VSCode ma in pdf renderá bene.
 
-Es: programmazione yaml pre-build
+Es: programmazione yaml pre-build con template di default
 
 ```yaml
 ---
@@ -275,15 +287,15 @@ tocDepth: 5
 
 # Build di un documento
 
-Ovunque ci si trovi é possibile richiamare il `make.py` e questo genererá le note.pdf con le opzioni specificate, usare `-h` o `--help` per avere maggiori informazioni di funzionamento.
+Ovunque ci si trovi é possibile richiamare il `DocScript.py` e questo genererá le note.pdf con le opzioni specificate, usare `-h` o `--help` per avere maggiori informazioni di funzionamento.
 
-- Iniziare generando un vault con `-i` Verranno generati file e cartelle in cui lavorare
+- Iniziare generando un vault con `-i` Verranno generati file e cartelle in cui lavorare.
 
-- inserire nuove note e nuovi argomenti dentro il vault mediante `-s`
+- Inserire nuove note e nuovi argomenti dentro il vault mediante `-s`.
 
-- prima di convertire il documento ufficiale dare uno sguardo al `/vault/config/.conf` per impostare i file da usare durante la conversione. Sopratutto per quanto riguarda il file `yaml/` il quale contiene i parametri di conversione che verranno usati nel `template/` scelto in modo da ottenere risultati piú o meno complessi in base alle esigenze.
+- Prima di convertire il documento ufficiale dare uno sguardo al `/vault/config/.conf` per impostare i file da usare durante la conversione. Sopratutto per quanto riguarda il file `yaml/` il quale contiene i parametri di conversione che verranno usati nel `template/` scelto in modo da ottenere risultati piú o meno complessi in base alle esigenze. Nel `.conf` é possibile anche scegliere una nota di base da inserire come punto di partenza per tutte le nuove note, cosí da avere uno standard.
 
-- convertire note, gruppi di note o l'intero vault con rispettivamente `-n` `-g` e `-a`
+- Convertire note, gruppi di note (un macro-argomento) o l'intero vault con rispettivamente `-n` `-g` e `-a`.
 
 Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#eseguire-il-make-python).
 
@@ -311,9 +323,9 @@ Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#es
   - [nota 5](link/alla/nota/5.md)
   ```
 
-- lanciando poi `-c` verrá convertita come di consueto.
+- lanciando poi `-c` verrá convertita come di consueto. Verranno usati _template_, _yaml_, _lua_ di default a meno di specifiche nel `.conf`
 
-<span style="color: orange;">NOTA:</span> convertendo una nota in questo modo vengono copiate la nota di partenza e tutti gli asset (dei collaboratori specificati nel `custom.md`) nella cartella `C:\Users\<User>\Documents\DocuBank` e vengono immediatamente cancellati dopo la conversione per liberare spazio. Questo implica di avere spazio a disposizione quando si effettua una conversione.
+<span style="color: orange;">NOTA:</span> convertendo una nota in questo modo vengono copiate la nota di partenza e tutti gli asset (dei collaboratori specificati nel `custom.md`) nella cartella `C:\Users\<User>\Documents\DocScript` e vengono immediatamente cancellati dopo la conversione per liberare spazio. Questo implica di avere spazio a disposizione quando si effettua una conversione.
 
 Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#eseguire-il-make-python).
 
@@ -323,19 +335,19 @@ Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#es
 
 ```bash
 # help
-\scripts\make.py -h
+\scripts\DocScript.py -h
 # inizializzazione repo
-\scripts\make.py -i
-\scripts\make.py -ib
+\scripts\DocScript.py -i
+\scripts\DocScript.py -ib
 # aggiunta di una nota md
-\scripts\make.py -s nome-macro-argomento/nome-nuova-nota.md
+\scripts\DocScript.py -s nome-macro-argomento/nome-nuova-nota.md
 # generazione di pdf
-\scripts\make.py -n nome-nota-src.md output.pdf
-\scripts\make.py -g nome-macro-argomento output.pdf
-\scripts\make.py -a output.pdf
-\scripts\make.py -c output.pdf
+\scripts\DocScript.py -n nome-nota-src.md output.pdf
+\scripts\DocScript.py -g nome-macro-argomento output.pdf
+\scripts\DocScript.py -a output.pdf
+\scripts\DocScript.py -c output.pdf
 # queste ultime quattro opzioni -n -g -a -c accettano modifiche temporanee
 # aggiungendo -y -l -t per cambiare yaml lua e template
 # anche contemporaneamente
-\scripts\make.py -n nome-nota-src.md output.pdf -y path/to/yaml/file.yaml -t path/to/template/file.tex
+\scripts\DocScript.py -n nome-nota-src.md output.pdf -y path/to/yaml/file.yaml -t path/to/template/file.tex
 ```
