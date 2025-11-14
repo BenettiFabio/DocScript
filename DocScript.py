@@ -772,16 +772,6 @@ def InitBank():
             print(f"Errore: la cartella template '{template_dir}' non esiste.")
             sys.exit(1)
         
-        # Copia il contenuto della cartella init-bank nella cartella superiore
-        # for root, dirs, files in os.walk(template_dir):
-        #     relative_path = os.path.relpath(root, template_dir)
-        #     target_dir = os.path.join(bank_dir, relative_path)
-        #     if not os.path.exists(target_dir):
-        #         os.makedirs(target_dir)
-        #     for file in files:
-        #         src_file = os.path.join(root, file)
-        #         dest_file = os.path.join(target_dir, file)
-        #         shutil.copy(src_file, dest_file)
         copy_dir_recursive(template_dir, bank_dir)
         print(f"- Struttura banca dati : ok")
         
@@ -789,8 +779,15 @@ def InitBank():
         create_config_dirs(bank_dir, CONFIG_DIR_NAME, CONFIG_DIRS)
         
         # Scrive il config file con i riferimenti di default
-        config_file = os.path.join(bank_dir, CONFIG_DIR_NAME, CONFIG_FILE_NAME)
-        contenuto = f'# default configuration\n.yaml="{YAML_PATH}"\n.template="{TEMPLATE_PATH}"\n.lua="{LUA_FILTER_PATH}"\n'
+        config_file = os.path.join(vault_dir, CONFIG_DIR_NAME, CONFIG_FILE_NAME)
+        
+        config_dir = Path(os.path.join(SCRIPT_DIR, "..", "vault", CONFIG_DIR_NAME)).resolve()
+        rel_yaml_path = os.path.relpath(YAML_PATH, config_dir)
+        rel_template_path = os.path.relpath(TEMPLATE_PATH, config_dir)
+        rel_lua_path = os.path.relpath(LUA_FILTER_PATH, config_dir)
+        
+        contenuto = f'# default configuration - start from build/\n.yaml="{rel_yaml_path}"\n.template="{rel_template_path}"\n.lua="{rel_lua_path}"\n'
+        
         with open(config_file, "w") as f:
             f.write(contenuto)
         print(f"- Cartella .config : ok\n")
@@ -835,19 +832,6 @@ def InitVault():
             sys.exit(1)
 
         print(f"Inizio creazione del vault...\n")
-        # Copia il contenuto della cartella init-vault nella cartella 'vault'
-        # for root, dirs, files in os.walk(template_dir):
-        #     relative_path = os.path.relpath(root, template_dir)
-        #     target_dir = os.path.join(vault_dir, relative_path)
-        #     if not os.path.exists(target_dir):
-        #         os.makedirs(target_dir)
-        #     for file in files:
-        #         src_file = os.path.join(root, file)
-        #         dest_file = os.path.join(target_dir, file)
-        #         # Rinomina init-main.md in main.md durante la copia
-        #         if file == "init-main.md":
-        #             dest_file = os.path.join(target_dir, "main.md")
-        #         shutil.copy(src_file, dest_file)
         copy_dir_recursive(template_dir, vault_dir)
         
         # Scrive il main file iniziale con i primi riferimenti di default
@@ -864,7 +848,14 @@ def InitVault():
         
         # Scrive il config file con i riferimenti di default
         config_file = os.path.join(vault_dir, CONFIG_DIR_NAME, CONFIG_FILE_NAME)
-        contenuto = f'# default configuration\n.yaml="{YAML_PATH}"\n.template="{TEMPLATE_PATH}"\n.lua="{LUA_FILTER_PATH}"\n.start="{NEW_NOTE_PATH}"\n'
+        
+        config_dir = Path(os.path.join(SCRIPT_DIR, "..", "vault", CONFIG_DIR_NAME)).resolve()
+        rel_yaml_path = os.path.relpath(YAML_PATH, config_dir)
+        rel_template_path = os.path.relpath(TEMPLATE_PATH, config_dir)
+        rel_lua_path = os.path.relpath(LUA_FILTER_PATH, config_dir)
+        rel_start_path = os.path.relpath(NEW_NOTE_PATH, config_dir)
+        
+        contenuto = f'# default configuration - start from build/\n.yaml="{rel_yaml_path}"\n.template="{rel_template_path}"\n.lua="{rel_lua_path}"\n.start="{rel_start_path}"\n'
         with open(config_file, "w") as f:
             f.write(contenuto)
             
