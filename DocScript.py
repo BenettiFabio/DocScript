@@ -7,22 +7,24 @@ from pathlib import Path
 import time
 import stat
 import pyfiglet
+import textwrap
 # import win32net # need pywin32
 import subprocess
 
 ## DEFINES ##
 CONFIG_DIR_NAME     = "config"
-VAULT_TEMPLATE_DIR  = ".template"
-VAULT_YAML_DIR      = ".yaml"
-VAULT_LUA_DIR       = ".lua"
-VAULT_START_DIR     = ".start"
+CONFFILE_DIR_NAME   = "config-files"
+# VAULT_TEMPLATE_DIR  = ".template"
+# VAULT_YAML_DIR      = ".yaml"
+# VAULT_LUA_DIR       = ".lua"
+# VAULT_START_DIR     = ".start"
 
-CONFIG_DIRS         = [
-    VAULT_TEMPLATE_DIR,
-    VAULT_YAML_DIR, 
-    VAULT_LUA_DIR,
-    VAULT_START_DIR
-]
+# CONFIG_DIRS         = [
+    # VAULT_TEMPLATE_DIR,
+    # VAULT_YAML_DIR, 
+    # VAULT_LUA_DIR,
+    # VAULT_START_DIR
+# ]
 
 TEMPORARY_DIR       = "rusco"   # Macro per la cartella temporanea
 BUILD_DIR_NAME      = "build"   # Cartella con file prodotti dalla conversione
@@ -37,6 +39,7 @@ EXCLUDED_DIRS       = [
 
 SCRIPT_DIR      = os.path.dirname(os.path.abspath(__file__))  # Directory dello script
 MAKE_DIR        = Path(os.path.join(SCRIPT_DIR, "..", "vault", BUILD_DIR_NAME)).resolve()
+VAULT_DIR       = Path(os.path.join(SCRIPT_DIR, "..", "vault")).resolve()
 OUTPUT_DIR      = MAKE_DIR
 HOME_DIR        = Path.home()
 APPLICATION_DIR = Path(os.path.join(HOME_DIR, "Documents", "DocScript")).resolve()
@@ -46,6 +49,7 @@ YAML_NAME       = "default-yaml.yaml"    # Nome del file YAML
 TEMPLATE_NAME   = "default-template.tex" # Nome del template
 LUA_FILTER_NAME = "default-graphic.lua"  # Nome del filtro Lua
 NEW_NOTE_NAME   = "default-note.md"      # Nome del nuovo file nota
+PANDOC_OPT_NAME = "default-pandoc-opt.yaml" # Nome del file contenente le opzioni personalizzate da dare a pandoc
 COLLAB_FILE     = "collaborator.md"
 COMB_FILE_NAME  = "combined_notes.md"
 CONFIG_FILE_NAME= ".conf"
@@ -56,6 +60,7 @@ YAML_PATH       = Path(os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, YAML_NAME)).re
 TEMPLATE_PATH   = Path(os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, TEMPLATE_NAME)).resolve()
 LUA_FILTER_PATH = Path(os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, LUA_FILTER_NAME)).resolve()
 NEW_NOTE_PATH   = Path(os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, NEW_NOTE_NAME)).resolve()
+PANDOC_OPT_PATH = Path(os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, PANDOC_OPT_NAME)).resolve()
 CONFIG_DIR_PATH = Path(os.path.join(SCRIPT_DIR, "..", "vault", CONFIG_DIR_NAME, CONFIG_FILE_NAME)).resolve()
 
 custom  = False # variabile per gestire la conversione di un file custom.md
@@ -64,7 +69,8 @@ is_bank = False # variabile per gestire il caso particolare di una banca dati co
 custom_yaml_path = None # contengono i path non di default se specificati
 custom_teml_path = None
 custom_luaf_path = None
-custom_new_note_path = None
+custom_new_note_path    = None
+custom_pandoc_opt_path  = None
 
 ## FUNCTIONS ##
 def to_unc_slash_path(windows_path: str) -> str:
@@ -154,7 +160,7 @@ def copy_dir_recursive(src: str, dst: str) -> None:
 
     Args:
         src (str): percorso della directory sorgente
-        dst (str): percorso della directory di destinazione
+        dst (str): percorso della directory di destinazione se non esiste la crea
     """
     if not os.path.exists(src):
         raise FileNotFoundError(f"La directory sorgente non esiste: {src}")
@@ -303,9 +309,11 @@ def CopyYAMLInformation(combined_notes_path):
 def check_config_conversion_file():
     """
     Legge un file di configurazione e aggiorna le variabili globali
-    se trova linee nel formato --flag="path/to/file".
+    se trova linee nel formato .flag="path/to/file".
+    bypassa qualsiasi linea che non inizia con `.`
     """
-    global custom_teml_path, custom_luaf_path, custom_yaml_path, custom_new_note_path
+
+    global custom_teml_path, custom_luaf_path, custom_yaml_path, custom_new_note_path, custom_pandoc_opt_path
 
     if not os.path.exists(CONFIG_DIR_PATH):
         return
@@ -324,8 +332,8 @@ def check_config_conversion_file():
                 continue
 
             key, value = match.groups()
-            path = safe_path(value)
-
+            path = safe_path(VAULT_DIR, CONFIG_DIR_NAME, value) # avendo due argomenti fa necessariamente il resolve, facendo diventare il path assoluto
+            
             key, value = match.groups()
             if key == "template":
                 custom_teml_path = add_new_teml(path)
@@ -334,7 +342,9 @@ def check_config_conversion_file():
             elif key == "yaml":
                 custom_yaml_path = add_new_yaml(path)
             elif key == "start":
-                custom_new_note_path = add_new_start(path)
+                custom_new_note_path    = add_new_start(path)
+            elif key == "pandoc":
+                custom_pandoc_opt_path  = add_new_yaml(path)
 
 def validate_output(output):
     """
@@ -776,17 +786,25 @@ def InitBank():
         print(f"- Struttura banca dati : ok")
         
         # Creazione delle cartelle per l'utente per i file di configurazione
-        create_config_dirs(bank_dir, CONFIG_DIR_NAME, CONFIG_DIRS)
+        # create_config_dirs(bank_dir, CONFIG_DIR_NAME, CONFIG_DIRS)
         
         # Scrive il config file con i riferimenti di default
         config_file = os.path.join(vault_dir, CONFIG_DIR_NAME, CONFIG_FILE_NAME)
         
-        config_dir = Path(os.path.join(SCRIPT_DIR, "..", "vault", CONFIG_DIR_NAME)).resolve()
-        rel_yaml_path = os.path.relpath(YAML_PATH, config_dir)
-        rel_template_path = os.path.relpath(TEMPLATE_PATH, config_dir)
-        rel_lua_path = os.path.relpath(LUA_FILTER_PATH, config_dir)
-        
-        contenuto = f'# default configuration - start from build/\n.yaml="{rel_yaml_path}"\n.template="{rel_template_path}"\n.lua="{rel_lua_path}"\n'
+        # Scrivo i riferimenti relativi alla cartella config-files dentro il vault
+        rel_yaml_path       = Path(os.path.join("./", CONFFILE_DIR_NAME, YAML_NAME))
+        rel_template_path   = Path(os.path.join("./", CONFFILE_DIR_NAME, TEMPLATE_NAME))
+        rel_lua_path        = Path(os.path.join("./", CONFFILE_DIR_NAME, LUA_FILTER_NAME))
+        rel_pandoc_path     = Path(os.path.join("./", CONFFILE_DIR_NAME, PANDOC_OPT_NAME))
+        # contenuto = f'# default configuration - start from build/\n.yaml="{rel_yaml_path}"\n.template="{rel_template_path}"\n.lua="{rel_lua_path}"\n'
+        contenuto = f"""\
+            # default configuration - start path from build/
+            .pandoc="{rel_pandoc_path}"
+            .yaml="{rel_yaml_path}"
+            .template="{rel_template_path}"
+            .lua="{rel_lua_path}"
+        """
+        contenuto = textwrap.dedent(contenuto)
         
         with open(config_file, "w") as f:
             f.write(contenuto)
@@ -806,10 +824,12 @@ def InitVault():
     Inizializza la struttura del vault copiando i file e le cartelle necessarie.
     """
     parent_dir  = safe_path(SCRIPT_DIR, "..")
-    vault_dir   = safe_path(parent_dir, "vault")
     template_dir= safe_path(SCRIPT_DIR, "templates", "init-vault")
     setup_dir   = safe_path(SCRIPT_DIR, "templates", "setup-vault")
+    config_dir  = safe_path(SCRIPT_DIR, CONFIG_DIR_NAME)
     bank_dir    = safe_path(parent_dir, "bank")
+    vault_dir   = safe_path(parent_dir, "vault")
+    usr_config_dir= safe_path(vault_dir, CONFIG_DIR_NAME, CONFFILE_DIR_NAME)
 
     if os.path.exists(bank_dir):
         print("Errore: la cartella corrente é giá inizializzata come banca dati, non puoi inizializzare un vault.")
@@ -830,42 +850,64 @@ def InitVault():
         if not os.path.exists(template_dir):
             print(f"Errore: la cartella template '{template_dir}' non esiste.")
             sys.exit(1)
+        
+        if not os.path.exists(config_dir):
+            print(f"Errore: la cartella dei file di config '{config_dir}' non esiste.")
+            sys.exit(1)
 
-        print(f"Inizio creazione del vault...\n")
+        print(f"Inizio creazione del vault...")
         copy_dir_recursive(template_dir, vault_dir)
         
         # Scrive il main file iniziale con i primi riferimenti di default
         main_file = os.path.join(vault_dir, "main.md")
-        contenuto = f'# Argomento 1\n\n- [NomeArgomento1](main-arg1/main.main-arg1.first-note.md)\n'
+        contenuto = f"""\
+            # Argomento 1
+            
+            - [NomeArgomento1](main-arg1/main.main-arg1.first-note.md)
+        """
+        contenuto = textwrap.dedent(contenuto)
+        
         with open(main_file, "w") as f:
             f.write(contenuto)
         
         
-        print(f"- Cartella vault : ok")
+        print(f"- Cartella vault : ok\n")
         
         # Creazione delle cartelle per l'utente per i file di configurazione
-        create_config_dirs(vault_dir, CONFIG_DIR_NAME, CONFIG_DIRS)
+        print(f"Copia dei file di configurazione per pandoc...")
+        copy_dir_recursive(config_dir, usr_config_dir)
+        # create_config_dirs(vault_dir, CONFIG_DIR_NAME, CONFIG_DIRS)
         
         # Scrive il config file con i riferimenti di default
         config_file = os.path.join(vault_dir, CONFIG_DIR_NAME, CONFIG_FILE_NAME)
         
-        config_dir = Path(os.path.join(SCRIPT_DIR, "..", "vault", CONFIG_DIR_NAME)).resolve()
-        rel_yaml_path = os.path.relpath(YAML_PATH, config_dir)
-        rel_template_path = os.path.relpath(TEMPLATE_PATH, config_dir)
-        rel_lua_path = os.path.relpath(LUA_FILTER_PATH, config_dir)
-        rel_start_path = os.path.relpath(NEW_NOTE_PATH, config_dir)
+        # Usa percorsi relativi verso ./config-files nella cartella vault/config
+        rel_yaml_path       = Path(os.path.join("./", CONFFILE_DIR_NAME, YAML_NAME))
+        rel_template_path   = Path(os.path.join("./", CONFFILE_DIR_NAME, TEMPLATE_NAME))
+        rel_lua_path        = Path(os.path.join("./", CONFFILE_DIR_NAME, LUA_FILTER_NAME))
+        rel_start_path      = Path(os.path.join("./", CONFFILE_DIR_NAME, NEW_NOTE_NAME))
+        rel_pandoc_path     = Path(os.path.join("./", CONFFILE_DIR_NAME, PANDOC_OPT_NAME))
+        # contenuto = f'# default configuration - start path from build/\n.yaml="{rel_yaml_path}"\n.template="{rel_template_path}"\n.lua="{rel_lua_path}"\n.start="{rel_start_path}"\n'
+        contenuto = f"""\
+            # default configuration - start path from config/
+            .pandoc="{rel_pandoc_path}"
+            .yaml="{rel_yaml_path}"
+            .template="{rel_template_path}"
+            .lua="{rel_lua_path}"
+            .start="{rel_start_path}"
+        """
+        contenuto = textwrap.dedent(contenuto)
         
-        contenuto = f'# default configuration - start from build/\n.yaml="{rel_yaml_path}"\n.template="{rel_template_path}"\n.lua="{rel_lua_path}"\n.start="{rel_start_path}"\n'
         with open(config_file, "w") as f:
             f.write(contenuto)
-            
+        
         print(f"- Cartella .config : ok")
         
         # Copia tutto il contenuto della cartella setup-vault fuori dalla cartella 'vault'
         copy_dir_recursive(setup_dir, parent_dir)
-        print(f"- File di configurazione per VSCode : ok")
+        print(f"- File di configurazione per VSCode : ok\n")
         
-        print(f"Struttura del Vault costruita con successo!\n")
+        print(f"Struttura del Vault costruita con successo!")
         print(f"Enjoy your new vault! <3")
     
     except Exception as e:
@@ -1086,6 +1128,11 @@ def ConversionAllNote(custom):
         else:
             shutil.copy2(custom_luaf_path, template_dir / LUA_FILTER_NAME)
         
+        if custom_pandoc_opt_path == None:
+            shutil.copy2(PANDOC_OPT_PATH, template_dir / PANDOC_OPT_NAME)
+        else:
+            shutil.copy2(custom_pandoc_opt_path, template_dir / PANDOC_OPT_NAME)
+    
     # Se arrivato qui allora può eseguire la conversione
     NoteConversion(os.path.basename(combined_note_path)) # deve prendere la nota combinata dal build
     
@@ -1151,10 +1198,11 @@ def NoteConversion(combined_note_path):
     if is_bank:
         path_note   = safe_path(APPLICATION_DIR, BUILD_DIR_NAME, COMB_FILE_NAME)
         out_path    = safe_path(APPLICATION_DIR, BUILD_DIR_NAME, Path(OUTPUT_PATH).name)
-        template    = safe_path(APPLICATION_DIR, CONFIG_DIR_NAME, TEMPLATE_NAME) # sono stati rinominati i file custom se esistono e sono corretti
-        lua_filter  = safe_path(APPLICATION_DIR, CONFIG_DIR_NAME, LUA_FILTER_NAME)
+        template    = safe_path(APPLICATION_DIR, CONFIG_DIR_NAME, TEMPLATE_NAME)    # Per banca dati condivisa ConversionAllNote() copia il file rinominandolo come l'originale di default
+        lua_filter  = safe_path(APPLICATION_DIR, CONFIG_DIR_NAME, LUA_FILTER_NAME)  # Per banca dati condivisa ConversionAllNote() copia il file rinominandolo come l'originale di default
+        default_opt = safe_path(APPLICATION_DIR, CONFIG_DIR_NAME, PANDOC_OPT_NAME)  # Per banca dati condivisa ConversionAllNote() copia il file rinominandolo come l'originale di default
     else:
-        # Altrimenti converto normalmente nella cartella di build in quanto sono giá offline
+        # Altrimenti converto normalmente nella cartella di build in quanto ho giá tutto in locale
         path_note   = safe_path(combined_note_path)
         out_path    = safe_path(OUTPUT_PATH)
         template    = safe_path(TEMPLATE_PATH)
@@ -1163,12 +1211,16 @@ def NoteConversion(combined_note_path):
         lua_filter  = safe_path(LUA_FILTER_PATH)
         if custom_luaf_path:
             lua_filter  = safe_path(custom_luaf_path)
+        default_opt  = safe_path(PANDOC_OPT_PATH)
+        if custom_pandoc_opt_path:
+            default_opt  = safe_path(custom_pandoc_opt_path)
         
     if isNetworkPath():
         # Eseguo prima la conversione in tex con pandoc
         out_path = out_path.with_suffix(".tex")
         
-        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --top-level-division=chapter --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
+        # command = f"pandoc \"{path_note}\" -o \"{out_path}\" --top-level-division=chapter --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
+        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --metadata-file=\"{default_opt}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" --pdf-engine=xelatex"
         
         print(f"Eseguo il comando: {command}")
         os.system(command)
@@ -1193,7 +1245,8 @@ def NoteConversion(combined_note_path):
         
     else:
         # Comando per la conversione pulita con pandoc
-        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --top-level-division=chapter --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
+        # command = f"pandoc \"{path_note}\" -o \"{out_path}\" --top-level-division=chapter --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
+        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --metadata-file=\"{default_opt}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" --pdf-engine=xelatex"
         
         # Esegui il comando
         print(f"Eseguo il comando: {command}")
@@ -1227,6 +1280,7 @@ def setup_argparse():
     parser.add_argument("-y",   "--yaml",       metavar="YAML_NAME",        help="Applica un file YAML personalizzato diverso da quello nel main.md")
     parser.add_argument("-t",   "--template",   metavar="TEMPLATE_NAME",    help="Applica un file template.tex personalizzato diverso da quello di default")
     parser.add_argument("-l",   "--lua",        metavar="LUA_NAME",         help="Applica un file luafilter.lua personalizzato diverso da quello di default")
+    parser.add_argument("-p",   "--pandoc",     metavar="PANDOC_NAME",      help="Applica un --metadata-file='PANDOC_NAME' diverso da quello di default")
 
     return parser
 
@@ -1269,7 +1323,7 @@ def main():
     global MAKE_DIR
     global OUTPUT_DIR
     
-    global custom_teml_path, custom_luaf_path, custom_yaml_path
+    global custom_teml_path, custom_luaf_path, custom_yaml_path, custom_pandoc_opt_path
     
     if os.path.exists(bank_path) or os.path.exists(vault_path):
         if not os.path.exists(collab_path):
@@ -1330,12 +1384,15 @@ def main():
         if args.lua:
             print(f"  - Con lua personalizzato: {args.lua}")
             custom_luaf_path = add_new_luaf(args.lua)
+        if args.pandoc:
+            print(f"  - Con pandoc opt personalizzato: {args.pandoc}")
+            custom_pandoc_opt_path = add_new_yaml(args.pandoc)
         validate_output(args.all)
         ConversionAllNote(custom)
     
     elif args.group:
         if len(args.group) < 2:
-            print("Errore: l'opzione --group richiede due argomenti: ARGOMENTO e OUTPUT (in formato .pdf o .tex).")
+            print("Errore: l'opzione --group richiede due argomenti: ARGUMENTO e OUTPUT (in formato .pdf o .tex).")
             sys.exit(1)
         argomento, output = args.group
         validate_output(output)
@@ -1351,6 +1408,9 @@ def main():
         if args.lua:
             print(f"  - Con lua personalizzato: {args.lua}")
             custom_luaf_path = add_new_luaf(args.lua)
+        if args.pandoc:
+            print(f"  - Con pandoc opt personalizzato: {args.pandoc}")
+            custom_pandoc_opt_path = add_new_yaml(args.pandoc)
         ConversionGroupNote(argomento)
 
     elif args.note:
@@ -1371,6 +1431,9 @@ def main():
         if args.lua:
             print(f"  - Con lua personalizzato: {args.lua}")
             custom_luaf_path = add_new_luaf(args.lua)
+        if args.pandoc:
+            print(f"  - Con pandoc opt personalizzato: {args.pandoc}")
+            custom_pandoc_opt_path = add_new_yaml(args.pandoc)
         ConversionSingleNote(nota)
 
     elif args.custom:
@@ -1391,6 +1454,9 @@ def main():
         if args.lua:
             print(f"  - Con lua personalizzato: {args.lua}")
             custom_luaf_path = add_new_luaf(args.lua)
+        if args.pandoc:
+            print(f"  - Con pandoc opt personalizzato: {args.pandoc}")
+            custom_pandoc_opt_path = add_new_yaml(args.pandoc)
         ConversionAllNote(custom)
 
     else:

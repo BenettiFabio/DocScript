@@ -347,7 +347,7 @@ Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#es
 \scripts\DocScript.py -a output.pdf
 \scripts\DocScript.py -c output.pdf
 # queste ultime quattro opzioni -n -g -a -c accettano modifiche temporanee
-# aggiungendo -y -l -t per cambiare yaml lua e template
+# aggiungendo -y -l -t -p per cambiare yaml, lua, template e pandoc options
 # anche contemporaneamente
 \scripts\DocScript.py -n nome-nota-src.md output.pdf -y path/to/yaml/file.yaml -t path/to/template/file.tex
 ```
