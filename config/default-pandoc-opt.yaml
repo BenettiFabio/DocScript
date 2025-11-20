@@ -1,4 +1,3 @@
----
 # ----------------------------------------------------------------------
 # ATTENZIONE: Questo file YAML deve contenere ESCLUSIVAMENTE
 # opzioni da riga di comando di Pandoc (i.e. --option) e NON i percorsi
@@ -6,11 +5,7 @@
 # Per template e filtri Lua, utilizza i comandi appositi della tua architettura.
 # ----------------------------------------------------------------------
 
-metadata:
-  pandoc:
-    # Opzione per trattare i titoli di primo livello come capitoli.
-    - --top-level-division=chapter
-    # Opzione per abilitare il pacchetto 'listings' per la formattazione del codice in LaTeX.
-    - --listings
----
-
+# Opzione per trattare i titoli di primo livello come capitoli.
+top-level-division: chapter
+# Opzione per abilitare il pacchetto 'listings' per la formattazione del codice in LaTeX.
+listings: true
