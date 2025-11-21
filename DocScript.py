@@ -14,17 +14,7 @@ import subprocess
 ## DEFINES ##
 CONFIG_DIR_NAME     = "config"
 CONFFILE_DIR_NAME   = "config-files"
-# VAULT_TEMPLATE_DIR  = ".template"
-# VAULT_YAML_DIR      = ".yaml"
-# VAULT_LUA_DIR       = ".lua"
-# VAULT_START_DIR     = ".start"
-
-# CONFIG_DIRS         = [
-    # VAULT_TEMPLATE_DIR,
-    # VAULT_YAML_DIR, 
-    # VAULT_LUA_DIR,
-    # VAULT_START_DIR
-# ]
+INITIALIZE_DIR_NAME = "initialization"
 
 TEMPORARY_DIR       = "rusco"   # Macro per la cartella temporanea
 BUILD_DIR_NAME      = "build"   # Cartella con file prodotti dalla conversione
@@ -760,7 +750,7 @@ def RemoveHeaderFromFile(file_path):
 def InitBank():
     print("Inizializzazione della banca dati collaborativa...")
     parent_dir      = safe_path(SCRIPT_DIR, "..")
-    template_dir    = safe_path(SCRIPT_DIR, "templates", "init-bank")
+    template_dir    = safe_path(SCRIPT_DIR, INITIALIZE_DIR_NAME, "init-bank")
     collab_file     = safe_path(parent_dir, COLLAB_FILE)
     bank_dir        = safe_path(parent_dir, "bank")
     vault_dir       = safe_path(parent_dir, "vault")
@@ -824,8 +814,8 @@ def InitVault():
     Inizializza la struttura del vault copiando i file e le cartelle necessarie.
     """
     parent_dir  = safe_path(SCRIPT_DIR, "..")
-    template_dir= safe_path(SCRIPT_DIR, "templates", "init-vault")
-    setup_dir   = safe_path(SCRIPT_DIR, "templates", "setup-vault")
+    template_dir= safe_path(SCRIPT_DIR, INITIALIZE_DIR_NAME, "init-vault")
+    setup_dir   = safe_path(SCRIPT_DIR, INITIALIZE_DIR_NAME, "setup-vault")
     config_dir  = safe_path(SCRIPT_DIR, CONFIG_DIR_NAME)
     bank_dir    = safe_path(parent_dir, "bank")
     vault_dir   = safe_path(parent_dir, "vault")
