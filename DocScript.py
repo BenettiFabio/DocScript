@@ -1334,7 +1334,7 @@ def main():
     args = parser.parse_args()
     
     if args.help and not any([args.all, args.group, args.note, args.custom]):
-        print(pyfiglet.figlet_format("DocScript", font="slant"))
+        print(pyfiglet.figlet_format("Doc Script", font="slant"))
         parser.print_help()
         sys.exit(0)
         
