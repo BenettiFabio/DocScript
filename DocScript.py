@@ -1245,7 +1245,7 @@ def NoteConversion(combined_note_path):
 def setup_argparse():
     """Configura l'argparse con gruppi mutuamente esclusivi"""    
     parser = argparse.ArgumentParser(
-        prog="make.py",
+        prog="DocScript.py",
         description="DocScript - Conversione e gestione documentazione. Tips: genera un repo git vuoto e inserisci questo come un sottomodulo prima di lanciare un --init",
         epilog="Freeware Licence 2025 Fabio. Maintainer: BenettiFabio",
         add_help=False
@@ -1450,7 +1450,7 @@ def main():
         ConversionAllNote(custom)
 
     else:
-        print(pyfiglet.figlet_format("DocScript", font="slant"))
+        print(pyfiglet.figlet_format("Doc Script", font="slant"))
         parser.print_help()
         sys.exit(0)
 
