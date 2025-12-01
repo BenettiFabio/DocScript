@@ -166,3 +166,40 @@ function Para(el)
     end
   end
 end
+
+-- Gestione della larghezza delle Tabelle
+function Table(el)
+  local numCols = #el.colspecs
+  
+  if numCols == 0 then
+    return el
+  end
+  
+  -- Strategia: distribuisci lo spazio in base al numero di colonne
+  -- Le prime n-1 colonne ottengono una frazione equa dello spazio disponibile
+  -- L'ultima colonna prende il resto (tipicamente più grande)
+  
+  local spaceForContent = 0.6  -- 60% per le colonne di contenuto
+  local spaceForLast = 0.4     -- 40% per l'ultima colonna (minimo garantito)
+  
+  -- Se ci sono poche colonne, possiamo dare più spazio alle prime
+  if numCols == 2 then
+    spaceForContent = 0.3
+    spaceForLast = 0.7
+  elseif numCols == 3 then
+    spaceForContent = 0.5
+    spaceForLast = 0.5
+  end
+  
+  -- Calcola larghezza per ogni colonna di contenuto
+  local contentColWidth = spaceForContent / (numCols - 1)
+  
+  -- Applica le larghezze
+  for i = 1, numCols - 1 do
+    el.colspecs[i] = {el.colspecs[i][1], contentColWidth}
+  end
+  
+  el.colspecs[numCols] = {el.colspecs[numCols][1], spaceForLast}
+  
+  return el
+end
