@@ -30,6 +30,7 @@ EXCLUDED_DIRS       = [
 SCRIPT_DIR      = os.path.dirname(os.path.abspath(__file__))  # Directory dello script
 MAKE_DIR        = Path(os.path.join(SCRIPT_DIR, "..", "vault", BUILD_DIR_NAME)).resolve()
 VAULT_DIR       = Path(os.path.join(SCRIPT_DIR, "..", "vault")).resolve()
+BANK_DIR        = Path(os.path.join(SCRIPT_DIR, "..", "bank")).resolve()
 OUTPUT_DIR      = MAKE_DIR
 HOME_DIR        = Path.home()
 APPLICATION_DIR = Path(os.path.join(HOME_DIR, "Documents", "DocScript")).resolve()
@@ -51,7 +52,8 @@ TEMPLATE_PATH   = Path(os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, TEMPLATE_NAME)
 LUA_FILTER_PATH = Path(os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, LUA_FILTER_NAME)).resolve()
 NEW_NOTE_PATH   = Path(os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, NEW_NOTE_NAME)).resolve()
 PANDOC_OPT_PATH = Path(os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, PANDOC_OPT_NAME)).resolve()
-CONFIG_DIR_PATH = Path(os.path.join(SCRIPT_DIR, "..", "vault", CONFIG_DIR_NAME, CONFIG_FILE_NAME)).resolve()
+CONFIG_DIR_PATH = Path(os.path.join(VAULT_DIR, CONFIG_DIR_NAME, CONFIG_FILE_NAME)).resolve()
+CONFIG_DIR_BANK_PATH = Path(os.path.join(BANK_DIR, CONFIG_DIR_NAME, CONFIG_FILE_NAME)).resolve()
 
 custom  = False # variabile per gestire la conversione di un file custom.md
 is_bank = False # variabile per gestire il caso particolare di una banca dati collaborativa
@@ -305,12 +307,26 @@ def check_config_conversion_file():
 
     global custom_teml_path, custom_luaf_path, custom_yaml_path, custom_new_note_path, custom_pandoc_opt_path
 
-    if not os.path.exists(CONFIG_DIR_PATH):
+    # check per verificare se si é in una banca dati o un vault personale
+    bank_dir = safe_path(SCRIPT_DIR, "..", "bank")
+    collab_file = safe_path(bank_dir, COLLAB_FILE)
+    global is_bank
+    
+    if os.path.exists(collab_file):
+        is_bank = True
+    
+    config_path_to_use = None
+    if is_bank:
+        config_path_to_use = CONFIG_DIR_BANK_PATH
+    else:
+        config_path_to_use = CONFIG_DIR_PATH
+        
+    if not os.path.exists(config_path_to_use):
         return
 
     pattern = re.compile(r'^\.(\w+)\s*=\s*"([^"]+)"$')
 
-    with open(CONFIG_DIR_PATH, 'r', encoding='utf-8') as conf_file:
+    with open(config_path_to_use, 'r', encoding='utf-8') as conf_file:
         for line in conf_file:
             line = line.strip()
 
@@ -322,9 +338,12 @@ def check_config_conversion_file():
                 continue
 
             key, value = match.groups()
-            path = safe_path(VAULT_DIR, CONFIG_DIR_NAME, value) # avendo due argomenti fa necessariamente il resolve, facendo diventare il path assoluto
+            if is_bank:
+                path = safe_path(BANK_DIR, CONFIG_DIR_NAME, value) # avendo due argomenti fa necessariamente il resolve, facendo diventare il path assoluto
+            else:
+                path = safe_path(VAULT_DIR, CONFIG_DIR_NAME, value)
             
-            key, value = match.groups()
+            key, value = match.groups()            
             if key == "template":
                 custom_teml_path = add_new_teml(path)
             elif key == "lua":
@@ -499,6 +518,17 @@ def get_all_files_from_collab_main(custom):
                 main_md_path_collab = os.path.join(os.path.dirname(cf.name), match.group(1))
                 collaborators[current_name] = main_md_path_collab
 
+    EffectiveCollaborators = []
+    with open(main_md_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("##"):
+                    name = line[2:].strip()
+                    EffectiveCollaborators.append(name)
+
+    # Cerca dentro il main_md_path solo i collaboratori presenti tra tutti quelli di collaborator.md
+    FinalCollab = {name: collaborators[name] for name in EffectiveCollaborators if name in collaborators}
+
     # Leggi il custom.ms o main.md e raccogli le note per collaboratore
     with open(main_md_path, "r", encoding="utf-8") as mf:
         lines = mf.readlines()
@@ -530,7 +560,7 @@ def get_all_files_from_collab_main(custom):
         print(f"Errore: nessun file trovato in {'custom.md' if custom else 'main.md'}.")
         sys.exit(1)
 
-    return matching_files, collaborators
+    return matching_files, FinalCollab
     
 def get_files_for_argument_from_main(argomento):
     """
