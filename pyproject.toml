@@ -1,0 +1,16 @@
+[project]
+name = "DocScript"
+requires-python = ">=3.10"
+
+[tool.black]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RET", "ARG"]
+
+[tool.ruff]
+line-length = 88
+exclude = ["tmp/**", "venv/**"]
+
+[tool.mypy]
+strict = true
