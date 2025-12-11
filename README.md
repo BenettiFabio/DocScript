@@ -146,7 +146,7 @@ python DocScript/DocScript.py --help
 
     - se non presente nulla vengono usati quelli di default.
     - se presenti solo alcuni vengono usati quelli e per tutti gli altri i default.
-    - se presenti tutti ma vengon specificate le opzioni a terminale `-t --template`, `-y --yaml` e `-l --lua` questi ultimi hanno <span style="color: red;">massima prioritá</span>.
+    - se presenti tutti ma vengon specificate le opzioni a terminale `-t --template`, `-y --yaml`, `-l --lua` e `-p --pandoc` questi ultimi hanno <span style="color: red;">massima prioritá</span>.
 
 6.  **./vault/rusco:** É una cartella di note non molto importanti per tutte quelle cose che non si vuole che permangano nel repo, in questo modo quando si converte l'intero repo con il comando `-a` queste note vengono escluse dai check consistenza in modo che si possano fare note temporanee senza preoccuparsi di inserirle nel `main.md`.
 
@@ -293,7 +293,7 @@ Ovunque ci si trovi é possibile richiamare il `DocScript.py` e questo genererá
 
 - Inserire nuove note e nuovi argomenti dentro il vault mediante `-s`.
 
-- Prima di convertire il documento ufficiale dare uno sguardo al `/vault/config/.conf` per impostare i file da usare durante la conversione. Sopratutto per quanto riguarda il file `yaml/` il quale contiene i parametri di conversione che verranno usati nel `template/` scelto in modo da ottenere risultati piú o meno complessi in base alle esigenze. Nel `.conf` é possibile anche scegliere una nota di base da inserire come punto di partenza per tutte le nuove note, cosí da avere uno standard.
+- Prima di convertire il documento ufficiale dare uno sguardo al `/vault/config/.conf` per impostare i file da usare durante la conversione. Sopratutto per quanto riguarda il file `yaml` il quale contiene i parametri di conversione che verranno usati nel `template` scelto in modo da ottenere risultati piú o meno complessi in base alle esigenze. Nel `.conf` é possibile anche scegliere una nota di base da inserire come punto di partenza per tutte le nuove note, cosí da avere uno standard.
 
 - Convertire note, gruppi di note (un macro-argomento) o l'intero vault con rispettivamente `-n` `-g` e `-a`.
 

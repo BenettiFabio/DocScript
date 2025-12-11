@@ -567,7 +567,7 @@ def get_files_for_argument_from_main(argomento):
     Legge il file main.md e restituisce una lista di file che corrispondono all'argomento specificato.
     """
     # Percorso del file main.md
-    main_md_path = safe_path(SCRIPT_DIR, "..", "vault", "main.md")
+    main_md_path = safe_path(VAULT_DIR, "main.md")
 
     # Controlla se il file main.md esiste
     if not os.path.exists(main_md_path):
@@ -603,7 +603,7 @@ def get_all_files_from_root():
     Legge tutti i file nel vault e restituisce una lista di tutti i file .md.
     """
     # Percorso del file main.md
-    root_vault_path = safe_path(SCRIPT_DIR, "..", "vault")
+    root_vault_path = safe_path(VAULT_DIR)
     matched_files   = []
 
     for root, dirs, files in os.walk(root_vault_path):
@@ -625,7 +625,8 @@ def get_files_for_argument_from_root(argomento):
     Legge tutti i file nel vault e restituisce una lista di file che corrispondono all'argomento specificato.
     """
     # Percorso del file main.md
-    root_vault_path = safe_path("..", "vault")
+    # root_vault_path = safe_path("..", "vault")
+    root_vault_path = safe_path(VAULT_DIR)
     matched_files   = []
 
     # Pattern da cercare nel nome del file
@@ -716,6 +717,7 @@ def checkInconsistency(matching_files_main, matching_files_root):
     Se mancano delle note nel main, stampa un errore con i file mancanti.
     I percorsi vengono normalizzati per il confronto.
     """
+    
     # Filtra i file per escludere quelli nella cartella temporanea
     filtered_matching_files_root = [
         Path(path).name for path in matching_files_root
@@ -742,7 +744,7 @@ def checkInconsistency(matching_files_main, matching_files_root):
         for f in sorted(missing_in_main):
             print(f"- {f}")
         sys.exit(1)
-        
+
 def RemoveHeaderFromFile(file_path):
     """
     Legge un file Markdown e restituisce il contenuto senza l'header specificato.
@@ -1048,10 +1050,12 @@ def ConversionSingleNote(nota):
 
 def ConversionGroupNote(argomento):
     # Ottieni i file corrispondenti all'argomento
+    print("Consistency check started...")
     matching_files_main = get_files_for_argument_from_main(argomento)
     matching_files_root = get_files_for_argument_from_root(argomento)
     
     checkInconsistency(matching_files_main, matching_files_root)
+    print("Consistency check passed!")
 
     # Crea la directory di output se non esiste
     if not os.path.exists(OUTPUT_DIR):
@@ -1084,14 +1088,14 @@ def ConversionAllNote(custom):
         - la converte nella cartella di build 
         """
         # Ottieni i file corrispondenti all'argomento
-        matching_files_main = []
-        matching_files_root = []
+        print("Consistency check started...")
         matching_files_main = get_all_files_from_main(custom)
         matching_files_root = get_all_files_from_root()
         
         if not custom:
             checkInconsistency(matching_files_main, matching_files_root)
-            
+        print("Consistency check passed!")
+
         if not os.path.exists(OUTPUT_DIR):
             os.makedirs(OUTPUT_DIR)
     
