@@ -12,6 +12,9 @@ import textwrap
 import subprocess
 
 ## DEFINES ##
+
+PY_VERSION = 3.2
+
 CONFIG_DIR_NAME     = "config"
 CONFFILE_DIR_NAME   = "config-files"
 INITIALIZE_DIR_NAME = "initialization"
@@ -1292,6 +1295,7 @@ def setup_argparse():
     group_standalone.add_argument("-s",     "--start",          metavar="NOTE_NAME",    help="Crea una nuova nota")
     group_standalone.add_argument("-u",     "--update",     action="store_true",        help="Aggiorna la banca dati")
     group_standalone.add_argument("-h",     "--help",       action="store_true",        help="Mostra questo messaggio di aiuto")
+    group_standalone.add_argument("-v",     "--version",    action="store_true",        help="Versione dello script")
 
     # Gruppo 2: Operazioni di conversione (mutuamente esclusive fra loro, ma accettano opzioni aggiuntive)
     group_conversion = parser.add_mutually_exclusive_group()
@@ -1311,7 +1315,7 @@ def setup_argparse():
 def validate_args(args):
     """Valida la coerenza degli argomenti"""
     # Se è un'operazione standalone, non deve avere altre opzioni
-    standalone_ops = [args.init, args.init_bank, args.start, args.update, args.help]
+    standalone_ops = [args.init, args.init_bank, args.start, args.update, args.help, args.version]
     conversion_ops = [args.all, args.group, args.note, args.custom]
 
     # Conta quante operazioni standalone sono attive
@@ -1322,11 +1326,11 @@ def validate_args(args):
         # Controlla che non ci siano operazioni di conversione
         active_conversion = sum(1 for op in conversion_ops if op)
         if active_conversion > 0:
-            print("Errore: le operazioni -i, -ib, -s, -u, -h non possono essere combinate con -a, -g, -n, -c")
+            print("Errore: le operazioni -i, -ib, -s, -u, -h, -v non possono essere combinate con -a, -g, -n, -c")
             sys.exit(1)
         # Controlla che non ci siano opzioni aggiuntive
         if args.yaml or args.template:
-            print("Errore: le operazioni -i, -ib, -s, -u, -h non accettano opzioni aggiuntive")
+            print("Errore: le operazioni -i, -ib, -s, -u, -h, -v non accettano opzioni aggiuntive")
             sys.exit(1)
 
     # Se non c'è nessuna operazione standalone, deve esserci almeno una di conversione
@@ -1392,6 +1396,9 @@ def main():
     elif args.update:
         print("Opzione --update selezionata. Lettura dei main.md dei collaboratori e costruzione del main.md complessivo.")
         UpdateBank()
+    
+    elif args.version:
+        print(f"DocScript v{PY_VERSION}")
 
     # Operazioni di conversione (con opzioni aggiuntive opzionali)
     elif args.all:
