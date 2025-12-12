@@ -1,4 +1,4 @@
-# DocScript Docupementation Structure
+# DocScript Documentation Structure
 
 É una struttura che permette di gestire appunti, documentazione e note direttamente in markdown. Ha il vantaggio di avere una organizzazione per argomenti e permette di Convertire file e interi blocchi di file mediante il tool `pandoc`.
 
