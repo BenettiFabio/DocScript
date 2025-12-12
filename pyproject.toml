@@ -10,7 +10,7 @@ select = ["E", "F", "I", "B", "UP", "SIM", "RET", "ARG"]
 
 [tool.ruff]
 line-length = 88
-exclude = ["tmp/**", "venv/**"]
+exclude = ["tmp/**", "venv/**", "DocScript.py"]
 
 [tool.mypy]
 strict = true

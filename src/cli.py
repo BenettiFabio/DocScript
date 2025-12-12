@@ -3,8 +3,18 @@ import sys
 
 import pyfiglet
 
-# from src import workflow
+from src import workflow
 from src.config import CustomPaths, check_config_file, check_priority_opt
+from src.version import DOCSCRIPT_VERSION as DCV
+
+###############
+# Description #
+###############
+"""
+The contents of this file are all the functions
+that describe terminal behavior
+and that route requests based on the initial options.
+"""
 
 ###########
 # Defines #
@@ -13,6 +23,7 @@ JUMP_CHECK_COMMANDS = {
     "init",
     "init-bank",
     "help",
+    "version",
 }
 NEED_FS_COMMANDS = {
     "start",
@@ -37,7 +48,7 @@ def main() -> None:
     )
 
     # -------------------------------
-    # Gruppo 1: Operazioni singole
+    # Gruppo 1: Single Operation
     # -------------------------------
     group_standalone = parser.add_mutually_exclusive_group()
     group_standalone.add_argument(
@@ -56,11 +67,14 @@ def main() -> None:
         "-u", "--update", action="store_true", help="Aggiorna la banca dati"
     )
     group_standalone.add_argument(
+        "-v", "--version", action="store_true", help="Stampa la versione dello script"
+    )
+    group_standalone.add_argument(
         "-h", "--help", action="store_true", help="Mostra questo messaggio di aiuto"
     )
 
     # -------------------------------
-    # Gruppo 2: Operazioni di conversione
+    # Gruppo 2: Conversion Operation
     # -------------------------------
     group_conversion = parser.add_mutually_exclusive_group()
     group_conversion.add_argument(
@@ -85,7 +99,7 @@ def main() -> None:
     )
 
     # -------------------------------
-    # Gruppo 3: Opzioni aggiuntive
+    # Gruppo 3: Additive Operation
     # -------------------------------
     parser.add_argument(
         "-y", "--yaml", metavar="YAML_NAME", help="File YAML personalizzato"
@@ -115,47 +129,50 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
         parser.print_help()
         sys.exit(0)
 
-    # verifica che gli argomenti siano  in ordine giusto senza errori di dipendenze
+    # Check that the arguments are in the correct order without dependency errors
     validate_args(args)
 
+    # proceeds to read the configuration files only after a check
+    # of the file system structure
     request = get_command(args)
     if request not in JUMP_CHECK_COMMANDS:
         ConfigCustomPaths = CustomPaths()
         if request in NEED_FS_COMMANDS:
-            # verifico file di configurazione -> sovrascrive i default
+            # check the configuration file -> overwrite the defaults
             check_config_file(cfgCstmPath=ConfigCustomPaths)
-            # verifico opzioni a terminale -> sovrascrive file di configurazione
+            # check cli options -> overwrite configuration file options
             check_priority_opt(
                 cfgCstmPath=ConfigCustomPaths,
                 yaml=args.yaml,
                 template=args.template,
                 lua=args.lua,
                 pandoc=args.pandoc,
-                start=args.start,
             )
 
     # -------------------------------
-    # Gruppo 1
+    # Group 1
     # -------------------------------
     if args.init:
-        # workflow.init_vault()
-        print("init-vault")
+        workflow.init_vault()
         return
     if args.init_bank:
-        print("init-bank")
-        # workflow.init_bank()
+        bankFlag = True
+        workflow.init_vault(bankFlag)
         return
     if args.start:
         print("new-note")
-        # workflow.start_note(args.start)
+        workflow.start_note(ConfigCustomPaths, args.start)
         return
     if args.update:
         print("update-bank")
         # workflow.update_bank()
         return
+    if args.version:
+        print("DocScript v" + DCV)
+        return
 
     # -------------------------------
-    # Gruppo 2
+    # Group 2
     # -------------------------------
     if args.all:
         print("convert-all")
@@ -189,28 +206,38 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
 
 
 def validate_args(args: argparse.Namespace) -> None:
-    """Valida la coerenza degli argomenti"""
-    # Se è un'operazione standalone, non deve avere altre opzioni
-    standalone_ops = [args.init, args.init_bank, args.start, args.update, args.help]
+    """
+    Validate the coherence of the arguments
+    """
+
+    # If it is a standalone operation, it should not have any other options
+    standalone_ops = [
+        args.init,
+        args.init_bank,
+        args.start,
+        args.update,
+        args.help,
+        args.version,
+    ]
     conversion_ops = [args.all, args.group, args.note, args.custom]
 
-    # Conta quante operazioni standalone sono attive
+    # Counts how many standalone operations are active
     active_standalone = sum(1 for op in standalone_ops if op)
 
-    # Se c'è un'operazione standalone attiva
+    # If there is an active standalone operation
     if active_standalone > 0:
-        # Controlla che non ci siano operazioni di conversione
+        # Check that there are no conversion operations
         active_conversion = sum(1 for op in conversion_ops if op)
         if active_conversion > 0:
             print(
-                "Errore: le operazioni -i, -ib, -s, -u, -h non possono essere "
+                "Errore: le operazioni -i, -ib, -s, -u, -v, -h non possono essere "
                 "combinate con -a, -g, -n, -c"
             )
             sys.exit(1)
-        # Controlla che non ci siano opzioni aggiuntive
+        # Check that there are no additional options
         if args.yaml or args.template:
             print(
-                "Errore: le operazioni -i, -ib, -s, -u, -h non accettano "
+                "Errore: le operazioni -i, -ib, -s, -u, -v, -h non accettano "
                 "opzioni aggiuntive"
             )
             sys.exit(1)
@@ -233,4 +260,6 @@ def get_command(args: argparse.Namespace) -> str:
         return "convert-note"
     if args.custom:
         return "convert-custom"
+    if args.version:
+        return "version"
     return "help"
