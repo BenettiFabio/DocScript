@@ -9,3 +9,4 @@
 top-level-division: chapter
 # Opzione per abilitare il pacchetto 'listings' per la formattazione del codice in LaTeX.
 listings: true
+pdf-engine: xelatex

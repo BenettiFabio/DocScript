@@ -68,73 +68,130 @@ custom_new_note_path    = None
 custom_pandoc_opt_path  = None
 
 ## FUNCTIONS ##
-def to_unc_slash_path(windows_path: str) -> str:
-    """
-    Converte un path UNC di Windows con backslash (\\\\server\\share\\path)
-    in un path UNC compatibile con strumenti esterni come pandoc (//server/share/path).
-    """
+# def to_unc_slash_path(windows_path: str) -> str:
+#     """
+#     Converte un path UNC di Windows con backslash (\\\\server\\share\\path)
+#     in un path UNC compatibile con strumenti esterni come pandoc (//server/share/path).
+#     """
     
-    # Se inizia con \\ è un UNC path → rete
-    if windows_path.startswith('\\\\'):
+#     # Se inizia con \\ è un UNC path → rete
+#     if windows_path.startswith('\\\\'):
         
-        # Rimuove eventuale prefisso \\?\ (che può apparire nei path Windows "lunghi")
-        path_str = windows_path.replace('\\\\?\\', '')
+#         # Rimuove eventuale prefisso \\?\ (che può apparire nei path Windows "lunghi")
+#         path_str = windows_path.replace('\\\\?\\', '')
         
-        # ottengo tutti i drive di rete inseriti nel sistema
-        result = subprocess.run("net use", capture_output=True, text=True, shell=True)
-        lines  = result.stdout.splitlines()
-        mapped_drives = {}
+#         # ottengo tutti i drive di rete inseriti nel sistema
+#         result = subprocess.run("net use", capture_output=True, text=True, shell=True)
+#         lines  = result.stdout.splitlines()
+#         mapped_drives = {}
         
-        for line in lines:
-            parts = line.strip().split()
-            if len(parts) >= 2 and parts[0].endswith(":") and parts[1].startswith("\\\\"):
-                drive_letter = parts[0]
-                unc_path = parts[1]
-                mapped_drives[drive_letter] = unc_path
+#         for line in lines:
+#             parts = line.strip().split()
+#             if len(parts) >= 2 and parts[0].endswith(":") and parts[1].startswith("\\\\"):
+#                 drive_letter = parts[0]
+#                 unc_path = parts[1]
+#                 mapped_drives[drive_letter] = unc_path
         
-        # Normalizza il path
-        full_path = str(Path(path_str).resolve())
-        normalized_path = full_path.replace("\\", "/")
+#         # Normalizza il path
+#         full_path = str(Path(path_str).resolve())
+#         normalized_path = full_path.replace("\\", "/")
 
-        # Prova a sostituire con lettera di drive, se matcha
-        for drive, unc in sorted(mapped_drives.items(), key=lambda x: len(x[1]), reverse=True):
-            unc_norm    = unc.replace("\\", "/")
-            unc_parts   = unc_norm.strip("/").split("/")
-            full_parts  = normalized_path.strip("/").split("/")
+#         # Prova a sostituire con lettera di drive, se matcha
+#         for drive, unc in sorted(mapped_drives.items(), key=lambda x: len(x[1]), reverse=True):
+#             unc_norm    = unc.replace("\\", "/")
+#             unc_parts   = unc_norm.strip("/").split("/")
+#             full_parts  = normalized_path.strip("/").split("/")
             
-            try:
-                # Trova la prima cartella condivisa
-                idx = full_parts.index(unc_parts[-1])
+#             try:
+#                 # Trova la prima cartella condivisa
+#                 idx = full_parts.index(unc_parts[-1])
 
-                # Costruisci il path a partire dalla prima cartella trovata
-                relative_parts  = full_parts[idx + 1:]
-                final_path      = str(Path(drive + "/") / Path(*relative_parts)).replace("\\", "/")
-                return final_path
-            except ValueError:
-                continue  # La cartella finale non è nel path completo, prova con il prossimo
+#                 # Costruisci il path a partire dalla prima cartella trovata
+#                 relative_parts  = full_parts[idx + 1:]
+#                 final_path      = str(Path(drive + "/") / Path(*relative_parts)).replace("\\", "/")
+#                 return final_path
+#             except ValueError:
+#                 continue  # La cartella finale non è nel path completo, prova con il prossimo
 
-        # Se non trovato, restituisco il path originale
-        return windows_path # bypass
-    else:
-        return windows_path
+#         # Se non trovato, restituisco il path originale
+#         return windows_path # bypass
+#     else:
+#         return windows_path
+def to_unc_slash_path(windows_path: str) -> str:
+    """Wrapper legacy – delega a to_unix_path."""
+    return to_unix_path(windows_path)
 
-def safe_path(*args):
+# def safe_path(*args):
+#     """
+#     Converte path a formato UNC/slash.
+#     - Se 1 parametro: applica conversione semplice su Path/str già costruito
+#     - Se N parametri: crea path con os.path.join, resolve, e poi converte
+#     """
+#     if len(args) == 1:
+#         # Versione corta: conversione diretta
+#         path_obj = args[0]
+#         if isinstance(path_obj, str):
+#             return Path(to_unc_slash_path(str(path_obj)))
+#         return Path(to_unc_slash_path(str(path_obj)))
+#     else:
+#         # Versione lunga: join, resolve, e conversione
+#         joined_path     = os.path.join(*args)
+#         resolved_path   = Path(joined_path).resolve()
+#         return Path(to_unc_slash_path(str(resolved_path)))
+def to_unix_path(raw_path: str) -> str:
     """
-    Converte path a formato UNC/slash.
-    - Se 1 parametro: applica conversione semplice su Path/str già costruito
-    - Se N parametri: crea path con os.path.join, resolve, e poi converte
+    Converte un percorso proveniente da Windows/UNC in un percorso POSIX
+    valido. Se il percorso è già POSIX (inizia con '/' o è relativo),
+    lo restituisce invariato.
+
+    • Back‑slash → slash
+    • Rimuove eventuali prefissi '\\\\?\\' o '\\\\' (UNC)
+    • Se il percorso contiene una lettera di unità (es. 'C:\\folder')
+      la trasforma in '/c/folder' (con la lettera minuscola) – solo
+      quando il codice è in esecuzione su Linux.
     """
-    if len(args) == 1:
-        # Versione corta: conversione diretta
-        path_obj = args[0]
-        if isinstance(path_obj, str):
-            return Path(to_unc_slash_path(str(path_obj)))
-        return Path(to_unc_slash_path(str(path_obj)))
-    else:
-        # Versione lunga: join, resolve, e conversione
-        joined_path     = os.path.join(*args)
-        resolved_path   = Path(joined_path).resolve()
-        return Path(to_unc_slash_path(str(resolved_path)))
+    # Normalizza i separatori
+    p = raw_path.replace("\\", "/")
+
+    # Rimuove prefissi Windows speciali
+    if p.startswith(r"\\?\\"):
+        p = p[4:]                     # elimina '\\?\'
+    if p.startswith("//"):
+        # UNC: //server/share/... → /mnt/<server>/<share>/...
+        # Qui non possiamo indovinare il mount point, quindi lasciamo
+        # semplicemente il path senza i primi due slash.
+        p = "/" + p.lstrip("/")      # garantisce un singolo slash iniziale
+
+    # Gestione di drive‑letter (es. C:/foo)
+    if re.match(r"^[a-zA-Z]:/", p):
+        drive = p[0].lower()
+        p = f"/{drive}{p[2:]}"       # → /c/foo
+
+    return p
+
+
+def safe_path(*parts):
+    """
+    Crea un percorso POSIX sicuro.
+
+    • Se viene passato un solo argomento:
+        – se è già un `Path` o una stringa, lo normalizza con `to_unix_path`.
+    • Se vengono passati più argomenti:
+        – li concatena con `os.path.join`, poi normalizza.
+    • Sempre restituisce un oggetto `Path` risolto (senza risolvere
+      eventuali symlink di rete, ma con `strict=False` per evitare
+      eccezioni se il percorso non esiste ancora).
+    """
+    if len(parts) == 1:
+        p = parts[0]
+        if isinstance(p, Path):
+            return p.resolve(strict=False)
+        # stringa o altro: normalizza
+        return Path(to_unix_path(str(p))).resolve(strict=False)
+
+    # più componenti → join, poi normalizza
+    joined = os.path.join(*parts)
+    return Path(to_unix_path(joined)).resolve(strict=False)
 
 def should_skip_dir(dir_path):
     """Verifica se una directory deve essere saltata nella scansione"""
@@ -426,25 +483,50 @@ def CheckPreconditions():
     """
     
     # Controlla se xelatex è nel PATH
-    if os.system("where xelatex >nul 2>nul") != 0:
-        print("Errore: xelatex non installato o non nel PATH.")
-        sys.exit(1)
-    else:
-        print("xelatex installato.")
+    if (sys.platform.startswith("win")):
+        if os.system("where xelatex >nul 2>nul") != 0:
+            print("Errore: xelatex non installato o non nel PATH.")
+            sys.exit(1)
+        else:
+            print("xelatex installato.")
+
+    if (sys.platform.startswith("linux")):
+        if os.system("which xelatex > /dev/null") != 0:
+            print("Errore: xelatex non installato o non nel PATH.")
+            sys.exit(1)
+        else:
+            print("xelatex installato.")
 
     # Controlla se pandoc è nel PATH
-    if os.system("where pandoc >nul 2>nul") != 0:
-        print("Errore: pandoc non installato o non nel PATH.")
-        sys.exit(1)
-    else:
-        print("pandoc installato.")
+    if (sys.platform.startswith("win")):
+        if os.system("where pandoc >nul 2>nul") != 0:
+            print("Errore: pandoc non installato o non nel PATH.")
+            sys.exit(1)
+        else:
+            print("pandoc installato.")
+
+    if (sys.platform.startswith("linux")):
+        if os.system("which pandoc > /dev/null") != 0:
+            print("Errore: pandoc non installato o non nel PATH.")
+            sys.exit(1)
+        else:
+            print("pandoc installato.")
 
     # Controlla se i font GNU FreeFonts sono installati
-    if os.system('fc-list | findstr /i "FreeSerif FreeSans FreeMono" >nul 2>nul') != 0:
-        print("Errore: i font GNU FreeFonts non sono installati.")
-        sys.exit(1)
-    else:
-        print("Font GNU FreeFonts installati.")
+    if (sys.platform.startswith("win")):
+        if os.system('fc-list | findstr /i "FreeSerif FreeSans FreeMono" >nul 2>nul') != 0:
+            print("Errore: i font GNU FreeFonts non sono installati.")
+            sys.exit(1)
+        else:
+            print("Font GNU FreeFonts installati.")
+
+    if (sys.platform.startswith("linux")):
+        if os.system('locate Free .ttf | grep /usr/share/fonts/TTF/ > /dev/null') != 0:
+            print("Errore: i font GNU FreeFonts non sono installati in /usr/share/fonts/TTF .")
+            sys.exit(1)
+        else:
+            print("Font GNU FreeFonts installati.")        
+
 
 def get_all_files_from_main(custom):
     """
@@ -1246,8 +1328,7 @@ def NoteConversion(combined_note_path):
         # Eseguo prima la conversione in tex con pandoc
         out_path = out_path.with_suffix(".tex")
         
-        # command = f"pandoc \"{path_note}\" -o \"{out_path}\" --top-level-division=chapter --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
-        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --defaults=\"{default_opt}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" --pdf-engine=xelatex"
+        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --defaults=\"{default_opt}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" "
         
         print(f"Eseguo il comando: {command}")
         os.system(command)
@@ -1255,8 +1336,9 @@ def NoteConversion(combined_note_path):
         # Eseguo poi la conversione in pdf con latexmk
         subprocess.run(
             ["latexmk", "-xelatex", out_path.name],
-            cwd=out_path.parent,
-            shell=True
+            cwd=out_path.parent,    # la directory dove è stato creato il .tex1
+            #shell=True
+            check=True             # opzionale: solleva CalledProcessError se il comando fallisce
         )
         
         # Pulizia della cartella di build
@@ -1272,8 +1354,7 @@ def NoteConversion(combined_note_path):
         
     else:
         # Comando per la conversione pulita con pandoc
-        # command = f"pandoc \"{path_note}\" -o \"{out_path}\" --top-level-division=chapter --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
-        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --defaults=\"{default_opt}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" --pdf-engine=xelatex"
+        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --defaults=\"{default_opt}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" "
         
         # Esegui il comando
         print(f"Eseguo il comando: {command}")
