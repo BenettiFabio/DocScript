@@ -13,7 +13,7 @@ import subprocess
 
 ## DEFINES ##
 
-PY_VERSION = 3.2
+PY_VERSION = "3.2.1"
 
 CONFIG_DIR_NAME     = "config"
 CONFFILE_DIR_NAME   = "config-files"
@@ -121,23 +121,6 @@ def to_unc_slash_path(windows_path: str) -> str:
     """Wrapper legacy – delega a to_unix_path."""
     return to_unix_path(windows_path)
 
-# def safe_path(*args):
-#     """
-#     Converte path a formato UNC/slash.
-#     - Se 1 parametro: applica conversione semplice su Path/str già costruito
-#     - Se N parametri: crea path con os.path.join, resolve, e poi converte
-#     """
-#     if len(args) == 1:
-#         # Versione corta: conversione diretta
-#         path_obj = args[0]
-#         if isinstance(path_obj, str):
-#             return Path(to_unc_slash_path(str(path_obj)))
-#         return Path(to_unc_slash_path(str(path_obj)))
-#     else:
-#         # Versione lunga: join, resolve, e conversione
-#         joined_path     = os.path.join(*args)
-#         resolved_path   = Path(joined_path).resolve()
-#         return Path(to_unc_slash_path(str(resolved_path)))
 def to_unix_path(raw_path: str) -> str:
     """
     Converte un percorso proveniente da Windows/UNC in un percorso POSIX
@@ -150,29 +133,36 @@ def to_unix_path(raw_path: str) -> str:
       la trasforma in '/c/folder' (con la lettera minuscola) – solo
       quando il codice è in esecuzione su Linux.
     """
-    # Normalizza i separatori
-    p = raw_path.replace("\\", "/")
-
+    is_windows = os.name == "nt"
+    
     # Rimuove prefissi Windows speciali
-    if p.startswith(r"\\?\\"):
-        p = p[4:]                     # elimina '\\?\'
-    if p.startswith("//"):
-        # UNC: //server/share/... → /mnt/<server>/<share>/...
-        # Qui non possiamo indovinare il mount point, quindi lasciamo
-        # semplicemente il path senza i primi due slash.
-        p = "/" + p.lstrip("/")      # garantisce un singolo slash iniziale
+    if raw_path.startswith("\\\\?\\"):
+        raw_path = raw_path[4:]     # elimina '\\?\'
+    
+    # ====== WIN ======
+    if is_windows:
+        # NON convertire slash
+        # NON riscrivere drive
+        return str(Path(raw_path).resolve())
+    
+    # ====== UNIX ======
+    # backslash → slash
+    raw_path = raw_path.replace("\\", "/")
 
-    # Gestione di drive‑letter (es. C:/foo)
-    if re.match(r"^[a-zA-Z]:/", p):
-        drive = p[0].lower()
-        p = f"/{drive}{p[2:]}"       # → /c/foo
+    # UNC → /server/share/...
+    if raw_path.startswith("//"):
+        return "/" + raw_path.lstrip("/")
+    
+    # Drive letter → /c/...
+    if re.match(r"^[a-zA-Z]:/", raw_path):
+        drive = raw_path[0].lower()
+        return f"/{drive}{raw_path[2:]}"
 
-    return p
-
+    return raw_path
 
 def safe_path(*parts):
     """
-    Crea un percorso POSIX sicuro.
+    Normalizza il Path gestendo varianti di OS e dischi di rete
 
     • Se viene passato un solo argomento:
         – se è già un `Path` o una stringa, lo normalizza con `to_unix_path`.
@@ -182,6 +172,7 @@ def safe_path(*parts):
       eventuali symlink di rete, ma con `strict=False` per evitare
       eccezioni se il percorso non esiste ancora).
     """
+    
     if len(parts) == 1:
         p = parts[0]
         if isinstance(p, Path):
@@ -199,7 +190,6 @@ def should_skip_dir(dir_path):
     
     for dir in EXCLUDED_DIRS:
         temp = safe_path(SCRIPT_DIR, "..", "vault", dir)
-        # temp = Path(to_unc_slash_path(str(Path(os.path.join(SCRIPT_DIR, "..", "vault", dir)).resolve())))
         NewPathList.append(str(temp))
     
     return any(excluded in dir_path for excluded in NewPathList)
@@ -1045,7 +1035,6 @@ def UpdateBank():
         match = re.search(r'\[.*?\]\((.*?main\.md)\)', line)
         if match:
             main_md_path = safe_path("..", match.group(1))  # Definisci qui la variabile
-            # if not os.path.exists(Path(to_unc_slash_path(str(os.path.join("..", match.group(1)))))):
             if not os.path.exists(main_md_path):
                 errors.append(f"Collaboratore '{collaborator}': main.md non trovato in '{main_md_path}'")
             else:
@@ -1479,7 +1468,7 @@ def main():
         UpdateBank()
     
     elif args.version:
-        print(f"DocScript v{PY_VERSION}")
+        print("DocScript v"+PY_VERSION)
 
     # Operazioni di conversione (con opzioni aggiuntive opzionali)
     elif args.all:
