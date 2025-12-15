@@ -13,7 +13,7 @@ import subprocess
 
 ## DEFINES ##
 
-PY_VERSION = 3.2
+PY_VERSION = "3.2.2"
 
 CONFIG_DIR_NAME     = "config"
 CONFFILE_DIR_NAME   = "config-files"
@@ -68,76 +68,48 @@ custom_new_note_path    = None
 custom_pandoc_opt_path  = None
 
 ## FUNCTIONS ##
-# def to_unc_slash_path(windows_path: str) -> str:
-#     """
-#     Converte un path UNC di Windows con backslash (\\\\server\\share\\path)
-#     in un path UNC compatibile con strumenti esterni come pandoc (//server/share/path).
-#     """
+def normalize_unc_path(windows_path: str) -> str:
+    """
+    Converte un path UNC di Windows con backslash (\\\\server\\share\\path)
+    in un path UNC compatibile con strumenti esterni come pandoc (//server/share/path).
+    """
     
-#     # Se inizia con \\ è un UNC path → rete
-#     if windows_path.startswith('\\\\'):
-        
-#         # Rimuove eventuale prefisso \\?\ (che può apparire nei path Windows "lunghi")
-#         path_str = windows_path.replace('\\\\?\\', '')
-        
-#         # ottengo tutti i drive di rete inseriti nel sistema
-#         result = subprocess.run("net use", capture_output=True, text=True, shell=True)
-#         lines  = result.stdout.splitlines()
-#         mapped_drives = {}
-        
-#         for line in lines:
-#             parts = line.strip().split()
-#             if len(parts) >= 2 and parts[0].endswith(":") and parts[1].startswith("\\\\"):
-#                 drive_letter = parts[0]
-#                 unc_path = parts[1]
-#                 mapped_drives[drive_letter] = unc_path
-        
-#         # Normalizza il path
-#         full_path = str(Path(path_str).resolve())
-#         normalized_path = full_path.replace("\\", "/")
+    # ottengo tutti i drive di rete inseriti nel sistema
+    result = subprocess.run("net use", capture_output=True, text=True, shell=True)
+    lines  = result.stdout.splitlines()
+    mapped_drives = {}
+    
+    for line in lines:
+        parts = line.strip().split()
+        if len(parts) >= 2 and parts[0].endswith(":") and parts[1].startswith("\\\\"):
+            drive_letter = parts[0]
+            unc_path = parts[1]
+            mapped_drives[drive_letter] = unc_path
+    
+    # Normalizza il path
+    full_path = str(Path(windows_path).resolve())
+    normalized_path = full_path.replace("\\", "/")
 
-#         # Prova a sostituire con lettera di drive, se matcha
-#         for drive, unc in sorted(mapped_drives.items(), key=lambda x: len(x[1]), reverse=True):
-#             unc_norm    = unc.replace("\\", "/")
-#             unc_parts   = unc_norm.strip("/").split("/")
-#             full_parts  = normalized_path.strip("/").split("/")
-            
-#             try:
-#                 # Trova la prima cartella condivisa
-#                 idx = full_parts.index(unc_parts[-1])
+    # Prova a sostituire con lettera di drive, se matcha
+    for drive, unc in sorted(mapped_drives.items(), key=lambda x: len(x[1]), reverse=True):
+        unc_norm    = unc.replace("\\", "/")
+        unc_parts   = unc_norm.strip("/").split("/")
+        full_parts  = normalized_path.strip("/").split("/")
+        
+        try:
+            # Trova la prima cartella condivisa
+            idx = full_parts.index(unc_parts[-1])
 
-#                 # Costruisci il path a partire dalla prima cartella trovata
-#                 relative_parts  = full_parts[idx + 1:]
-#                 final_path      = str(Path(drive + "/") / Path(*relative_parts)).replace("\\", "/")
-#                 return final_path
-#             except ValueError:
-#                 continue  # La cartella finale non è nel path completo, prova con il prossimo
+            # Costruisci il path a partire dalla prima cartella trovata
+            relative_parts  = full_parts[idx + 1:]
+            final_path      = str(Path(drive + "/") / Path(*relative_parts)).replace("\\", "/")
+            return final_path
+        except ValueError:
+            continue  # La cartella finale non è nel path completo, prova con il prossimo
 
-#         # Se non trovato, restituisco il path originale
-#         return windows_path # bypass
-#     else:
-#         return windows_path
-def to_unc_slash_path(windows_path: str) -> str:
-    """Wrapper legacy – delega a to_unix_path."""
-    return to_unix_path(windows_path)
+    # Se non trovato fallirebbe comunque, restituisco il path originale
+    return windows_path # bypass
 
-# def safe_path(*args):
-#     """
-#     Converte path a formato UNC/slash.
-#     - Se 1 parametro: applica conversione semplice su Path/str già costruito
-#     - Se N parametri: crea path con os.path.join, resolve, e poi converte
-#     """
-#     if len(args) == 1:
-#         # Versione corta: conversione diretta
-#         path_obj = args[0]
-#         if isinstance(path_obj, str):
-#             return Path(to_unc_slash_path(str(path_obj)))
-#         return Path(to_unc_slash_path(str(path_obj)))
-#     else:
-#         # Versione lunga: join, resolve, e conversione
-#         joined_path     = os.path.join(*args)
-#         resolved_path   = Path(joined_path).resolve()
-#         return Path(to_unc_slash_path(str(resolved_path)))
 def to_unix_path(raw_path: str) -> str:
     """
     Converte un percorso proveniente da Windows/UNC in un percorso POSIX
@@ -150,29 +122,38 @@ def to_unix_path(raw_path: str) -> str:
       la trasforma in '/c/folder' (con la lettera minuscola) – solo
       quando il codice è in esecuzione su Linux.
     """
-    # Normalizza i separatori
-    p = raw_path.replace("\\", "/")
-
+    is_windows = os.name == "nt"
+    
     # Rimuove prefissi Windows speciali
-    if p.startswith(r"\\?\\"):
-        p = p[4:]                     # elimina '\\?\'
-    if p.startswith("//"):
-        # UNC: //server/share/... → /mnt/<server>/<share>/...
-        # Qui non possiamo indovinare il mount point, quindi lasciamo
-        # semplicemente il path senza i primi due slash.
-        p = "/" + p.lstrip("/")      # garantisce un singolo slash iniziale
+    if raw_path.startswith("\\\\?\\"):
+        raw_path = raw_path[4:]     # elimina '\\?\'
+    
+    # ====== WIN ======
+    if is_windows:
+        # Se inizia con \\ è un UNC path → rete
+        if raw_path.startswith('\\\\'):
+            return normalize_unc_path(raw_path)
+        else:
+            return raw_path
+    
+    # ====== UNIX ======
+    # backslash → slash
+    raw_path = raw_path.replace("\\", "/")
 
-    # Gestione di drive‑letter (es. C:/foo)
-    if re.match(r"^[a-zA-Z]:/", p):
-        drive = p[0].lower()
-        p = f"/{drive}{p[2:]}"       # → /c/foo
+    # UNC → /server/share/...
+    if raw_path.startswith("//"):
+        return "/" + raw_path.lstrip("/")
+    
+    # Drive letter → /c/...
+    if re.match(r"^[a-zA-Z]:/", raw_path):
+        drive = raw_path[0].lower()
+        return f"/{drive}{raw_path[2:]}"
 
-    return p
-
+    return raw_path
 
 def safe_path(*parts):
     """
-    Crea un percorso POSIX sicuro.
+    Normalizza il Path gestendo varianti di OS e dischi di rete
 
     • Se viene passato un solo argomento:
         – se è già un `Path` o una stringa, lo normalizza con `to_unix_path`.
@@ -182,16 +163,15 @@ def safe_path(*parts):
       eventuali symlink di rete, ma con `strict=False` per evitare
       eccezioni se il percorso non esiste ancora).
     """
+    
     if len(parts) == 1:
         p = parts[0]
-        if isinstance(p, Path):
-            return p.resolve(strict=False)
         # stringa o altro: normalizza
-        return Path(to_unix_path(str(p))).resolve(strict=False)
+        return Path(to_unix_path(str(p)))
 
     # più componenti → join, poi normalizza
     joined = os.path.join(*parts)
-    return Path(to_unix_path(joined)).resolve(strict=False)
+    return Path(to_unix_path(joined))
 
 def should_skip_dir(dir_path):
     """Verifica se una directory deve essere saltata nella scansione"""
@@ -199,7 +179,6 @@ def should_skip_dir(dir_path):
     
     for dir in EXCLUDED_DIRS:
         temp = safe_path(SCRIPT_DIR, "..", "vault", dir)
-        # temp = Path(to_unc_slash_path(str(Path(os.path.join(SCRIPT_DIR, "..", "vault", dir)).resolve())))
         NewPathList.append(str(temp))
     
     return any(excluded in dir_path for excluded in NewPathList)
@@ -802,24 +781,56 @@ def checkInconsistency(matching_files_main, matching_files_root):
     Se mancano delle note nel main, stampa un errore con i file mancanti.
     I percorsi vengono normalizzati per il confronto.
     """
-    
-    # Filtra i file per escludere quelli nella cartella temporanea
+    # -----------------------------------------------------------------
+    # WHITELIST – file di supporto che NON devono essere controllati
+    # -----------------------------------------------------------------
+    WHITELIST = {
+        "combined_notes.md",   # file temporaneo generato dallo script
+        "default-note.md",     # modello di nuova nota
+        # ← aggiungi qui altri nomi, se ne trovi altri che non devono comparire in main.md
+    }
+
+    # -----------------------------------------------------------------
+    # Funzione di supporto per capire se un percorso va ignorato
+    # -----------------------------------------------------------------
+    def should_ignore(path_str: str) -> bool:
+        """
+        Ritorna True se il percorso deve essere escluso dal controllo.
+        - Se il nome è nella whitelist
+        - Se il percorso contiene la cartella “config” (template, note di partenza, ecc.)
+        """
+        name = Path(path_str).name
+        if name in WHITELIST:
+            return True
+        # Normalizza separatori Windows → Unix per il confronto
+        norm_path = path_str.replace("\\", "/").lower()
+        if "/config/" in norm_path:
+            return True
+        return False
+
+    # -----------------------------------------------------------------
+    # Filtra i file “root” (tutti i .md presenti nel vault)
+    # -----------------------------------------------------------------
     filtered_matching_files_root = [
-        Path(path).name for path in matching_files_root
-        if not path.startswith(f"{TEMPORARY_DIR}/") and not Path(path).name.startswith(f"main.{TEMPORARY_DIR}.")
+        Path(path).name
+        for path in matching_files_root
+        if not path.startswith(f"{TEMPORARY_DIR}/")
+        and not Path(path).name.startswith(f"main.{TEMPORARY_DIR}.")
+        and not should_ignore(path)               # <-- QUI il nuovo filtro
     ]
 
+    # -----------------------------------------------------------------
+    # Normalizza le liste (solo i nomi dei file)
+    # -----------------------------------------------------------------
     normalized_actual_list = [
-        # os.path.relpath(path, os.path.join("..")).replace("\\", "/")
-        Path(path).name for path in filtered_matching_files_root
+        name for name in filtered_matching_files_root
     ]
-    
+
     normalized_main_list = [
-        # os.path.relpath(path, os.path.join("..")).replace("\\", "/")
         Path(path).name for path in matching_files_main
     ]
-    
-    main_set = set(normalized_main_list)
+
+    main_set   = set(normalized_main_list)
     actual_set = set(normalized_actual_list)
 
     missing_in_main = actual_set - main_set
@@ -1045,7 +1056,6 @@ def UpdateBank():
         match = re.search(r'\[.*?\]\((.*?main\.md)\)', line)
         if match:
             main_md_path = safe_path("..", match.group(1))  # Definisci qui la variabile
-            # if not os.path.exists(Path(to_unc_slash_path(str(os.path.join("..", match.group(1)))))):
             if not os.path.exists(main_md_path):
                 errors.append(f"Collaboratore '{collaborator}': main.md non trovato in '{main_md_path}'")
             else:
@@ -1479,7 +1489,7 @@ def main():
         UpdateBank()
     
     elif args.version:
-        print(f"DocScript v{PY_VERSION}")
+        print("DocScript v"+PY_VERSION)
 
     # Operazioni di conversione (con opzioni aggiuntive opzionali)
     elif args.all:

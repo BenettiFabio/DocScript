@@ -15,7 +15,7 @@ listtables: false
 CompanyProject:
 CompanyDepartment:
 CompanyOffice:
-CompanyDesigner: Benetti Fabio
+CompanyDesigner: Designer Name
 CompanyDesignerCode:
 CompanyTechnicalManager:
 CompanyTechnicalSupervisor:
@@ -25,8 +25,8 @@ CompanyDocumentCode:
 # ----------------------------------------------------------------------
 # Impostazioni di Layout e Assets
 # ----------------------------------------------------------------------
-LogoFileName: '../assets/docfiles/logo-company.eps'
-footerText: 'RISERVATO - PROPRIETÀ DI Company S.p.A.'
+LogoFileName: '../assets/docfiles/logo-docscript.png'
+footerText: 'Reserved - Property of Company S.p.A.'
 
 # ----------------------------------------------------------------------
 # Configurazione Watermark (se draft: true)
@@ -38,4 +38,3 @@ watermark_text: 'Draft'
 # ----------------------------------------------------------------------
 tocDepth: 5
 ---
-
