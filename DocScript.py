@@ -13,7 +13,7 @@ import subprocess
 
 ## DEFINES ##
 
-PY_VERSION = 3.2
+PY_VERSION = "3.3.0"
 
 CONFIG_DIR_NAME     = "config"
 CONFFILE_DIR_NAME   = "config-files"
@@ -22,13 +22,6 @@ INITIALIZE_DIR_NAME = "initialization"
 TEMPORARY_DIR       = "rusco"   # Macro per la cartella temporanea
 BUILD_DIR_NAME      = "build"   # Cartella con file prodotti dalla conversione
 ASSETS_DIR_NAME     = "assets"  # Cartella con risorse allegate al vault
-
-EXCLUDED_DIRS       = [
-    ASSETS_DIR_NAME,
-    BUILD_DIR_NAME,
-    CONFIG_DIR_NAME,
-    TEMPORARY_DIR
-]
 
 SCRIPT_DIR      = os.path.dirname(os.path.abspath(__file__))  # Directory dello script
 MAKE_DIR        = Path(os.path.join(SCRIPT_DIR, "..", "vault", BUILD_DIR_NAME)).resolve()
@@ -58,6 +51,19 @@ PANDOC_OPT_PATH = Path(os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, PANDOC_OPT_NAM
 CONFIG_DIR_PATH = Path(os.path.join(VAULT_DIR, CONFIG_DIR_NAME, CONFIG_FILE_NAME)).resolve()
 CONFIG_DIR_BANK_PATH = Path(os.path.join(BANK_DIR, CONFIG_DIR_NAME, CONFIG_FILE_NAME)).resolve()
 
+EXCLUDED_DIRS       = [
+    ASSETS_DIR_NAME,
+    BUILD_DIR_NAME,
+    CONFIG_DIR_NAME,
+    TEMPORARY_DIR
+]
+EXCLUDED_FILES      = [
+    COMB_FILE_NAME,
+    NEW_NOTE_NAME,
+    "main.md",
+    "custom.md"
+]
+
 custom  = False # variabile per gestire la conversione di un file custom.md
 is_bank = False # variabile per gestire il caso particolare di una banca dati collaborativa
 
@@ -68,84 +74,119 @@ custom_new_note_path    = None
 custom_pandoc_opt_path  = None
 
 ## FUNCTIONS ##
-def to_unc_slash_path(windows_path: str) -> str:
+def normalize_unc_path(windows_path: str) -> str:
     """
     Converte un path UNC di Windows con backslash (\\\\server\\share\\path)
     in un path UNC compatibile con strumenti esterni come pandoc (//server/share/path).
     """
     
-    # Se inizia con \\ è un UNC path → rete
-    if windows_path.startswith('\\\\'):
-        
-        # Rimuove eventuale prefisso \\?\ (che può apparire nei path Windows "lunghi")
-        path_str = windows_path.replace('\\\\?\\', '')
-        
-        # ottengo tutti i drive di rete inseriti nel sistema
-        result = subprocess.run("net use", capture_output=True, text=True, shell=True)
-        lines  = result.stdout.splitlines()
-        mapped_drives = {}
-        
-        for line in lines:
-            parts = line.strip().split()
-            if len(parts) >= 2 and parts[0].endswith(":") and parts[1].startswith("\\\\"):
-                drive_letter = parts[0]
-                unc_path = parts[1]
-                mapped_drives[drive_letter] = unc_path
-        
-        # Normalizza il path
-        full_path = str(Path(path_str).resolve())
-        normalized_path = full_path.replace("\\", "/")
+    # ottengo tutti i drive di rete inseriti nel sistema
+    result = subprocess.run("net use", capture_output=True, text=True, shell=True)
+    lines  = result.stdout.splitlines()
+    mapped_drives = {}
+    
+    for line in lines:
+        parts = line.strip().split()
+        if len(parts) >= 2 and parts[0].endswith(":") and parts[1].startswith("\\\\"):
+            drive_letter = parts[0]
+            unc_path = parts[1]
+            mapped_drives[drive_letter] = unc_path
+    
+    # Normalizza il path
+    full_path = str(Path(windows_path).resolve())
+    normalized_path = full_path.replace("\\", "/")
 
-        # Prova a sostituire con lettera di drive, se matcha
-        for drive, unc in sorted(mapped_drives.items(), key=lambda x: len(x[1]), reverse=True):
-            unc_norm    = unc.replace("\\", "/")
-            unc_parts   = unc_norm.strip("/").split("/")
-            full_parts  = normalized_path.strip("/").split("/")
-            
-            try:
-                # Trova la prima cartella condivisa
-                idx = full_parts.index(unc_parts[-1])
+    # Prova a sostituire con lettera di drive, se matcha
+    for drive, unc in sorted(mapped_drives.items(), key=lambda x: len(x[1]), reverse=True):
+        unc_norm    = unc.replace("\\", "/")
+        unc_parts   = unc_norm.strip("/").split("/")
+        full_parts  = normalized_path.strip("/").split("/")
+        
+        try:
+            # Trova la prima cartella condivisa
+            idx = full_parts.index(unc_parts[-1])
 
-                # Costruisci il path a partire dalla prima cartella trovata
-                relative_parts  = full_parts[idx + 1:]
-                final_path      = str(Path(drive + "/") / Path(*relative_parts)).replace("\\", "/")
-                return final_path
-            except ValueError:
-                continue  # La cartella finale non è nel path completo, prova con il prossimo
+            # Costruisci il path a partire dalla prima cartella trovata
+            relative_parts  = full_parts[idx + 1:]
+            final_path      = str(Path(drive + "/") / Path(*relative_parts)).replace("\\", "/")
+            return final_path
+        except ValueError:
+            continue  # La cartella finale non è nel path completo, prova con il prossimo
 
-        # Se non trovato, restituisco il path originale
-        return windows_path # bypass
-    else:
-        return windows_path
+    # Se non trovato fallirebbe comunque, restituisco il path originale
+    return windows_path # bypass
 
-def safe_path(*args):
+def to_unix_path(raw_path: str) -> str:
     """
-    Converte path a formato UNC/slash.
-    - Se 1 parametro: applica conversione semplice su Path/str già costruito
-    - Se N parametri: crea path con os.path.join, resolve, e poi converte
+    Converte un percorso proveniente da Windows/UNC in un percorso POSIX
+    valido. Se il percorso è già POSIX (inizia con '/' o è relativo),
+    lo restituisce invariato.
+
+    • Back‑slash → slash
+    • Rimuove eventuali prefissi '\\\\?\\' o '\\\\' (UNC)
+    • Se il percorso contiene una lettera di unità (es. 'C:\\folder')
+      la trasforma in '/c/folder' (con la lettera minuscola) – solo
+      quando il codice è in esecuzione su Linux.
     """
-    if len(args) == 1:
-        # Versione corta: conversione diretta
-        path_obj = args[0]
-        if isinstance(path_obj, str):
-            return Path(to_unc_slash_path(str(path_obj)))
-        return Path(to_unc_slash_path(str(path_obj)))
-    else:
-        # Versione lunga: join, resolve, e conversione
-        joined_path     = os.path.join(*args)
-        resolved_path   = Path(joined_path).resolve()
-        return Path(to_unc_slash_path(str(resolved_path)))
+    is_windows = os.name == "nt"
+    
+    # Rimuove prefissi Windows speciali
+    if raw_path.startswith("\\\\?\\"):
+        raw_path = raw_path[4:]     # elimina '\\?\'
+    
+    # ====== WIN ======
+    if is_windows:
+        # Se inizia con \\ è un UNC path → rete
+        if raw_path.startswith('\\\\'):
+            return normalize_unc_path(raw_path)
+        else:
+            return raw_path
+    
+    # ====== UNIX ======
+    # backslash → slash
+    raw_path = raw_path.replace("\\", "/")
+
+    # UNC → /server/share/...
+    if raw_path.startswith("//"):
+        return "/" + raw_path.lstrip("/")
+    
+    # Drive letter → /c/...
+    if re.match(r"^[a-zA-Z]:/", raw_path):
+        drive = raw_path[0].lower()
+        return f"/{drive}{raw_path[2:]}"
+
+    return raw_path
+
+def safe_path(*parts):
+    """
+    Normalizza il Path gestendo varianti di OS e dischi di rete
+
+    • Se viene passato un solo argomento:
+        – se è già un `Path` o una stringa, lo normalizza con `to_unix_path`.
+    • Se vengono passati più argomenti:
+        – li concatena con `os.path.join`, poi normalizza.
+    • Sempre restituisce un oggetto `Path` risolto (senza risolvere
+      eventuali symlink di rete, ma con `strict=False` per evitare
+      eccezioni se il percorso non esiste ancora).
+    """
+    
+    if len(parts) == 1:
+        p = parts[0]
+        # stringa o altro: normalizza
+        return Path(to_unix_path(str(p)))
+
+    # più componenti → join, poi normalizza
+    joined = os.path.join(*parts)
+    return Path(to_unix_path(joined))
 
 def should_skip_dir(dir_path):
     """Verifica se una directory deve essere saltata nella scansione"""
-    NewPathList = []
-    
-    for dir in EXCLUDED_DIRS:
-        temp = safe_path(SCRIPT_DIR, "..", "vault", dir)
-        # temp = Path(to_unc_slash_path(str(Path(os.path.join(SCRIPT_DIR, "..", "vault", dir)).resolve())))
-        NewPathList.append(str(temp))
-    
-    return any(excluded in dir_path for excluded in NewPathList)
+    return dir_path in EXCLUDED_DIRS
+
+def should_skip_file(file_path: str):
+    """Verifica se un file deve essere escluso da una scansione"""
+    file_name = os.path.basename(file_path)
+    return file_name in EXCLUDED_FILES
 
 def copy_dir_recursive(src: str, dst: str) -> None:
     """
@@ -426,25 +467,50 @@ def CheckPreconditions():
     """
     
     # Controlla se xelatex è nel PATH
-    if os.system("where xelatex >nul 2>nul") != 0:
-        print("Errore: xelatex non installato o non nel PATH.")
-        sys.exit(1)
-    else:
-        print("xelatex installato.")
+    if (sys.platform.startswith("win")):
+        if os.system("where xelatex >nul 2>nul") != 0:
+            print("Errore: xelatex non installato o non nel PATH.")
+            sys.exit(1)
+        else:
+            print("xelatex installato.")
+
+    if (sys.platform.startswith("linux")):
+        if os.system("which xelatex > /dev/null") != 0:
+            print("Errore: xelatex non installato o non nel PATH.")
+            sys.exit(1)
+        else:
+            print("xelatex installato.")
 
     # Controlla se pandoc è nel PATH
-    if os.system("where pandoc >nul 2>nul") != 0:
-        print("Errore: pandoc non installato o non nel PATH.")
-        sys.exit(1)
-    else:
-        print("pandoc installato.")
+    if (sys.platform.startswith("win")):
+        if os.system("where pandoc >nul 2>nul") != 0:
+            print("Errore: pandoc non installato o non nel PATH.")
+            sys.exit(1)
+        else:
+            print("pandoc installato.")
+
+    if (sys.platform.startswith("linux")):
+        if os.system("which pandoc > /dev/null") != 0:
+            print("Errore: pandoc non installato o non nel PATH.")
+            sys.exit(1)
+        else:
+            print("pandoc installato.")
 
     # Controlla se i font GNU FreeFonts sono installati
-    if os.system('fc-list | findstr /i "FreeSerif FreeSans FreeMono" >nul 2>nul') != 0:
-        print("Errore: i font GNU FreeFonts non sono installati.")
-        sys.exit(1)
-    else:
-        print("Font GNU FreeFonts installati.")
+    if (sys.platform.startswith("win")):
+        if os.system('fc-list | findstr /i "FreeSerif FreeSans FreeMono" >nul 2>nul') != 0:
+            print("Errore: i font GNU FreeFonts non sono installati.")
+            sys.exit(1)
+        else:
+            print("Font GNU FreeFonts installati.")
+
+    if (sys.platform.startswith("linux")):
+        if os.system('locate Free .ttf | grep /usr/share/fonts/TTF/ > /dev/null') != 0:
+            print("Errore: i font GNU FreeFonts non sono installati in /usr/share/fonts/TTF .")
+            sys.exit(1)
+        else:
+            print("Font GNU FreeFonts installati.")        
+
 
 def get_all_files_from_main(custom):
     """
@@ -610,16 +676,16 @@ def get_all_files_from_root():
     matched_files   = []
 
     for root, dirs, files in os.walk(root_vault_path):
-        # Escludi le directory non volute
-        if should_skip_dir(root):
-            continue
+        dirs[:] = [d for d in dirs if not should_skip_dir(d)]
 
         for file in files:
-            if file.endswith(".md"):
-                if file == "main.md" or file == "custom.md":
-                    continue
-                full_path = os.path.join(root, file)
-                matched_files.append(full_path)
+            if not file.endswith(".md"):
+                continue
+            if should_skip_file(file):
+                continue
+
+            full_path = os.path.join(root, file)
+            matched_files.append(full_path)
 
     return matched_files
 
@@ -641,7 +707,7 @@ def get_files_for_argument_from_root(argomento):
             continue
 
         for file in files:
-            if file == "main.md" or file == "custom.md":
+            if should_skip_file(file):
                 continue
             if file.endswith(".md") and pattern.match(file):
                 full_path = os.path.join(root, file)
@@ -720,24 +786,29 @@ def checkInconsistency(matching_files_main, matching_files_root):
     Se mancano delle note nel main, stampa un errore con i file mancanti.
     I percorsi vengono normalizzati per il confronto.
     """
-    
-    # Filtra i file per escludere quelli nella cartella temporanea
+
+    # -----------------------------------------------------------------
+    # Filtra i file “root” (tutti i .md presenti nel vault)
+    # -----------------------------------------------------------------
     filtered_matching_files_root = [
-        Path(path).name for path in matching_files_root
-        if not path.startswith(f"{TEMPORARY_DIR}/") and not Path(path).name.startswith(f"main.{TEMPORARY_DIR}.")
+        Path(path).name
+        for path in matching_files_root
+        if not path.startswith(f"{TEMPORARY_DIR}/")
+        and not Path(path).name.startswith(f"main.{TEMPORARY_DIR}.")
     ]
 
+    # -----------------------------------------------------------------
+    # Normalizza le liste (solo i nomi dei file)
+    # -----------------------------------------------------------------
     normalized_actual_list = [
-        # os.path.relpath(path, os.path.join("..")).replace("\\", "/")
         Path(path).name for path in filtered_matching_files_root
     ]
-    
+
     normalized_main_list = [
-        # os.path.relpath(path, os.path.join("..")).replace("\\", "/")
         Path(path).name for path in matching_files_main
     ]
-    
-    main_set = set(normalized_main_list)
+
+    main_set   = set(normalized_main_list)
     actual_set = set(normalized_actual_list)
 
     missing_in_main = actual_set - main_set
@@ -963,7 +1034,6 @@ def UpdateBank():
         match = re.search(r'\[.*?\]\((.*?main\.md)\)', line)
         if match:
             main_md_path = safe_path("..", match.group(1))  # Definisci qui la variabile
-            # if not os.path.exists(Path(to_unc_slash_path(str(os.path.join("..", match.group(1)))))):
             if not os.path.exists(main_md_path):
                 errors.append(f"Collaboratore '{collaborator}': main.md non trovato in '{main_md_path}'")
             else:
@@ -1246,8 +1316,7 @@ def NoteConversion(combined_note_path):
         # Eseguo prima la conversione in tex con pandoc
         out_path = out_path.with_suffix(".tex")
         
-        # command = f"pandoc \"{path_note}\" -o \"{out_path}\" --top-level-division=chapter --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
-        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --defaults=\"{default_opt}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" --pdf-engine=xelatex"
+        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --defaults=\"{default_opt}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" "
         
         print(f"Eseguo il comando: {command}")
         os.system(command)
@@ -1255,8 +1324,9 @@ def NoteConversion(combined_note_path):
         # Eseguo poi la conversione in pdf con latexmk
         subprocess.run(
             ["latexmk", "-xelatex", out_path.name],
-            cwd=out_path.parent,
-            shell=True
+            cwd=out_path.parent,    # la directory dove è stato creato il .tex1
+            #shell=True
+            check=True             # opzionale: solleva CalledProcessError se il comando fallisce
         )
         
         # Pulizia della cartella di build
@@ -1272,8 +1342,7 @@ def NoteConversion(combined_note_path):
         
     else:
         # Comando per la conversione pulita con pandoc
-        # command = f"pandoc \"{path_note}\" -o \"{out_path}\" --top-level-division=chapter --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
-        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --defaults=\"{default_opt}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" --pdf-engine=xelatex"
+        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --defaults=\"{default_opt}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" "
         
         # Esegui il comando
         print(f"Eseguo il comando: {command}")
@@ -1398,7 +1467,7 @@ def main():
         UpdateBank()
     
     elif args.version:
-        print(f"DocScript v{PY_VERSION}")
+        print("DocScript v"+PY_VERSION)
 
     # Operazioni di conversione (con opzioni aggiuntive opzionali)
     elif args.all:
