@@ -69,6 +69,14 @@ $if(draft)$
 \usepackage{draftwatermark} % watermark
 $endif$
 
+% lascia spazio per il numero nel toc se diventa troppo lungo
+% evita sovrapposizioni
+$if(toc)$
+\setlength{\cftsecnumwidth}{3.0em}
+\setlength{\cftsubsecnumwidth}{3.2em}
+\setlength{\cftsubsubsecnumwidth}{4.5em}
+$endif$
+
 % Imposta le dimensioni della pagina
 % \usepackage[a4paper, margin=0.7in]{geometry}
 \usepackage[a4paper, margin=0.7in, includefoot, bottom=1in]{geometry}
