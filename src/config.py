@@ -4,7 +4,13 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from src.utils import copy_dir_recursive, safe_path, write_file
+from src.utils import (
+    copy_dir_recursive,
+    safe_path,
+    should_skip_dir,
+    should_skip_file,
+    write_file,
+)
 
 ###############
 # Description #
@@ -32,6 +38,9 @@ _INIT_B_DIR = "init-bank"
 _SETUP_V_DIR = "setup-vault"
 _CONFIG_DIR = "config"
 _USR_CONF_DIR = "config-files"
+_BUILD_DIR = "build"
+_TEMPORARY_DIR = "rusco"
+_ASSETS_DIR = "assets"
 _DFLT_CONFIG_DIR = Path(os.path.join(_PRJ_ROOT_DIR, _CONFIG_DIR)).resolve()
 _APPL_DIR = Path(os.path.join(_HOME_DIR, "Documents", "DocScript")).resolve()
 
@@ -43,6 +52,8 @@ TEMPLATE_NAME = "default-template.tex"  # Name of TEMPLATE file
 LUA_FILTER_NAME = "default-graphic.lua"  # Name of LUA FILTER file
 PANDOC_OPT_NAME = "default-pandoc-opt.yaml"  # Name of PANDOC option file
 CONFIG_FILE_NAME = ".conf"
+MAIN_FILE_NAME = "main.md"
+CUSTOM_FILE_NAME = "custom.md"
 
 YAML_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, YAML_NAME)).resolve()
 TEMPLATE_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, TEMPLATE_NAME)).resolve()
@@ -61,6 +72,7 @@ INIT_V_PATH = Path(os.path.join(_PRJ_ROOT_DIR, _INITIALIZE_DIR, _INIT_V_DIR)).re
 SETUP_V_PATH = Path(
     os.path.join(_PRJ_ROOT_DIR, _INITIALIZE_DIR, _SETUP_V_DIR)
 ).resolve()
+BUILD_V_PATH = Path(os.path.join(_VAULT_DIR, _BUILD_DIR)).resolve()
 
 # Bank path
 CONFIG_DIR_BANK_PATH = Path(
@@ -70,6 +82,11 @@ CONFIG_USR_B_FILES_DIR = Path(
     os.path.join(_BANK_DIR, _CONFIG_DIR, _USR_CONF_DIR)
 ).resolve()
 INIT_B_PATH = Path(os.path.join(_PRJ_ROOT_DIR, _INITIALIZE_DIR, _INIT_B_DIR)).resolve()
+BUILD_B_PATH = Path(os.path.join(_BANK_DIR, _BUILD_DIR)).resolve()
+
+EXCLUDED_DIRS = [_ASSETS_DIR, _BUILD_DIR, _CONFIG_DIR, _TEMPORARY_DIR]
+
+EXCLUDED_FILES = [COMB_FILE_NAME, NEW_NOTE_NAME, MAIN_FILE_NAME, CUSTOM_FILE_NAME]
 
 
 # Manage all the non-default path if specified
@@ -394,4 +411,122 @@ def create_new_note(ConfigPath: CustomPaths, noteName: str | Path) -> None:
         print(f"Nota creata con successo: {new_note_path}")
     except Exception as e:
         print(f"Errore durante la creazione della nota: {e}")
+        sys.exit(1)
+
+
+def create_build_dir() -> None:
+    if not is_bank():
+        if not os.path.exists(BUILD_V_PATH):
+            os.makedirs(BUILD_V_PATH)
+    else:
+        if not os.path.exists(BUILD_B_PATH):
+            os.makedirs(BUILD_B_PATH)
+
+
+def get_all_files_from_root() -> list[str]:
+    """
+    Read all the files .md in the vault
+    """
+    matched_files = []
+
+    for root, dirs, files in os.walk(_VAULT_DIR):
+        dirs[:] = [d for d in dirs if not should_skip_dir(d, EXCLUDED_DIRS)]
+
+        for file in files:
+            if not file.endswith(".md"):
+                continue
+            if should_skip_file(file, EXCLUDED_FILES):
+                continue
+
+            full_path = os.path.join(root, file)
+            matched_files.append(str(full_path))
+
+    return matched_files
+
+
+def get_all_files_from_main(custom: bool) -> list[str]:
+    """
+    Read the main.md file (or custom.md)
+    and return a list of all .md files specified
+    """
+
+    if custom:
+        main_md_path = _VAULT_DIR / CUSTOM_FILE_NAME
+    else:
+        main_md_path = _VAULT_DIR / MAIN_FILE_NAME
+
+    # Check if exists
+    if not os.path.exists(main_md_path):
+        if custom:
+            print(
+                "Errore: il file custom.md non è stato trovato "
+                f"in {os.path.dirname(main_md_path)} ."
+            )
+        else:
+            print(
+                "Errore: il file main.md non è stato trovato "
+                f"in {os.path.dirname(main_md_path)} ."
+            )
+        sys.exit(1)
+
+    # Read the content
+    with open(main_md_path, encoding="utf-8") as main_md_file:
+        main_md_content = main_md_file.readlines()
+
+    # Take the link of notes
+    matching_files = []
+    for line in main_md_content:
+        if (
+            "(" in line and ")" in line
+        ):  # Cerca i link che iniziano con l'argomento "(argomento/nome-nota.md)"
+            start_idx = line.find("(") + 1
+            end_idx = line.find(")")
+            if start_idx != -1 and end_idx != -1:
+                file_path = line[start_idx:end_idx]
+                if file_path.endswith(".md"):
+                    matching_files.append(file_path)
+
+    # If void file exit
+    if not matching_files:
+        print(f"Errore: nessun file trovato in {'custom.md' if custom else 'main.md'}.")
+        sys.exit(1)
+
+    return matching_files
+
+
+def check_inconsistency(
+    matching_files_main: list[str], matching_files_root: list[str]
+) -> None:
+    """
+    Check that all actual files are referenced in main.
+    If any notes are missing from main, print an error with the missing files.
+    Paths are normalized for comparison.
+    """
+
+    # -----------------------------------------------------------------
+    # Filter “root” files (all .md files in the vault)
+    # -----------------------------------------------------------------
+    filtered_matching_files_root = [
+        Path(path).name
+        for path in matching_files_root
+        if not path.startswith(f"{_TEMPORARY_DIR}/")
+        and not Path(path).name.startswith(f"main.{_TEMPORARY_DIR}.")
+    ]
+
+    # -----------------------------------------------------------------
+    # Normalize lists (file names only)
+    # -----------------------------------------------------------------
+    normalized_actual_list = [Path(path).name for path in filtered_matching_files_root]
+
+    normalized_main_list = [Path(path).name for path in matching_files_main]
+
+    main_set = set(normalized_main_list)
+    actual_set = set(normalized_actual_list)
+
+    missing_in_main = actual_set - main_set
+
+    if missing_in_main:
+        print("Errore: i seguenti file .md NON sono inclusi nel main:")
+        for f in sorted(missing_in_main):
+            print(f"- {f}")
         sys.exit(1)

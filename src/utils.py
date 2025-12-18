@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import subprocess
 import textwrap
@@ -12,77 +13,107 @@ Generic all-rounded function
 """
 
 
-def to_unc_slash_path(windows_path: str) -> str:
+def normalize_unc_path(windows_path: str) -> str:
     """
     Convert a UNC Windows path with backslash (\\\\server\\share\\path)
     in a compatible path with external instruments like pandoc (//server/share/path).
     """
 
-    # If start with \\ it is an UNC path -> network path
-    if windows_path.startswith("\\\\"):
+    # Read all the network disk drive into the system
+    result = subprocess.run("net use", capture_output=True, text=True, shell=True)
+    lines = result.stdout.splitlines()
+    mapped_drives = {}
 
-        # Remove (if exists) the prefix \\?\ (that may be used in long Windows path)
-        path_str = windows_path.replace("\\\\?\\", "")
+    for line in lines:
+        parts = line.strip().split()
+        if len(parts) >= 2 and parts[0].endswith(":") and parts[1].startswith("\\\\"):
+            drive_letter = parts[0]
+            unc_path = parts[1]
+            mapped_drives[drive_letter] = unc_path
 
-        # Read all the network drive in the system
-        result = subprocess.run("net use", capture_output=True, text=True, shell=True)
-        lines = result.stdout.splitlines()
-        mapped_drives = {}
+    # Normalize the path
+    full_path = str(Path(windows_path).resolve())
+    normalized_path = full_path.replace("\\", "/")
 
-        for line in lines:
-            parts = line.strip().split()
-            if (
-                len(parts) >= 2
-                and parts[0].endswith(":")
-                and parts[1].startswith("\\\\")
-            ):
-                drive_letter = parts[0]
-                unc_path = parts[1]
-                mapped_drives[drive_letter] = unc_path
+    # Try to change the entry point with the founded letter if match
+    for drive, unc in sorted(
+        mapped_drives.items(), key=lambda x: len(x[1]), reverse=True
+    ):
+        unc_norm = unc.replace("\\", "/")
+        unc_parts = unc_norm.strip("/").split("/")
+        full_parts = normalized_path.strip("/").split("/")
 
-        # Fix the path
-        full_path = str(Path(path_str).resolve())
-        normalized_path = full_path.replace("\\", "/")
+        try:
+            # Use the first folder
+            idx = full_parts.index(unc_parts[-1])
 
-        # Try to replace the drive letter (e.g. G:/) if matches
-        for drive, unc in sorted(
-            mapped_drives.items(), key=lambda x: len(x[1]), reverse=True
-        ):
-            unc_norm = unc.replace("\\", "/")
-            unc_parts = unc_norm.strip("/").split("/")
-            full_parts = normalized_path.strip("/").split("/")
-
-            try:
-                # Find the first shared drive
-                idx = full_parts.index(unc_parts[-1])
-
-                # Build the path starting of the first directory found
-                relative_parts = full_parts[idx + 1 :]
-                resolved_drive_path = Path(drive + "/") / Path(*relative_parts)
-                return str(resolved_drive_path).replace("\\", "/")
-
-            except ValueError:
-                continue  # The final dir is not in the complete path
-
-        # If does not exists, return the original path
-        return windows_path  # bypass
-    return windows_path
+            # Build the path starting from the first folder found
+            relative_parts = full_parts[idx + 1 :]
+            final_path = Path(drive + "/") / Path(*relative_parts)
+            return str(final_path).replace("\\", "/")
+        except ValueError:
+            continue  # The final folder is not in the full path, try the next one
+    # If not found it would still fail, I return the original path
+    return windows_path  # bypass
 
 
-def safe_path(*args: str | Path) -> Path:
+def to_unix_path(raw_path: str) -> str:
+    """
+    Converts a path from Windows/UNC to a valid POSIX path.
+
+    If the path is already POSIX (starts with '/' or is relative),
+    it returns it unchanged.
+
+    • Backslash → slash
+    • Removes any '\\\\?\\' or '\\\\' (UNC) prefixes.
+    • If the path contains a drive letter (e.g., 'C:\\folder'),
+    it changes to '/c/folder' (lowercase) – only
+    when running on Linux.
+    """
+    is_windows = os.name == "nt"
+
+    # Remove extra prefix
+    if raw_path.startswith("\\\\?\\"):
+        raw_path = raw_path[4:]  # remove '\\?\'
+
+    # ====== WIN ======
+    if is_windows:
+        # If starts with \\ it is an UNC path → network
+        if raw_path.startswith("\\\\"):
+            return normalize_unc_path(raw_path)
+        return raw_path
+
+    # ====== UNIX ======
+    # backslash → slash
+    raw_path = raw_path.replace("\\", "/")
+
+    # UNC → /server/share/...
+    if raw_path.startswith("//"):
+        return "/" + raw_path.lstrip("/")
+
+    # Drive letter → /c/...
+    if re.match(r"^[a-zA-Z]:/", raw_path):
+        drive = raw_path[0].lower()
+        return f"/{drive}{raw_path[2:]}"
+
+    return raw_path
+
+
+def safe_path(*parts: str | Path) -> Path:
     """
     Built and convert a path from an UNC/slash path
     - if 1 param: apply a simple conversion on the Path/str already built
     - if N params: create a path with os.path.join, resolve, and at least convert
     """
-    # Direct conversion
-    if len(args) == 1:
-        return Path(to_unc_slash_path(str(args[0])))
 
-    # join - resolve - convert
-    joined_path = os.path.join(*(str(a) for a in args))
-    resolved_path = Path(joined_path).resolve()
-    return Path(to_unc_slash_path(str(resolved_path)))
+    if len(parts) == 1:
+        p = parts[0]
+        # stringa o altro: normalizza
+        return Path(to_unix_path(str(p)))
+
+    # più componenti → join, poi normalizza
+    joined = os.path.join(*parts)
+    return Path(to_unix_path(joined))
 
 
 def copy_dir_recursive(src: str | Path, dst: str | Path) -> None:
@@ -131,3 +162,15 @@ def write_file(fileName: str | Path, content: str) -> None:
 
     with open(fileName, "w") as f:
         f.write(content)
+
+
+def should_skip_dir(dir_path: str, BLACKLIST: list[str]) -> bool:
+    """Check if specified dir need to be excluded from a dirs scan"""
+    dir_path = str(dir_path)
+    return dir_path in BLACKLIST
+
+
+def should_skip_file(file_path: str, BLACKLIST: list[str]) -> bool:
+    """Check if specified file need to be excluded from a files scan"""
+    file_name = os.path.basename(file_path)
+    return file_name in BLACKLIST

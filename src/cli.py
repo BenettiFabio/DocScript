@@ -6,6 +6,7 @@ import pyfiglet
 from src import workflow
 from src.config import CustomPaths, check_config_file, check_priority_opt
 from src.version import DOCSCRIPT_VERSION as DCV
+from src.workflow import CMode
 
 ###############
 # Description #
@@ -149,6 +150,10 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
                 pandoc=args.pandoc,
             )
 
+    cMode = CMode.NONE
+
+    print(f"il mio dato enumerativo al momento é inizializzato a {cMode}")
+
     # -------------------------------
     # Group 1
     # -------------------------------
@@ -174,32 +179,23 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
     # -------------------------------
     # Group 2
     # -------------------------------
-    if args.all:
-        print("convert-all")
-        # workflow.convert_all(
-        #    args.all
-        # )
+    if args.note:
+        cMode = CMode.ONE
+        workflow.conversion_procedure(cMode, src=args.note[0], dst=args.note[1])
         return
     if args.group:
-        print("convert-group")
-        # workflow.convert_group(
-        #    args.group[0],
-        #    args.group[1]
-        # )
+        cMode = CMode.GROUP
+        workflow.conversion_procedure(cMode, src=args.group[0], dst=args.group[1])
         return
-    if args.note:
-        print("convert-note")
-        # workflow.convert_note(
-        #    args.note[0],
-        #    args.note[1]
-        # )
+    if args.all:
+        cMode = CMode.ALL
+        workflow.conversion_procedure(cMode, dst=args.all)
         return
     if args.custom:
-        print("convert-customs")
-        # workflow.convert_custom(
-        #    args.custom
-        # )
+        cMode = CMode.CUSTOM
+        workflow.conversion_procedure(cMode, dst=args.custom)
         return
+
     print(pyfiglet.figlet_format("DocScript", font="slant"))
     parser.print_help()
     sys.exit(0)

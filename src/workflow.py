@@ -1,14 +1,28 @@
 import sys
+from enum import Enum
 from pathlib import Path
 
 from src.config import (
     CustomPaths,
     check_integrity,
+    create_build_dir,
     create_new_note,
     create_vault_structure,
+    get_all_files_from_main,
+    get_all_files_from_root,
     is_bank,
     is_vault,
 )
+from src.pandoc.runner import check_precondition
+
+
+class CMode(Enum):
+    NONE = 0
+    ONE = 1
+    GROUP = 2
+    ALL = 3
+    CUSTOM = 4
+
 
 ###############
 # Description #
@@ -71,3 +85,61 @@ def start_note(ConfigPath: CustomPaths, noteName: str | Path) -> None:
     except Exception as e:
         print(f"Errore durante la creazione della nuova nota: {e}")
         sys.exit(1)
+
+
+def conversion_procedure(
+    mode: CMode,
+    src: str | None = None,
+    dst: str | None = None,
+) -> None:
+
+    # Check modality
+    modality = mode.name
+    if modality is CMode.NONE.name:
+        print("Error: Richiesta di conversione non applicabile")
+        sys.exit(0)
+
+    file_found_root = []
+    file_found_main = []
+    if not is_bank():
+        file_found_root = get_all_files_from_root()
+        if modality == CMode.CUSTOM.name:
+            file_found_main = get_all_files_from_main(True)
+        else:
+            file_found_main = get_all_files_from_main(False)
+
+        # Find files in vault
+        if modality == CMode.ONE.name:
+            print("Filter only the single note")
+        elif modality == CMode.GROUP.name:
+            print("Filter all the notes of the group")
+        else:
+            print("Use all the notes")
+
+        # Reduce the number of notes to only those of interest
+        if modality == CMode.GROUP.name:
+            print("do filtering type 1")
+        elif modality == CMode.ONE.name:
+            print("do filtering type 2")
+
+        # Check of consistency if not custom
+        if modality is not CMode.CUSTOM.name:
+            print("check inconsistency")
+
+    else:
+        print("TODO: find file if bank")
+
+    # Create Build dir
+    create_build_dir()
+
+    # Check system requirements
+    check_precondition()
+
+    # Create combined_file.md
+    # - remove header from every files
+    # - combine the files
+    # - write yaml on top
+
+    # Effective conversion
+
+    # Remove temp files
