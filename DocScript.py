@@ -8,61 +8,72 @@ import time
 import stat
 import pyfiglet
 import textwrap
+
 # import win32net # need pywin32
 import subprocess
 
 ## DEFINES ##
-CONFIG_DIR_NAME     = "config"
-CONFFILE_DIR_NAME   = "config-files"
+CONFIG_DIR_NAME = "config"
+CONFFILE_DIR_NAME = "config-files"
 INITIALIZE_DIR_NAME = "initialization"
 
-TEMPORARY_DIR       = "rusco"   # Macro per la cartella temporanea
-BUILD_DIR_NAME      = "build"   # Cartella con file prodotti dalla conversione
-ASSETS_DIR_NAME     = "assets"  # Cartella con risorse allegate al vault
+TEMPORARY_DIR = "rusco"  # Macro per la cartella temporanea
+BUILD_DIR_NAME = "build"  # Cartella con file prodotti dalla conversione
+ASSETS_DIR_NAME = "assets"  # Cartella con risorse allegate al vault
 
-EXCLUDED_DIRS       = [
-    ASSETS_DIR_NAME,
-    BUILD_DIR_NAME,
-    CONFIG_DIR_NAME,
-    TEMPORARY_DIR
-]
+EXCLUDED_DIRS = [ASSETS_DIR_NAME, BUILD_DIR_NAME, CONFIG_DIR_NAME, TEMPORARY_DIR]
 
-SCRIPT_DIR      = os.path.dirname(os.path.abspath(__file__))  # Directory dello script
-MAKE_DIR        = Path(os.path.join(SCRIPT_DIR, "..", "vault", BUILD_DIR_NAME)).resolve()
-VAULT_DIR       = Path(os.path.join(SCRIPT_DIR, "..", "vault")).resolve()
-BANK_DIR        = Path(os.path.join(SCRIPT_DIR, "..", "bank")).resolve()
-OUTPUT_DIR      = MAKE_DIR
-HOME_DIR        = Path.home()
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # Directory dello script
+MAKE_DIR = Path(os.path.join(SCRIPT_DIR, "..", "vault", BUILD_DIR_NAME)).resolve()
+VAULT_DIR = Path(os.path.join(SCRIPT_DIR, "..", "vault")).resolve()
+BANK_DIR = Path(os.path.join(SCRIPT_DIR, "..", "bank")).resolve()
+OUTPUT_DIR = MAKE_DIR
+HOME_DIR = Path.home()
 APPLICATION_DIR = Path(os.path.join(HOME_DIR, "Documents", "DocScript")).resolve()
-DEFAULT_CONF_DIR= Path(os.path.join(SCRIPT_DIR, CONFIG_DIR_NAME)).resolve()
+DEFAULT_CONF_DIR = Path(os.path.join(SCRIPT_DIR, CONFIG_DIR_NAME)).resolve()
 
-YAML_NAME       = "default-yaml.yaml"    # Nome del file YAML
-TEMPLATE_NAME   = "default-template.tex" # Nome del template
+YAML_NAME = "default-yaml.yaml"  # Nome del file YAML
+TEMPLATE_NAME = "default-template.tex"  # Nome del template
 LUA_FILTER_NAME = "default-graphic.lua"  # Nome del filtro Lua
-NEW_NOTE_NAME   = "default-note.md"      # Nome del nuovo file nota
-PANDOC_OPT_NAME = "default-pandoc-opt.yaml" # Nome del file contenente le opzioni personalizzate da dare a pandoc
-COLLAB_FILE     = "collaborator.md"
-COMB_FILE_NAME  = "combined_notes.md"
-CONFIG_FILE_NAME= ".conf"
+NEW_NOTE_NAME = "default-note.md"  # Nome del nuovo file nota
+PANDOC_OPT_NAME = "default-pandoc-opt.yaml"  # Nome del file contenente le opzioni personalizzate da dare a pandoc
+COLLAB_FILE = "collaborator.md"
+COMB_FILE_NAME = "combined_notes.md"
+CONFIG_FILE_NAME = ".conf"
 
-NOTE_PATH       = None
-OUTPUT_PATH     = None
-YAML_PATH       = Path(os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, YAML_NAME)).resolve()
-TEMPLATE_PATH   = Path(os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, TEMPLATE_NAME)).resolve()
-LUA_FILTER_PATH = Path(os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, LUA_FILTER_NAME)).resolve()
-NEW_NOTE_PATH   = Path(os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, NEW_NOTE_NAME)).resolve()
-PANDOC_OPT_PATH = Path(os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, PANDOC_OPT_NAME)).resolve()
-CONFIG_DIR_PATH = Path(os.path.join(VAULT_DIR, CONFIG_DIR_NAME, CONFIG_FILE_NAME)).resolve()
-CONFIG_DIR_BANK_PATH = Path(os.path.join(BANK_DIR, CONFIG_DIR_NAME, CONFIG_FILE_NAME)).resolve()
+NOTE_PATH = None
+OUTPUT_PATH = None
+YAML_PATH = Path(os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, YAML_NAME)).resolve()
+TEMPLATE_PATH = Path(
+    os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, TEMPLATE_NAME)
+).resolve()
+LUA_FILTER_PATH = Path(
+    os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, LUA_FILTER_NAME)
+).resolve()
+NEW_NOTE_PATH = Path(
+    os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, NEW_NOTE_NAME)
+).resolve()
+PANDOC_OPT_PATH = Path(
+    os.path.join(SCRIPT_DIR, DEFAULT_CONF_DIR, PANDOC_OPT_NAME)
+).resolve()
+CONFIG_DIR_PATH = Path(
+    os.path.join(VAULT_DIR, CONFIG_DIR_NAME, CONFIG_FILE_NAME)
+).resolve()
+CONFIG_DIR_BANK_PATH = Path(
+    os.path.join(BANK_DIR, CONFIG_DIR_NAME, CONFIG_FILE_NAME)
+).resolve()
 
-custom  = False # variabile per gestire la conversione di un file custom.md
-is_bank = False # variabile per gestire il caso particolare di una banca dati collaborativa
+custom = False  # variabile per gestire la conversione di un file custom.md
+is_bank = (
+    False  # variabile per gestire il caso particolare di una banca dati collaborativa
+)
 
-custom_yaml_path = None # contengono i path non di default se specificati
+custom_yaml_path = None  # contengono i path non di default se specificati
 custom_teml_path = None
 custom_luaf_path = None
-custom_new_note_path    = None
-custom_pandoc_opt_path  = None
+custom_new_note_path = None
+custom_pandoc_opt_path = None
+
 
 ## FUNCTIONS ##
 def to_unc_slash_path(windows_path: str) -> str:
@@ -70,50 +81,59 @@ def to_unc_slash_path(windows_path: str) -> str:
     Converte un path UNC di Windows con backslash (\\\\server\\share\\path)
     in un path UNC compatibile con strumenti esterni come pandoc (//server/share/path).
     """
-    
+
     # Se inizia con \\ è un UNC path → rete
-    if windows_path.startswith('\\\\'):
-        
+    if windows_path.startswith("\\\\"):
+
         # Rimuove eventuale prefisso \\?\ (che può apparire nei path Windows "lunghi")
-        path_str = windows_path.replace('\\\\?\\', '')
-        
+        path_str = windows_path.replace("\\\\?\\", "")
+
         # ottengo tutti i drive di rete inseriti nel sistema
         result = subprocess.run("net use", capture_output=True, text=True, shell=True)
-        lines  = result.stdout.splitlines()
+        lines = result.stdout.splitlines()
         mapped_drives = {}
-        
+
         for line in lines:
             parts = line.strip().split()
-            if len(parts) >= 2 and parts[0].endswith(":") and parts[1].startswith("\\\\"):
+            if (
+                len(parts) >= 2
+                and parts[0].endswith(":")
+                and parts[1].startswith("\\\\")
+            ):
                 drive_letter = parts[0]
                 unc_path = parts[1]
                 mapped_drives[drive_letter] = unc_path
-        
+
         # Normalizza il path
         full_path = str(Path(path_str).resolve())
         normalized_path = full_path.replace("\\", "/")
 
         # Prova a sostituire con lettera di drive, se matcha
-        for drive, unc in sorted(mapped_drives.items(), key=lambda x: len(x[1]), reverse=True):
-            unc_norm    = unc.replace("\\", "/")
-            unc_parts   = unc_norm.strip("/").split("/")
-            full_parts  = normalized_path.strip("/").split("/")
-            
+        for drive, unc in sorted(
+            mapped_drives.items(), key=lambda x: len(x[1]), reverse=True
+        ):
+            unc_norm = unc.replace("\\", "/")
+            unc_parts = unc_norm.strip("/").split("/")
+            full_parts = normalized_path.strip("/").split("/")
+
             try:
                 # Trova la prima cartella condivisa
                 idx = full_parts.index(unc_parts[-1])
 
                 # Costruisci il path a partire dalla prima cartella trovata
-                relative_parts  = full_parts[idx + 1:]
-                final_path      = str(Path(drive + "/") / Path(*relative_parts)).replace("\\", "/")
+                relative_parts = full_parts[idx + 1 :]
+                final_path = str(Path(drive + "/") / Path(*relative_parts)).replace(
+                    "\\", "/"
+                )
                 return final_path
             except ValueError:
                 continue  # La cartella finale non è nel path completo, prova con il prossimo
 
         # Se non trovato, restituisco il path originale
-        return windows_path # bypass
+        return windows_path  # bypass
     else:
         return windows_path
+
 
 def safe_path(*args):
     """
@@ -129,20 +149,22 @@ def safe_path(*args):
         return Path(to_unc_slash_path(str(path_obj)))
     else:
         # Versione lunga: join, resolve, e conversione
-        joined_path     = os.path.join(*args)
-        resolved_path   = Path(joined_path).resolve()
+        joined_path = os.path.join(*args)
+        resolved_path = Path(joined_path).resolve()
         return Path(to_unc_slash_path(str(resolved_path)))
+
 
 def should_skip_dir(dir_path):
     """Verifica se una directory deve essere saltata nella scansione"""
     NewPathList = []
-    
+
     for dir in EXCLUDED_DIRS:
         temp = safe_path(SCRIPT_DIR, "..", "vault", dir)
         # temp = Path(to_unc_slash_path(str(Path(os.path.join(SCRIPT_DIR, "..", "vault", dir)).resolve())))
         NewPathList.append(str(temp))
-    
+
     return any(excluded in dir_path for excluded in NewPathList)
+
 
 def copy_dir_recursive(src: str, dst: str) -> None:
     """
@@ -158,21 +180,21 @@ def copy_dir_recursive(src: str, dst: str) -> None:
         raise FileNotFoundError(f"La directory sorgente non esiste: {src}")
 
     for root, _, files in os.walk(src):
-        relative_path   = os.path.relpath(root, src)
-        target_dir      = os.path.join(dst, relative_path)
+        relative_path = os.path.relpath(root, src)
+        target_dir = os.path.join(dst, relative_path)
         os.makedirs(target_dir, exist_ok=True)
 
         for file in files:
-            src_file    = os.path.join(root, file)
-            dest_file   = os.path.join(target_dir, file)
+            src_file = os.path.join(root, file)
+            dest_file = os.path.join(target_dir, file)
 
             # Se il file di destinazione esiste, controlla dimensione e timestamp
             if os.path.exists(dest_file):
                 src_stat = os.stat(src_file)
                 dst_stat = os.stat(dest_file)
 
-                same_size   = src_stat.st_size == dst_stat.st_size
-                same_mtime  = int(src_stat.st_mtime) == int(dst_stat.st_mtime)
+                same_size = src_stat.st_size == dst_stat.st_size
+                same_mtime = int(src_stat.st_mtime) == int(dst_stat.st_mtime)
 
                 if same_size and same_mtime:
                     # File identico -> salta copia
@@ -180,6 +202,7 @@ def copy_dir_recursive(src: str, dst: str) -> None:
 
             # Copia file e metadata
             shutil.copy2(src_file, dest_file)
+
 
 def create_config_dirs(base_dir: str, config_dir_name: str, subdirs: list[str]):
     """
@@ -191,7 +214,7 @@ def create_config_dirs(base_dir: str, config_dir_name: str, subdirs: list[str]):
         config_dir_name (str): nome della cartella di configurazione
         subdirs (list[str]): lista delle sottocartelle da creare
     """
-    
+
     config_root = os.path.join(base_dir, config_dir_name)
     if not os.path.exists(config_root):
         os.makedirs(config_root)
@@ -201,6 +224,7 @@ def create_config_dirs(base_dir: str, config_dir_name: str, subdirs: list[str]):
         if not os.path.exists(target_dir):
             os.makedirs(target_dir)
 
+
 def convert_link_to_absolute(markdown_text, base_path):
     """
     Converte i link relativi Markdown in link assoluti mantenendo la sintassi Markdown.
@@ -208,20 +232,22 @@ def convert_link_to_absolute(markdown_text, base_path):
     base_path = Path(base_path).parent.resolve()
 
     def replacer(match):
-        label       = match.group(1)
-        rel_path    = match.group(2)
-        abs_path    = (base_path / rel_path).resolve()
+        label = match.group(1)
+        rel_path = match.group(2)
+        abs_path = (base_path / rel_path).resolve()
         return f"[{label}]({abs_path})"
 
     # Match Markdown links come [text](relative/path.md)
     pattern = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
     return pattern.sub(replacer, markdown_text).replace("\\", "/")
 
+
 def remove_readonly(func, path, excinfo):
     os.chmod(path, stat.S_IWRITE)
     func(path)
 
-def CopyAssets(output_dir, collaborators):    
+
+def CopyAssets(output_dir, collaborators):
     """
     Copia il contenuto delle cartelle assets di tutti i collaboratori dentro output_dir.
     Se due collaboratori hanno cartelle di argomento con lo stesso nome, unisce i contenuti.
@@ -233,63 +259,69 @@ def CopyAssets(output_dir, collaborators):
             for root, dirs, files in os.walk(collab_assets_dir):
                 # Calcola il path relativo rispetto alla cartella assets del collaboratore
                 rel_path = os.path.relpath(root, collab_assets_dir)
-                dest_dir = os.path.join(output_dir, rel_path) if rel_path != "." else output_dir
+                dest_dir = (
+                    os.path.join(output_dir, rel_path)
+                    if rel_path != "."
+                    else output_dir
+                )
                 if not os.path.exists(dest_dir):
                     os.makedirs(dest_dir)
                 for file in files:
-                    src_file  = os.path.join(root, file)
+                    src_file = os.path.join(root, file)
                     dest_file = os.path.join(dest_dir, file)
                     shutil.copy2(src_file, dest_file)
             print(f"Assets copiati per {name} in {output_dir}")
         else:
             print(f"Attenzione: assets non trovati per {name} in {collab_assets_dir}")
 
+
 def isNetworkPath():
     here = os.getcwd()
-    return (here.startswith('\\\\') or not here.startswith('C:')) 
+    return here.startswith("\\\\") or not here.startswith("C:")
+
 
 def CopyYAMLInformation(combined_notes_path):
     """
     Cerca il blocco YAML all'inizio del file main.md e lo copia in cima al file combined_notes_path.
     Se non trova il blocco YAML nel file main_path, non fa nulla.
-    
+
     Args:
         combined_notes_path (str): Percorso del file combined_notes.md
     """
-    yaml_path = YAML_PATH # default
-    
-    if custom_yaml_path: # se inserito nel file di config
+    yaml_path = YAML_PATH  # default
+
+    if custom_yaml_path:  # se inserito nel file di config
         yaml_path = safe_path(custom_yaml_path)
-    
+
     try:
         # Legge il contenuto del file main.md
-        with open(yaml_path, 'r', encoding='utf-8') as f:
+        with open(yaml_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         yaml_block = None
         # Se il file inizia con '---' cerco il marcatore di chiusura ('---' o '...')
-        if content.lstrip().startswith('---'):
+        if content.lstrip().startswith("---"):
             # Trova il primo marcatore di chiusura che compare su una linea a parte
             m = re.search(r"\n(---|\.\.\.)(?:\r?\n)", content)
             if m:
-                yaml_block = content[:m.end()]
+                yaml_block = content[: m.end()]
 
         if yaml_block:
             # Legge il contenuto attuale del file combined_notes.md
-            with open(combined_notes_path, 'r', encoding='utf-8') as f:
+            with open(combined_notes_path, "r", encoding="utf-8") as f:
                 combined_content = f.read()
 
             # Se il file combined_notes.md ha già un blocco YAML lo rimuovo (se presente all'inizio)
-            if combined_content.lstrip().startswith('---'):
+            if combined_content.lstrip().startswith("---"):
                 m2 = re.search(r"\n(---|\.\.\.)(?:\r?\n)", combined_content)
                 if m2:
-                    combined_content = combined_content[m2.end():].lstrip()
+                    combined_content = combined_content[m2.end() :].lstrip()
 
             # Aggiunge il nuovo blocco YAML all'inizio
             new_content = f"{yaml_block}\n\n{combined_content}"
 
             # Scrive il nuovo contenuto nel file combined_notes.md
-            with open(combined_notes_path, 'w', encoding='utf-8') as f:
+            with open(combined_notes_path, "w", encoding="utf-8") as f:
                 f.write(new_content)
 
         else:
@@ -297,6 +329,7 @@ def CopyYAMLInformation(combined_notes_path):
 
     except Exception as e:
         print(f"Errore durante la copia del blocco YAML: {str(e)}")
+
 
 def check_config_conversion_file():
     """
@@ -311,26 +344,26 @@ def check_config_conversion_file():
     bank_dir = safe_path(SCRIPT_DIR, "..", "bank")
     collab_file = safe_path(bank_dir, COLLAB_FILE)
     global is_bank
-    
+
     if os.path.exists(collab_file):
         is_bank = True
-    
+
     config_path_to_use = None
     if is_bank:
         config_path_to_use = CONFIG_DIR_BANK_PATH
     else:
         config_path_to_use = CONFIG_DIR_PATH
-        
+
     if not os.path.exists(config_path_to_use):
         return
 
     pattern = re.compile(r'^\.(\w+)\s*=\s*"([^"]+)"$')
 
-    with open(config_path_to_use, 'r', encoding='utf-8') as conf_file:
+    with open(config_path_to_use, "r", encoding="utf-8") as conf_file:
         for line in conf_file:
             line = line.strip()
 
-            if not line.startswith('.'):
+            if not line.startswith("."):
                 continue
 
             match = pattern.match(line)
@@ -339,11 +372,13 @@ def check_config_conversion_file():
 
             key, value = match.groups()
             if is_bank:
-                path = safe_path(BANK_DIR, CONFIG_DIR_NAME, value) # avendo due argomenti fa necessariamente il resolve, facendo diventare il path assoluto
+                path = safe_path(
+                    BANK_DIR, CONFIG_DIR_NAME, value
+                )  # avendo due argomenti fa necessariamente il resolve, facendo diventare il path assoluto
             else:
                 path = safe_path(VAULT_DIR, CONFIG_DIR_NAME, value)
-            
-            key, value = match.groups()            
+
+            key, value = match.groups()
             if key == "template":
                 custom_teml_path = add_new_teml(path)
             elif key == "lua":
@@ -351,9 +386,10 @@ def check_config_conversion_file():
             elif key == "yaml":
                 custom_yaml_path = add_new_yaml(path)
             elif key == "start":
-                custom_new_note_path    = add_new_start(path)
+                custom_new_note_path = add_new_start(path)
             elif key == "pandoc":
-                custom_pandoc_opt_path  = add_new_yaml(path)
+                custom_pandoc_opt_path = add_new_yaml(path)
+
 
 def validate_output(output):
     """
@@ -363,65 +399,72 @@ def validate_output(output):
     global OUTPUT_PATH
     ext = os.path.splitext(output)[1].lower()
     if ext not in [".pdf", ".tex"]:
-        print(f"Errore: il file di output '{output}' deve avere estensione .pdf o .tex.")
+        print(
+            f"Errore: il file di output '{output}' deve avere estensione .pdf o .tex."
+        )
         sys.exit(1)
     else:
         OUTPUT_PATH = Path(os.path.join(OUTPUT_DIR, output)).resolve()
+
 
 def add_new_yaml(yaml_file):
     ext = os.path.splitext(yaml_file)[1].lower()
     if ext not in [".yaml"]:
         print(f"Errore: il file di input '{yaml_file}' deve avere estensione .yaml.")
         sys.exit(1)
-    
+
     if not os.path.exists(yaml_file):
         print(f"Errore: il file di input '{yaml_file}' non trovato.")
         sys.exit(1)
-    
+
     return yaml_file
+
 
 def add_new_teml(template_file):
     ext = os.path.splitext(template_file)[1].lower()
     if ext not in [".tex"]:
         print(f"Errore: il file di input '{template_file}' deve avere estensione .tex.")
         sys.exit(1)
-    
+
     if not os.path.exists(template_file):
         print(f"Errore: il file di input '{template_file}' non trovato.")
         sys.exit(1)
-    
+
     return template_file
+
 
 def add_new_luaf(lua_file):
     ext = os.path.splitext(lua_file)[1].lower()
     if ext not in [".lua"]:
         print(f"Errore: il file di input '{lua_file}' deve avere estensione .lua.")
         sys.exit(1)
-    
+
     if not os.path.exists(lua_file):
         print(f"Errore: il file di input '{lua_file}' non trovato.")
         sys.exit(1)
-    
+
     return lua_file
+
 
 def add_new_start(start_file):
     ext = os.path.splitext(start_file)[1].lower()
     if ext not in [".md"]:
         print(f"Errore: il file di input '{start_file}' deve avere estensione .md.")
         sys.exit(1)
-    
+
     if not os.path.exists(start_file):
         print(f"Errore: il file di input '{start_file}' non trovato.")
         sys.exit(1)
-    
+
     return start_file
+
 
 def CheckPreconditions():
     """
     Verifica che il sistema abbia i prerequisiti necessari per la conversione.
     Controlla se xelatex e pandoc sono installati e disponibili nel PATH.
     """
-    
+
     # Controlla se xelatex è nel PATH
     if os.system("where xelatex >nul 2>nul") != 0:
         print("Errore: xelatex non installato o non nel PATH.")
@@ -443,6 +486,7 @@ def CheckPreconditions():
     else:
         print("Font GNU FreeFonts installati.")
 
+
 def get_all_files_from_main(custom):
     """
     Legge il file main.md (o custom.md) e restituisce una lista di tutti i file .md referenziati.
@@ -457,9 +501,13 @@ def get_all_files_from_main(custom):
     # Controlla se il file main.md esiste
     if not os.path.exists(main_md_path):
         if custom:
-            print(f"Errore: il file custom.md non è stato trovato in {os.path.dirname(main_md_path)} .")
+            print(
+                f"Errore: il file custom.md non è stato trovato in {os.path.dirname(main_md_path)} ."
+            )
         else:
-            print(f"Errore: il file main.md non è stato trovato in {os.path.dirname(main_md_path)} .")
+            print(
+                f"Errore: il file main.md non è stato trovato in {os.path.dirname(main_md_path)} ."
+            )
         sys.exit(1)
 
     # Leggi il contenuto di main.md
@@ -470,7 +518,9 @@ def get_all_files_from_main(custom):
     matching_files = []
     # Cerca i link che corrispondono all'argomento
     for line in main_md_content:
-        if "(" in line and ")" in line:  # Cerca i link che iniziano con l'argomento "(argomento/nome-nota.md)"
+        if (
+            "(" in line and ")" in line
+        ):  # Cerca i link che iniziano con l'argomento "(argomento/nome-nota.md)"
             start_idx = line.find("(") + 1
             end_idx = line.find(")")
             if start_idx != -1 and end_idx != -1:
@@ -482,8 +532,9 @@ def get_all_files_from_main(custom):
     if not matching_files:
         print(f"Errore: nessun file trovato in {'custom.md' if custom else 'main.md'}.")
         sys.exit(1)
-        
+
     return matching_files
+
 
 def get_all_files_from_collab_main(custom):
     """
@@ -502,7 +553,9 @@ def get_all_files_from_collab_main(custom):
         print(f"Errore: il file '{collab_file}' non esiste.")
         sys.exit(1)
     if not os.path.exists(main_md_path):
-        print(f"Errore: il file main.md non è stato trovato in {os.path.dirname(main_md_path)} .")
+        print(
+            f"Errore: il file main.md non è stato trovato in {os.path.dirname(main_md_path)} ."
+        )
         sys.exit(1)
 
     # Mappa nome collaboratore -> path main.md collaboratore
@@ -513,21 +566,27 @@ def get_all_files_from_collab_main(custom):
             line = line.strip()
             if line.startswith("##"):
                 current_name = line[2:].strip()
-            match = re.search(r'\[.*\]\((.*\.md)\)', line)
+            match = re.search(r"\[.*\]\((.*\.md)\)", line)
             if match and current_name:
-                main_md_path_collab = os.path.join(os.path.dirname(cf.name), match.group(1))
+                main_md_path_collab = os.path.join(
+                    os.path.dirname(cf.name), match.group(1)
+                )
                 collaborators[current_name] = main_md_path_collab
 
     EffectiveCollaborators = []
     with open(main_md_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line.startswith("##"):
-                    name = line[2:].strip()
-                    EffectiveCollaborators.append(name)
+        for line in f:
+            line = line.strip()
+            if line.startswith("##"):
+                name = line[2:].strip()
+                EffectiveCollaborators.append(name)
 
     # Cerca dentro il main_md_path solo i collaboratori presenti tra tutti quelli di collaborator.md
-    FinalCollab = {name: collaborators[name] for name in EffectiveCollaborators if name in collaborators}
+    FinalCollab = {
+        name: collaborators[name]
+        for name in EffectiveCollaborators
+        if name in collaborators
+    }
 
     # Leggi il custom.ms o main.md e raccogli le note per collaboratore
     with open(main_md_path, "r", encoding="utf-8") as mf:
@@ -539,29 +598,36 @@ def get_all_files_from_collab_main(custom):
         line = line.strip()
         if line.startswith("##") or line.startswith("#"):
             current_collab = line[2:].strip()
-        elif re.search(r'\[.*?\]\([^)]+\.md\)', line) and current_collab:
+        elif re.search(r"\[.*?\]\([^)]+\.md\)", line) and current_collab:
             # Estrai il path relativo della nota
-            note_match = re.search(r'\[.*?\]\(([^)]+\.md)\)', line)
+            note_match = re.search(r"\[.*?\]\(([^)]+\.md)\)", line)
             if note_match:
                 note_rel_path = note_match.group(1)
                 # Cerca il main.md del collaboratore
                 main_md_path_collab = collaborators.get(current_collab)
                 if not main_md_path_collab or not os.path.exists(main_md_path_collab):
-                    print(f"main.md non trovato per {current_collab} in {main_md_path_collab}")
+                    print(
+                        f"main.md non trovato per {current_collab} in {main_md_path_collab}"
+                    )
                     continue
                 # Risolvi il path assoluto rispetto al vault del collaboratore
-                note_abs_path = os.path.abspath(os.path.join(os.path.dirname(main_md_path_collab), note_rel_path))
+                note_abs_path = os.path.abspath(
+                    os.path.join(os.path.dirname(main_md_path_collab), note_rel_path)
+                )
                 if os.path.exists(note_abs_path):
                     matching_files.append(note_abs_path)
                 else:
-                    print(f"Nota '{note_rel_path}' non trovata per {current_collab} in {note_abs_path}")
+                    print(
+                        f"Nota '{note_rel_path}' non trovata per {current_collab} in {note_abs_path}"
+                    )
 
     if not matching_files:
         print(f"Errore: nessun file trovato in {'custom.md' if custom else 'main.md'}.")
         sys.exit(1)
 
     return matching_files, FinalCollab
-    
+
+
 def get_files_for_argument_from_main(argomento):
     """
     Legge il file main.md e restituisce una lista di file che corrispondono all'argomento specificato.
@@ -571,7 +637,9 @@ def get_files_for_argument_from_main(argomento):
 
     # Controlla se il file main.md esiste
     if not os.path.exists(main_md_path):
-        print(f"Errore: il file main.md non è stato trovato in {os.path.dirname(main_md_path)}.")
+        print(
+            f"Errore: il file main.md non è stato trovato in {os.path.dirname(main_md_path)}."
+        )
         sys.exit(1)
 
     # Leggi il contenuto di main.md
@@ -583,9 +651,11 @@ def get_files_for_argument_from_main(argomento):
 
     # Cerca i link che corrispondono all'argomento
     for line in main_md_content:
-        if f"({argomento}/" in line:  # Cerca i link che iniziano con l'argomento "(argomento/nome-nota.md)"
-            start_idx   = line.find("(") + 1
-            end_idx     = line.find(")")
+        if (
+            f"({argomento}/" in line
+        ):  # Cerca i link che iniziano con l'argomento "(argomento/nome-nota.md)"
+            start_idx = line.find("(") + 1
+            end_idx = line.find(")")
             if start_idx != -1 and end_idx != -1:
                 file_path = line[start_idx:end_idx]
                 if file_path.startswith(f"{argomento}/"):
@@ -598,13 +668,14 @@ def get_files_for_argument_from_main(argomento):
 
     return matching_files
 
+
 def get_all_files_from_root():
     """
     Legge tutti i file nel vault e restituisce una lista di tutti i file .md.
     """
     # Percorso del file main.md
     root_vault_path = safe_path(SCRIPT_DIR, "..", "vault")
-    matched_files   = []
+    matched_files = []
 
     for root, dirs, files in os.walk(root_vault_path):
         # Escludi le directory non volute
@@ -620,16 +691,17 @@ def get_all_files_from_root():
 
     return matched_files
 
+
 def get_files_for_argument_from_root(argomento):
     """
     Legge tutti i file nel vault e restituisce una lista di file che corrispondono all'argomento specificato.
     """
     # Percorso del file main.md
     root_vault_path = safe_path("..", "vault")
-    matched_files   = []
+    matched_files = []
 
     # Pattern da cercare nel nome del file
-    pattern = re.compile(rf'^main\.{re.escape(argomento)}\..*\.md$')
+    pattern = re.compile(rf"^main\.{re.escape(argomento)}\..*\.md$")
 
     for root, dirs, files in os.walk(root_vault_path):
         # Escludi le directory non volute
@@ -642,15 +714,16 @@ def get_files_for_argument_from_root(argomento):
             if file.endswith(".md") and pattern.match(file):
                 full_path = os.path.join(root, file)
                 matched_files.append(full_path)
-    
+
     return matched_files
+
 
 def SearchAndCombineNotes(matching_files):
     """
     Combina le note corrispondenti in un unico file .md, rimuovendo l'header specificato.
     """
     combined_file_path = safe_path(MAKE_DIR, COMB_FILE_NAME)
-    
+
     # Crea la directory di output se non esiste
     if not os.path.exists(MAKE_DIR):
         os.makedirs(MAKE_DIR)
@@ -676,6 +749,7 @@ def SearchAndCombineNotes(matching_files):
     except Exception:
         pass
     return combined_file_path
+
 
 def CombineNotes(matching_files):
     """
@@ -688,7 +762,7 @@ def CombineNotes(matching_files):
         os.makedirs(MAKE_DIR)
 
     vault_dir = safe_path(SCRIPT_DIR, "..", "vault")
-    
+
     with open(combined_file_path, "w", encoding="utf-8") as combined_md_file:
         for file in matching_files:
             file_path = str(vault_dir / file)
@@ -710,6 +784,7 @@ def CombineNotes(matching_files):
         pass
     return combined_file_path
 
+
 def checkInconsistency(matching_files_main, matching_files_root):
     """
     Controlla che tutti i file effettivi siano referenziati nel main.
@@ -718,20 +793,24 @@ def checkInconsistency(matching_files_main, matching_files_root):
     """
     # Filtra i file per escludere quelli nella cartella temporanea
     filtered_matching_files_root = [
-        Path(path).name for path in matching_files_root
-        if not path.startswith(f"{TEMPORARY_DIR}/") and not Path(path).name.startswith(f"main.{TEMPORARY_DIR}.")
+        Path(path).name
+        for path in matching_files_root
+        if not path.startswith(f"{TEMPORARY_DIR}/")
+        and not Path(path).name.startswith(f"main.{TEMPORARY_DIR}.")
     ]
 
     normalized_actual_list = [
         # os.path.relpath(path, os.path.join("..")).replace("\\", "/")
-        Path(path).name for path in filtered_matching_files_root
+        Path(path).name
+        for path in filtered_matching_files_root
     ]
-    
+
     normalized_main_list = [
         # os.path.relpath(path, os.path.join("..")).replace("\\", "/")
-        Path(path).name for path in matching_files_main
+        Path(path).name
+        for path in matching_files_main
     ]
-    
+
     main_set = set(normalized_main_list)
     actual_set = set(normalized_actual_list)
 
@@ -742,7 +821,8 @@ def checkInconsistency(matching_files_main, matching_files_root):
         for f in sorted(missing_in_main):
             print(f"- {f}")
         sys.exit(1)
-        
+
+
 def RemoveHeaderFromFile(file_path):
     """
     Legge un file Markdown e restituisce il contenuto senza l'header specificato.
@@ -758,7 +838,7 @@ def RemoveHeaderFromFile(file_path):
 
     # Rimuovi l'header
     content_started = False
-    filtered_lines  = []
+    filtered_lines = []
     for line in lines:
         if "<!-- /code_chunk_output -->" in line:
             content_started = True
@@ -774,48 +854,55 @@ def RemoveHeaderFromFile(file_path):
 
     return filtered_lines
 
+
 ##############################
 ## FUNCTIONS FOR CONVERSION ##
 ##############################
 def InitBank():
     print("Inizializzazione della banca dati collaborativa...")
-    parent_dir      = safe_path(SCRIPT_DIR, "..")
-    template_dir    = safe_path(SCRIPT_DIR, INITIALIZE_DIR_NAME, "init-bank")
-    collab_file     = safe_path(parent_dir, COLLAB_FILE)
-    bank_dir        = safe_path(parent_dir, "bank")
-    vault_dir       = safe_path(parent_dir, "vault")
-    
+    parent_dir = safe_path(SCRIPT_DIR, "..")
+    template_dir = safe_path(SCRIPT_DIR, INITIALIZE_DIR_NAME, "init-bank")
+    collab_file = safe_path(parent_dir, COLLAB_FILE)
+    bank_dir = safe_path(parent_dir, "bank")
+    vault_dir = safe_path(parent_dir, "vault")
+
     if os.path.exists(collab_file):
-        print("Errore: il file dei collaboratori esiste già, se giá compilato puoi lanciare un -u per aggiornarlo.")
+        print(
+            "Errore: il file dei collaboratori esiste già, se giá compilato puoi lanciare un -u per aggiornarlo."
+        )
         sys.exit(1)
-        
+
     if os.path.exists(vault_dir):
-        print("Errore: la cartella corrente é giá un vault, non puoi inizializzare una banca dati collaborativa.")
+        print(
+            "Errore: la cartella corrente é giá un vault, non puoi inizializzare una banca dati collaborativa."
+        )
         sys.exit(1)
-    
+
     if os.path.exists(bank_dir):
-        print("Errore: la cartella corrente é giá inizializzata come banca dati, puoi giá usarla modificando il file collaborator.md.")
+        print(
+            "Errore: la cartella corrente é giá inizializzata come banca dati, puoi giá usarla modificando il file collaborator.md."
+        )
         sys.exit(1)
 
     try:
         if not os.path.exists(template_dir):
             print(f"Errore: la cartella template '{template_dir}' non esiste.")
             sys.exit(1)
-        
+
         copy_dir_recursive(template_dir, bank_dir)
         print(f"- Struttura banca dati : ok")
-        
+
         # Creazione delle cartelle per l'utente per i file di configurazione
         # create_config_dirs(bank_dir, CONFIG_DIR_NAME, CONFIG_DIRS)
-        
+
         # Scrive il config file con i riferimenti di default
         config_file = os.path.join(vault_dir, CONFIG_DIR_NAME, CONFIG_FILE_NAME)
-        
+
         # Scrivo i riferimenti relativi alla cartella config-files dentro il vault
-        rel_yaml_path       = Path(os.path.join("./", CONFFILE_DIR_NAME, YAML_NAME))
-        rel_template_path   = Path(os.path.join("./", CONFFILE_DIR_NAME, TEMPLATE_NAME))
-        rel_lua_path        = Path(os.path.join("./", CONFFILE_DIR_NAME, LUA_FILTER_NAME))
-        rel_pandoc_path     = Path(os.path.join("./", CONFFILE_DIR_NAME, PANDOC_OPT_NAME))
+        rel_yaml_path = Path(os.path.join("./", CONFFILE_DIR_NAME, YAML_NAME))
+        rel_template_path = Path(os.path.join("./", CONFFILE_DIR_NAME, TEMPLATE_NAME))
+        rel_lua_path = Path(os.path.join("./", CONFFILE_DIR_NAME, LUA_FILTER_NAME))
+        rel_pandoc_path = Path(os.path.join("./", CONFFILE_DIR_NAME, PANDOC_OPT_NAME))
         # contenuto = f'# default configuration - start from build/\n.yaml="{rel_yaml_path}"\n.template="{rel_template_path}"\n.lua="{rel_lua_path}"\n'
         contenuto = f"""\
             # default configuration - start path from build/
@@ -825,41 +912,48 @@ def InitBank():
             .lua="{rel_lua_path}"
         """
         contenuto = textwrap.dedent(contenuto)
-        
+
         with open(config_file, "w") as f:
             f.write(contenuto)
         print(f"- Cartella .config : ok\n")
-        
-        print(f"Tips : Per iniziare compila il file {COLLAB_FILE} con i tuoi collaboratori.")
-        print(f"Tips : Successivamente lancia un -u (--update) per aggiornare il file main.md")
-        
+
+        print(
+            f"Tips : Per iniziare compila il file {COLLAB_FILE} con i tuoi collaboratori."
+        )
+        print(
+            f"Tips : Successivamente lancia un -u (--update) per aggiornare il file main.md"
+        )
+
         print(f"Enjoy working with you team mates! <3")
-        
+
     except Exception as e:
         print(f"Errore durante l'inizializzazione: {e}")
         sys.exit(1)
+
 
 def InitVault():
     """
     Inizializza la struttura del vault copiando i file e le cartelle necessarie.
     """
-    parent_dir  = safe_path(SCRIPT_DIR, "..")
-    template_dir= safe_path(SCRIPT_DIR, INITIALIZE_DIR_NAME, "init-vault")
-    setup_dir   = safe_path(SCRIPT_DIR, INITIALIZE_DIR_NAME, "setup-vault")
-    config_dir  = safe_path(SCRIPT_DIR, CONFIG_DIR_NAME)
-    bank_dir    = safe_path(parent_dir, "bank")
-    vault_dir   = safe_path(parent_dir, "vault")
-    usr_config_dir= safe_path(vault_dir, CONFIG_DIR_NAME, CONFFILE_DIR_NAME)
+    parent_dir = safe_path(SCRIPT_DIR, "..")
+    template_dir = safe_path(SCRIPT_DIR, INITIALIZE_DIR_NAME, "init-vault")
+    setup_dir = safe_path(SCRIPT_DIR, INITIALIZE_DIR_NAME, "setup-vault")
+    config_dir = safe_path(SCRIPT_DIR, CONFIG_DIR_NAME)
+    bank_dir = safe_path(parent_dir, "bank")
+    vault_dir = safe_path(parent_dir, "vault")
+    usr_config_dir = safe_path(vault_dir, CONFIG_DIR_NAME, CONFFILE_DIR_NAME)
 
     if os.path.exists(bank_dir):
-        print("Errore: la cartella corrente é giá inizializzata come banca dati, non puoi inizializzare un vault.")
+        print(
+            "Errore: la cartella corrente é giá inizializzata come banca dati, non puoi inizializzare un vault."
+        )
         sys.exit(1)
-    
+
     # Controlla se esiste già una cartella chiamata 'vault'
     if os.path.exists(vault_dir):
         # Ottieni il contenuto della cartella 'vault'
         vault_contents = os.listdir(vault_dir)
-        
+
         # Check di un repo già inizializzato, non si vuole cancellare ciò che già esiste
         vault_contents = [item for item in vault_contents if item != "build"]
         if vault_contents:
@@ -870,14 +964,14 @@ def InitVault():
         if not os.path.exists(template_dir):
             print(f"Errore: la cartella template '{template_dir}' non esiste.")
             sys.exit(1)
-        
+
         if not os.path.exists(config_dir):
             print(f"Errore: la cartella dei file di config '{config_dir}' non esiste.")
             sys.exit(1)
 
         print(f"Inizio creazione del vault...")
         copy_dir_recursive(template_dir, vault_dir)
-        
+
         # Scrive il main file iniziale con i primi riferimenti di default
         main_file = os.path.join(vault_dir, "main.md")
         contenuto = f"""\
@@ -886,27 +980,26 @@ def InitVault():
             - [NomeArgomento1](main-arg1/main.main-arg1.first-note.md)
         """
         contenuto = textwrap.dedent(contenuto)
-        
+
         with open(main_file, "w") as f:
             f.write(contenuto)
-        
-        
+
         print(f"- Cartella vault : ok\n")
-        
+
         # Creazione delle cartelle per l'utente per i file di configurazione
         print(f"Copia dei file di configurazione per pandoc...")
         copy_dir_recursive(config_dir, usr_config_dir)
         # create_config_dirs(vault_dir, CONFIG_DIR_NAME, CONFIG_DIRS)
-        
+
         # Scrive il config file con i riferimenti di default
         config_file = os.path.join(vault_dir, CONFIG_DIR_NAME, CONFIG_FILE_NAME)
-        
+
         # Usa percorsi relativi verso ./config-files nella cartella vault/config
-        rel_yaml_path       = Path(os.path.join("./", CONFFILE_DIR_NAME, YAML_NAME))
-        rel_template_path   = Path(os.path.join("./", CONFFILE_DIR_NAME, TEMPLATE_NAME))
-        rel_lua_path        = Path(os.path.join("./", CONFFILE_DIR_NAME, LUA_FILTER_NAME))
-        rel_start_path      = Path(os.path.join("./", CONFFILE_DIR_NAME, NEW_NOTE_NAME))
-        rel_pandoc_path     = Path(os.path.join("./", CONFFILE_DIR_NAME, PANDOC_OPT_NAME))
+        rel_yaml_path = Path(os.path.join("./", CONFFILE_DIR_NAME, YAML_NAME))
+        rel_template_path = Path(os.path.join("./", CONFFILE_DIR_NAME, TEMPLATE_NAME))
+        rel_lua_path = Path(os.path.join("./", CONFFILE_DIR_NAME, LUA_FILTER_NAME))
+        rel_start_path = Path(os.path.join("./", CONFFILE_DIR_NAME, NEW_NOTE_NAME))
+        rel_pandoc_path = Path(os.path.join("./", CONFFILE_DIR_NAME, PANDOC_OPT_NAME))
         # contenuto = f'# default configuration - start path from build/\n.yaml="{rel_yaml_path}"\n.template="{rel_template_path}"\n.lua="{rel_lua_path}"\n.start="{rel_start_path}"\n'
         contenuto = f"""\
             # default configuration - start path from config/
@@ -917,26 +1010,27 @@ def InitVault():
             .start="{rel_start_path}"
         """
         contenuto = textwrap.dedent(contenuto)
-        
+
         with open(config_file, "w") as f:
             f.write(contenuto)
-        
+
         print(f"- Cartella .config : ok")
-        
+
         # Copia tutto il contenuto della cartella setup-vault fuori dalla cartella 'vault'
         copy_dir_recursive(setup_dir, parent_dir)
         print(f"- File di configurazione per VSCode : ok\n")
-        
+
         print(f"Struttura del Vault costruita con successo!")
         print(f"Enjoy your new vault! <3")
-    
+
     except Exception as e:
         print(f"Errore durante la costruzione del Vault: {e}")
         sys.exit(1)
 
+
 def UpdateBank():
     print("Aggiornamento della banca dati collaborativa...")
-    bank_dir    = safe_path(SCRIPT_DIR, "..", "bank")
+    bank_dir = safe_path(SCRIPT_DIR, "..", "bank")
     collab_file = safe_path(bank_dir, COLLAB_FILE)
     main_bank_path = safe_path(bank_dir, "main.md")
     if not os.path.exists(collab_file):
@@ -946,23 +1040,27 @@ def UpdateBank():
     # Check del file collaborator.md
     with open(collab_file, "r", encoding="utf-8") as f:
         lines = f.readlines()
-        
+
     collaborator = None
-    errors       = []
-    collab_mainmd= []  # Lista di tuple (nome, path_mainmd)
+    errors = []
+    collab_mainmd = []  # Lista di tuple (nome, path_mainmd)
     for line in lines:
         line = line.strip()
         if line.startswith("##"):
             collaborator = line[2:].strip()
         # Cerca link markdown a main.md
-        match = re.search(r'\[.*?\]\((.*?main\.md)\)', line)
+        match = re.search(r"\[.*?\]\((.*?main\.md)\)", line)
         if match:
             main_md_path = safe_path("..", match.group(1))  # Definisci qui la variabile
             # if not os.path.exists(Path(to_unc_slash_path(str(os.path.join("..", match.group(1)))))):
             if not os.path.exists(main_md_path):
-                errors.append(f"Collaboratore '{collaborator}': main.md non trovato in '{main_md_path}'")
+                errors.append(
+                    f"Collaboratore '{collaborator}': main.md non trovato in '{main_md_path}'"
+                )
             else:
-                print(f"Collaboratore '{collaborator}': main.md trovato in '{main_md_path}'")
+                print(
+                    f"Collaboratore '{collaborator}': main.md trovato in '{main_md_path}'"
+                )
                 collab_mainmd.append((collaborator, main_md_path))
 
     if errors:
@@ -970,10 +1068,10 @@ def UpdateBank():
         for err in errors:
             print(f"- {err}")
         sys.exit(1)
-        
+
     else:
         print("Tutti i link ai main.md dei collaboratori sono validi.")
-        
+
     # Proseguo alla lettura dei singoli main.md
     with open(main_bank_path, "w", encoding="utf-8") as out:
         out.write("# Indice complessivo\n\n")
@@ -992,6 +1090,7 @@ def UpdateBank():
                     out.write(newline)
                 out.write("\n")
     print(f"main.md complessivo aggiornato in {main_bank_path}")
+
 
 def ConversionSingleNote(nota):
     global NOTE_PATH
@@ -1020,8 +1119,8 @@ def ConversionSingleNote(nota):
     # Crea la directory di output se non esiste
     if not os.path.exists(safe_path(OUTPUT_DIR)):
         os.makedirs(safe_path(OUTPUT_DIR))
-    
-    # Verifica che il sistema abbia i requisiti necessari alla conversione    
+
+    # Verifica che il sistema abbia i requisiti necessari alla conversione
 
     CheckPreconditions()
     # Ottieni il contenuto senza header
@@ -1039,18 +1138,19 @@ def ConversionSingleNote(nota):
     except Exception:
         pass
     NoteConversion(temp_file_path)
-        
+
     # Elimina il file temporaneo
     try:
         os.remove(temp_file_path)
     except Exception as e:
         print(f"Errore durante l'eliminazione del file temporaneo: {e}")
 
+
 def ConversionGroupNote(argomento):
     # Ottieni i file corrispondenti all'argomento
     matching_files_main = get_files_for_argument_from_main(argomento)
     matching_files_root = get_files_for_argument_from_root(argomento)
-    
+
     checkInconsistency(matching_files_main, matching_files_root)
 
     # Crea la directory di output se non esiste
@@ -1065,41 +1165,42 @@ def ConversionGroupNote(argomento):
     # sys.exit(1)
 
     # Se arrivato qui allora può eseguire la conversione
-    NoteConversion(combined_note_path) # deve prendere la nota combinata dal build
+    NoteConversion(combined_note_path)  # deve prendere la nota combinata dal build
+
 
 def ConversionAllNote(custom):
     global OUTPUT_DIR
     bank_dir = safe_path(SCRIPT_DIR, "..", "bank")
     collab_file = safe_path(bank_dir, COLLAB_FILE)
     global is_bank
-    
+
     if os.path.exists(collab_file):
         is_bank = True
-        
+
     if not is_bank:
         """
         comportamento di default in un vault classico
         - crea la cartella di build
         - ci inserisce la nota combinata
-        - la converte nella cartella di build 
+        - la converte nella cartella di build
         """
         # Ottieni i file corrispondenti all'argomento
         matching_files_main = []
         matching_files_root = []
         matching_files_main = get_all_files_from_main(custom)
         matching_files_root = get_all_files_from_root()
-        
+
         if not custom:
             checkInconsistency(matching_files_main, matching_files_root)
-            
+
         if not os.path.exists(OUTPUT_DIR):
             os.makedirs(OUTPUT_DIR)
-    
+
         os.chdir(safe_path(OUTPUT_DIR))
-        
+
         # Verifica che il sistema abbia i prerequisiti necessari alla conversione
         CheckPreconditions()
-        
+
         combined_note_path = CombineNotes(matching_files_main)
 
     else:
@@ -1113,55 +1214,62 @@ def ConversionAllNote(custom):
         """
         matching_files_main = []
         matching_files_main, collaborators = get_all_files_from_collab_main(custom)
-        
+
         OUTPUT_DIR = safe_path(APPLICATION_DIR, BUILD_DIR_NAME)
         if not os.path.exists(OUTPUT_DIR):
             os.makedirs(OUTPUT_DIR)
-        
+
         os.chdir(OUTPUT_DIR)
-        
+
         # No consistency check
-        
+
         # Verifica che il sistema abbia i prerequisiti necessari alla conversione
         CheckPreconditions()
-        
+
         combined_note_path = SearchAndCombineNotes(matching_files_main)
-        
+
         # Copia la nota combinata nella cartella di build
         shutil.copy2(combined_note_path, OUTPUT_DIR / combined_note_path.name)
-        
+
         # Copia gli assets nella cartella di build
         assets_dir = Path(os.path.join(APPLICATION_DIR, ASSETS_DIR_NAME)).resolve()
         CopyAssets(assets_dir, collaborators)
-        
+
         # Copia dei template e lua_filter
         template_dir = Path(os.path.join(APPLICATION_DIR, CONFIG_DIR_NAME)).resolve()
         template_dir.mkdir(parents=True, exist_ok=True)
-        
+
         if custom_teml_path == None:
             shutil.copy2(TEMPLATE_PATH, template_dir / TEMPLATE_NAME)
         else:
-            shutil.copy2(custom_teml_path, template_dir / TEMPLATE_NAME) # copio il custom rinominandolo a default cosí nella funznione Note conversion rimane seplificato
-        
+            shutil.copy2(
+                custom_teml_path, template_dir / TEMPLATE_NAME
+            )  # copio il custom rinominandolo a default cosí nella funznione Note conversion rimane seplificato
+
         if custom_luaf_path == None:
             shutil.copy2(LUA_FILTER_PATH, template_dir / LUA_FILTER_NAME)
         else:
             shutil.copy2(custom_luaf_path, template_dir / LUA_FILTER_NAME)
-        
+
         if custom_pandoc_opt_path == None:
             shutil.copy2(PANDOC_OPT_PATH, template_dir / PANDOC_OPT_NAME)
         else:
             shutil.copy2(custom_pandoc_opt_path, template_dir / PANDOC_OPT_NAME)
-    
+
     # Se arrivato qui allora può eseguire la conversione
-    NoteConversion(os.path.basename(combined_note_path)) # deve prendere la nota combinata dal build
-    
+    NoteConversion(
+        os.path.basename(combined_note_path)
+    )  # deve prendere la nota combinata dal build
+
     if is_bank:
         # Copia l'output nella cartella di build della banca dati
         MAKE_DIR.mkdir(parents=True, exist_ok=True)
         out_name = Path(OUTPUT_PATH).name
-        shutil.copy2(Path(os.path.join(APPLICATION_DIR, BUILD_DIR_NAME, out_name)).resolve(), Path(MAKE_DIR).resolve())
-        
+        shutil.copy2(
+            Path(os.path.join(APPLICATION_DIR, BUILD_DIR_NAME, out_name)).resolve(),
+            Path(MAKE_DIR).resolve(),
+        )
+
         # Cancella la cartella di build temporanea
         for _ in range(3):
             try:
@@ -1170,88 +1278,100 @@ def ConversionAllNote(custom):
             except Exception as e:
                 time.sleep(1)
 
+
 def AddStartNewNote(note_path):
     """
     Aggiunge una nuova nota copiando il file void-notes.md e spostandolo nella posizione specificata.
     """
-    
+
     if custom_new_note_path:
         starting_note = custom_new_note_path
     else:
         starting_note = NEW_NOTE_PATH
-    
+
     # Verifica che il file template esista
     if not os.path.exists(starting_note):
         print(f"Errore: il file template '{starting_note}' non esiste.")
         sys.exit(1)
-    
+
     # Percorso completo della nuova nota
-    vault_path      = safe_path(SCRIPT_DIR, "..", "vault")
-    new_note_path   = safe_path(vault_path, note_path)
-    
+    vault_path = safe_path(SCRIPT_DIR, "..", "vault")
+    new_note_path = safe_path(vault_path, note_path)
+
     # Verifica che il macro-argomento esista
     macro_argomento_dir = safe_path(vault_path, note_path.split("/")[0])
-    if not os.path.exists(macro_argomento_dir) or not os.path.isdir(macro_argomento_dir):
-        print(f"Errore: il macro-argomento '{note_path.split('/')[0]}' non esiste. Crealo manualmente prima di aggiungere note.")
+    if not os.path.exists(macro_argomento_dir) or not os.path.isdir(
+        macro_argomento_dir
+    ):
+        print(
+            f"Errore: il macro-argomento '{note_path.split('/')[0]}' non esiste. Crealo manualmente prima di aggiungere note."
+        )
         sys.exit(1)
-        
+
     # Verifica che il nome della nota sia valido
     note_name = os.path.basename(note_path)
     if not re.match(rf"^main\.{note_path.split('/')[0]}(?:\..+)?\.md$", note_name):
-        print(f"Errore: il nome della nota '{note_name}' non è valido. Deve iniziare con 'main.macro-argomento1.' e terminare con '.md'.")
+        print(
+            f"Errore: il nome della nota '{note_name}' non è valido. Deve iniziare con 'main.macro-argomento1.' e terminare con '.md'."
+        )
         sys.exit(1)
 
     # Copia il file template e lo rinomina
     try:
         with open(starting_note, "r", encoding="utf-8") as template_file:
             content = template_file.read()
-        
+
         with open(new_note_path, "w", encoding="utf-8") as new_note_file:
             new_note_file.write(content)
-        
+
         print(f"Nota creata con successo: {new_note_path}")
     except Exception as e:
         print(f"Errore durante la creazione della nota: {e}")
         sys.exit(1)
 
-def NoteConversion(combined_note_path):    
+
+def NoteConversion(combined_note_path):
     if is_bank:
-        path_note   = safe_path(APPLICATION_DIR, BUILD_DIR_NAME, COMB_FILE_NAME)
-        out_path    = safe_path(APPLICATION_DIR, BUILD_DIR_NAME, Path(OUTPUT_PATH).name)
-        template    = safe_path(APPLICATION_DIR, CONFIG_DIR_NAME, TEMPLATE_NAME)    # Per banca dati condivisa ConversionAllNote() copia il file rinominandolo come l'originale di default
-        lua_filter  = safe_path(APPLICATION_DIR, CONFIG_DIR_NAME, LUA_FILTER_NAME)  # Per banca dati condivisa ConversionAllNote() copia il file rinominandolo come l'originale di default
-        default_opt = safe_path(APPLICATION_DIR, CONFIG_DIR_NAME, PANDOC_OPT_NAME)  # Per banca dati condivisa ConversionAllNote() copia il file rinominandolo come l'originale di default
+        path_note = safe_path(APPLICATION_DIR, BUILD_DIR_NAME, COMB_FILE_NAME)
+        out_path = safe_path(APPLICATION_DIR, BUILD_DIR_NAME, Path(OUTPUT_PATH).name)
+        template = safe_path(
+            APPLICATION_DIR, CONFIG_DIR_NAME, TEMPLATE_NAME
+        )  # Per banca dati condivisa ConversionAllNote() copia il file rinominandolo come l'originale di default
+        lua_filter = safe_path(
+            APPLICATION_DIR, CONFIG_DIR_NAME, LUA_FILTER_NAME
+        )  # Per banca dati condivisa ConversionAllNote() copia il file rinominandolo come l'originale di default
+        default_opt = safe_path(
+            APPLICATION_DIR, CONFIG_DIR_NAME, PANDOC_OPT_NAME
+        )  # Per banca dati condivisa ConversionAllNote() copia il file rinominandolo come l'originale di default
     else:
         # Altrimenti converto normalmente nella cartella di build in quanto ho giá tutto in locale
-        path_note   = safe_path(combined_note_path)
-        out_path    = safe_path(OUTPUT_PATH)
-        template    = safe_path(TEMPLATE_PATH)
+        path_note = safe_path(combined_note_path)
+        out_path = safe_path(OUTPUT_PATH)
+        template = safe_path(TEMPLATE_PATH)
         if custom_teml_path:
-            template    = safe_path(custom_teml_path)
-        lua_filter  = safe_path(LUA_FILTER_PATH)
+            template = safe_path(custom_teml_path)
+        lua_filter = safe_path(LUA_FILTER_PATH)
         if custom_luaf_path:
-            lua_filter  = safe_path(custom_luaf_path)
-        default_opt  = safe_path(PANDOC_OPT_PATH)
+            lua_filter = safe_path(custom_luaf_path)
+        default_opt = safe_path(PANDOC_OPT_PATH)
         if custom_pandoc_opt_path:
-            default_opt  = safe_path(custom_pandoc_opt_path)
-        
+            default_opt = safe_path(custom_pandoc_opt_path)
+
     if isNetworkPath():
         # Eseguo prima la conversione in tex con pandoc
         out_path = out_path.with_suffix(".tex")
-        
+
         # command = f"pandoc \"{path_note}\" -o \"{out_path}\" --top-level-division=chapter --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
-        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --defaults=\"{default_opt}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" --pdf-engine=xelatex"
-        
+        command = f'pandoc "{path_note}" -o "{out_path}" --defaults="{default_opt}" --template="{template}" --lua-filter="{lua_filter}" --pdf-engine=xelatex'
+
         print(f"Eseguo il comando: {command}")
         os.system(command)
-        
+
         # Eseguo poi la conversione in pdf con latexmk
         subprocess.run(
-            ["latexmk", "-xelatex", out_path.name],
-            cwd=out_path.parent,
-            shell=True
+            ["latexmk", "-xelatex", out_path.name], cwd=out_path.parent, shell=True
         )
-        
+
         # Pulizia della cartella di build
         path = Path(out_path)
         folder = path.parent
@@ -1259,50 +1379,105 @@ def NoteConversion(combined_note_path):
         allowed = {f"{filename}.pdf", f"{filename}.tex"}
 
         for item in folder.iterdir():
-            if item.is_file() and item.name.startswith(filename) and item.name not in allowed:
+            if (
+                item.is_file()
+                and item.name.startswith(filename)
+                and item.name not in allowed
+            ):
                 print(f"Rimuovo: {item}")
                 item.unlink()  # Cancella il file
-        
+
     else:
         # Comando per la conversione pulita con pandoc
         # command = f"pandoc \"{path_note}\" -o \"{out_path}\" --top-level-division=chapter --template=\"{template}\" --lua-filter=\"{lua_filter}\" --listings --pdf-engine=xelatex"
-        command = f"pandoc \"{path_note}\" -o \"{out_path}\" --defaults=\"{default_opt}\" --template=\"{template}\" --lua-filter=\"{lua_filter}\" --pdf-engine=xelatex"
-        
+        command = f'pandoc "{path_note}" -o "{out_path}" --defaults="{default_opt}" --template="{template}" --lua-filter="{lua_filter}" --pdf-engine=xelatex'
+
         # Esegui il comando
         print(f"Eseguo il comando: {command}")
         os.system(command)
 
+
 def setup_argparse():
-    """Configura l'argparse con gruppi mutuamente esclusivi"""    
+    """Configura l'argparse con gruppi mutuamente esclusivi"""
     parser = argparse.ArgumentParser(
         prog="DocScript.py",
         description="DocScript - Conversione e gestione documentazione. Tips: genera un repo git vuoto e inserisci questo come un sottomodulo prima di lanciare un --init",
         epilog="Freeware Licence 2025 Fabio. Maintainer: BenettiFabio",
-        add_help=False
+        add_help=False,
     )
 
     # Gruppo 1: Operazioni singole (mutuamente esclusive fra loro, non accettano altri argomenti)
     group_standalone = parser.add_mutually_exclusive_group()
-    group_standalone.add_argument("-i",     "--init",       action="store_true",        help="Inizializza un nuovo vault")
-    group_standalone.add_argument("-ib",    "--init-bank",  action="store_true",        help="Inizializza una banca dati collaborativa")
-    group_standalone.add_argument("-s",     "--start",          metavar="NOTE_NAME",    help="Crea una nuova nota")
-    group_standalone.add_argument("-u",     "--update",     action="store_true",        help="Aggiorna la banca dati")
-    group_standalone.add_argument("-h",     "--help",       action="store_true",        help="Mostra questo messaggio di aiuto")
+    group_standalone.add_argument(
+        "-i", "--init", action="store_true", help="Inizializza un nuovo vault"
+    )
+    group_standalone.add_argument(
+        "-ib",
+        "--init-bank",
+        action="store_true",
+        help="Inizializza una banca dati collaborativa",
+    )
+    group_standalone.add_argument(
+        "-s", "--start", metavar="NOTE_NAME", help="Crea una nuova nota"
+    )
+    group_standalone.add_argument(
+        "-u", "--update", action="store_true", help="Aggiorna la banca dati"
+    )
+    group_standalone.add_argument(
+        "-h", "--help", action="store_true", help="Mostra questo messaggio di aiuto"
+    )
 
     # Gruppo 2: Operazioni di conversione (mutuamente esclusive fra loro, ma accettano opzioni aggiuntive)
     group_conversion = parser.add_mutually_exclusive_group()
-    group_conversion.add_argument("-a",     "--all",            metavar="OUTPUT",                           help="Converte tutte le note")
-    group_conversion.add_argument("-g",     "--group",          nargs=2, metavar=("ARGUMENT", "OUTPUT"),    help="Converte un gruppo di note")
-    group_conversion.add_argument("-n",     "--note",           nargs=2, metavar=("NOTE", "OUTPUT"),        help="Converte una singola nota")
-    group_conversion.add_argument("-c",     "--custom",         metavar="OUTPUT",                           help="Conversione custom da file custom.md")
+    group_conversion.add_argument(
+        "-a", "--all", metavar="OUTPUT", help="Converte tutte le note"
+    )
+    group_conversion.add_argument(
+        "-g",
+        "--group",
+        nargs=2,
+        metavar=("ARGUMENT", "OUTPUT"),
+        help="Converte un gruppo di note",
+    )
+    group_conversion.add_argument(
+        "-n",
+        "--note",
+        nargs=2,
+        metavar=("NOTE", "OUTPUT"),
+        help="Converte una singola nota",
+    )
+    group_conversion.add_argument(
+        "-c", "--custom", metavar="OUTPUT", help="Conversione custom da file custom.md"
+    )
 
     # Gruppo 3: Opzioni aggiuntive (possono essere combinate con il gruppo 2)
-    parser.add_argument("-y",   "--yaml",       metavar="YAML_NAME",        help="Applica un file YAML personalizzato diverso da quello nel main.md")
-    parser.add_argument("-t",   "--template",   metavar="TEMPLATE_NAME",    help="Applica un file template.tex personalizzato diverso da quello di default")
-    parser.add_argument("-l",   "--lua",        metavar="LUA_NAME",         help="Applica un file luafilter.lua personalizzato diverso da quello di default")
-    parser.add_argument("-p",   "--pandoc",     metavar="PANDOC_NAME",      help="Applica un --metadata-file='PANDOC_NAME' diverso da quello di default")
+    parser.add_argument(
+        "-y",
+        "--yaml",
+        metavar="YAML_NAME",
+        help="Applica un file YAML personalizzato diverso da quello nel main.md",
+    )
+    parser.add_argument(
+        "-t",
+        "--template",
+        metavar="TEMPLATE_NAME",
+        help="Applica un file template.tex personalizzato diverso da quello di default",
+    )
+    parser.add_argument(
+        "-l",
+        "--lua",
+        metavar="LUA_NAME",
+        help="Applica un file luafilter.lua personalizzato diverso da quello di default",
+    )
+    parser.add_argument(
+        "-p",
+        "--pandoc",
+        metavar="PANDOC_NAME",
+        help="Applica un --metadata-file='PANDOC_NAME' diverso da quello di default",
+    )
 
     return parser
+
 
 def validate_args(args):
     """Valida la coerenza degli argomenti"""
@@ -1318,11 +1493,15 @@ def validate_args(args):
         # Controlla che non ci siano operazioni di conversione
         active_conversion = sum(1 for op in conversion_ops if op)
         if active_conversion > 0:
-            print("Errore: le operazioni -i, -ib, -s, -u, -h non possono essere combinate con -a, -g, -n, -c")
+            print(
+                "Errore: le operazioni -i, -ib, -s, -u, -h non possono essere combinate con -a, -g, -n, -c"
+            )
             sys.exit(1)
         # Controlla che non ci siano opzioni aggiuntive
         if args.yaml or args.template:
-            print("Errore: le operazioni -i, -ib, -s, -u, -h non accettano opzioni aggiuntive")
+            print(
+                "Errore: le operazioni -i, -ib, -s, -u, -h non accettano opzioni aggiuntive"
+            )
             sys.exit(1)
 
     # Se non c'è nessuna operazione standalone, deve esserci almeno una di conversione
@@ -1332,42 +1511,45 @@ def validate_args(args):
     #         print("Errore: deve essere specificata almeno un'operazione (-h, -a, -g, -n, -c, -i, -ib, -s, -u)")
     #         sys.exit(1)
 
+
 ## MAIN FUNCTION ##
 def main():
     # Entro nella cartella build prima di eseguire il comando
     # Crea la directory di output se non esiste
-    vault_path  = safe_path(SCRIPT_DIR, "..", "vault")
-    bank_path   = safe_path(SCRIPT_DIR, "..", "bank")
+    vault_path = safe_path(SCRIPT_DIR, "..", "vault")
+    bank_path = safe_path(SCRIPT_DIR, "..", "bank")
     collab_path = safe_path(bank_path, COLLAB_FILE)
-    
+
     global MAKE_DIR
     global OUTPUT_DIR
-    
+
     global custom_teml_path, custom_luaf_path, custom_yaml_path, custom_pandoc_opt_path
-    
+
     if os.path.exists(bank_path) or os.path.exists(vault_path):
         if not os.path.exists(collab_path):
             if os.path.exists(vault_path):
                 build_dir = safe_path(OUTPUT_DIR)
                 if not os.path.exists(build_dir):
-                    os.makedirs(build_dir) # Entra nella cartella di build solo se esiste e se non é una banca dati
+                    os.makedirs(
+                        build_dir
+                    )  # Entra nella cartella di build solo se esiste e se non é una banca dati
             os.chdir(safe_path(MAKE_DIR))
         else:
             # Aggiorno i path nel caso ci si trovi in una banca dati
-            build_dir   = safe_path(bank_path, "build")
-            OUTPUT_DIR  = build_dir
-            MAKE_DIR    = OUTPUT_DIR
-    
+            build_dir = safe_path(bank_path, "build")
+            OUTPUT_DIR = build_dir
+            MAKE_DIR = OUTPUT_DIR
+
     global custom
-    
+
     parser = setup_argparse()
     args = parser.parse_args()
-    
+
     if args.help and not any([args.all, args.group, args.note, args.custom]):
         print(pyfiglet.figlet_format("Doc Script", font="slant"))
         parser.print_help()
         sys.exit(0)
-        
+
     # Valida gli argomenti
     validate_args(args)
 
@@ -1377,7 +1559,9 @@ def main():
         InitVault()
 
     elif args.init_bank:
-        print("Opzione --init-bank selezionata. Creazione di una banca dati collaborativa.")
+        print(
+            "Opzione --init-bank selezionata. Creazione di una banca dati collaborativa."
+        )
         InitBank()
 
     elif args.start:
@@ -1386,7 +1570,9 @@ def main():
         AddStartNewNote(args.start)
 
     elif args.update:
-        print("Opzione --update selezionata. Lettura dei main.md dei collaboratori e costruzione del main.md complessivo.")
+        print(
+            "Opzione --update selezionata. Lettura dei main.md dei collaboratori e costruzione del main.md complessivo."
+        )
         UpdateBank()
 
     # Operazioni di conversione (con opzioni aggiuntive opzionali)
@@ -1409,10 +1595,12 @@ def main():
             custom_pandoc_opt_path = add_new_yaml(args.pandoc)
         validate_output(args.all)
         ConversionAllNote(custom)
-    
+
     elif args.group:
         if len(args.group) < 2:
-            print("Errore: l'opzione --group richiede due argomenti: ARGUMENTO e OUTPUT (in formato .pdf o .tex).")
+            print(
+                "Errore: l'opzione --group richiede due argomenti: ARGUMENTO e OUTPUT (in formato .pdf o .tex)."
+            )
             sys.exit(1)
         argomento, output = args.group
         validate_output(output)
@@ -1435,7 +1623,9 @@ def main():
 
     elif args.note:
         if len(args.note) < 2:
-            print("Errore: l'opzione --note richiede due argomenti: NOTA e OUTPUT (in formato .pdf o .tex).")
+            print(
+                "Errore: l'opzione --note richiede due argomenti: NOTA e OUTPUT (in formato .pdf o .tex)."
+            )
             sys.exit(1)
         nota, output = args.note
         validate_output(output)
@@ -1459,7 +1649,9 @@ def main():
     elif args.custom:
         custom = True
         if not args.custom:
-            print("Errore: l'opzione --custom richiede un argomento OUTPUT (in formato .pdf o .tex).")
+            print(
+                "Errore: l'opzione --custom richiede un argomento OUTPUT (in formato .pdf o .tex)."
+            )
             sys.exit(1)
         validate_output(args.custom)
         print(f"Opzione --custom selezionata. Output: {args.custom}")
@@ -1484,7 +1676,8 @@ def main():
         parser.print_help()
         sys.exit(0)
 
+
 if __name__ == "__main__":
     main()
-    
+
     # todo: creare una funzione di Upgrade in modo da inizializzare di nuovo il vault con i nuovi file senza sovrascrivere quelli esistenti

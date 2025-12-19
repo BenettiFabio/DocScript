@@ -84,7 +84,7 @@ CONFIG_USR_B_FILES_DIR = Path(
 INIT_B_PATH = Path(os.path.join(_PRJ_ROOT_DIR, _INITIALIZE_DIR, _INIT_B_DIR)).resolve()
 BUILD_B_PATH = Path(os.path.join(_BANK_DIR, _BUILD_DIR)).resolve()
 
-EXCLUDED_DIRS = [_ASSETS_DIR, _BUILD_DIR, _CONFIG_DIR, _TEMPORARY_DIR]
+EXCLUDED_DIRS = [_ASSETS_DIR, _BUILD_DIR, _CONFIG_DIR]  # , _TEMPORARY_DIR]
 
 EXCLUDED_FILES = [COMB_FILE_NAME, NEW_NOTE_NAME, MAIN_FILE_NAME, CUSTOM_FILE_NAME]
 
@@ -495,7 +495,7 @@ def get_all_files_from_main(custom: bool) -> list[str]:
 
 
 def check_inconsistency(
-    matching_files_main: list[str], matching_files_root: list[str]
+    matching_files_main: list[str], matching_files_root: list[str], bypassFlag: bool
 ) -> None:
     """
     Check that all actual files are referenced in main.
@@ -503,30 +503,56 @@ def check_inconsistency(
     Paths are normalized for comparison.
     """
 
-    # -----------------------------------------------------------------
-    # Filter “root” files (all .md files in the vault)
-    # -----------------------------------------------------------------
-    filtered_matching_files_root = [
-        Path(path).name
-        for path in matching_files_root
-        if not path.startswith(f"{_TEMPORARY_DIR}/")
-        and not Path(path).name.startswith(f"main.{_TEMPORARY_DIR}.")
-    ]
+    if not bypassFlag:
 
-    # -----------------------------------------------------------------
-    # Normalize lists (file names only)
-    # -----------------------------------------------------------------
-    normalized_actual_list = [Path(path).name for path in filtered_matching_files_root]
+        # -----------------------------------------------------------------
+        # Filter “root” files (all .md files in the vault)
+        # -----------------------------------------------------------------
+        filtered_matching_files_root = [
+            Path(path).name
+            for path in matching_files_root
+            if not path.startswith(f"{_TEMPORARY_DIR}/")
+            and not Path(path).name.startswith(f"main.{_TEMPORARY_DIR}.")
+        ]
 
-    normalized_main_list = [Path(path).name for path in matching_files_main]
+        # -----------------------------------------------------------------
+        # Normalize lists (file names only)
+        # -----------------------------------------------------------------
+        normalized_actual_list = [
+            Path(path).name for path in filtered_matching_files_root
+        ]
 
-    main_set = set(normalized_main_list)
-    actual_set = set(normalized_actual_list)
+        normalized_main_list: list[str] = [Path(path).name for path in matching_files_main]
 
-    missing_in_main = actual_set - main_set
+        main_set = set(normalized_main_list)
+        actual_set = set(normalized_actual_list)
 
-    if missing_in_main:
-        print("Errore: i seguenti file .md NON sono inclusi nel main:")
-        for f in sorted(missing_in_main):
-            print(f"- {f}")
-        sys.exit(1)
+        missing_in_main = actual_set - main_set
+
+        if missing_in_main:
+            print("Errore: i seguenti file .md NON sono inclusi nel main:")
+            for f in sorted(missing_in_main):
+                print(f"- {f}")
+            sys.exit(1)
+    else:
+        # -----------------------------------------------------------------
+        # Check only the existence of files (file names only)
+        # -----------------------------------------------------------------
+
+        # root is the entire vault (_TEMPORARY_DIR included)
+        normalized_actual_list = [Path(path) for path in matching_files_root]
+        normalized_main_list = [Path(path).name for path in matching_files_main]
+        path_by_name = {p.name: p for p in normalized_actual_list}
+
+        for filename in normalized_main_list:
+            # check the file name if found in root
+            if filename not in path_by_name:
+                print(f"Errore: file {filename} non presente nel vault")
+                sys.exit(1)
+
+            full_path = path_by_name[filename]
+
+            # check if exists in root
+            if not full_path.exists():
+                print(f"Errore: file {full_path} non trovato su filesystem")
+                sys.exit(1)

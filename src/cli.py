@@ -152,8 +152,6 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
 
     cMode = CMode.NONE
 
-    print(f"il mio dato enumerativo al momento é inizializzato a {cMode}")
-
     # -------------------------------
     # Group 1
     # -------------------------------

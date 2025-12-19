@@ -4,6 +4,7 @@ from pathlib import Path
 
 from src.config import (
     CustomPaths,
+    check_inconsistency,
     check_integrity,
     create_build_dir,
     create_new_note,
@@ -14,6 +15,7 @@ from src.config import (
     is_vault,
 )
 from src.pandoc.runner import check_precondition
+from src.utils import safe_path
 
 
 class CMode(Enum):
@@ -102,29 +104,42 @@ def conversion_procedure(
     file_found_root = []
     file_found_main = []
     if not is_bank():
+        # Find files in vault
         file_found_root = get_all_files_from_root()
         if modality == CMode.CUSTOM.name:
             file_found_main = get_all_files_from_main(True)
         else:
             file_found_main = get_all_files_from_main(False)
 
-        # Find files in vault
-        if modality == CMode.ONE.name:
-            print("Filter only the single note")
-        elif modality == CMode.GROUP.name:
-            print("Filter all the notes of the group")
-        else:
-            print("Use all the notes")
-
         # Reduce the number of notes to only those of interest
-        if modality == CMode.GROUP.name:
-            print("do filtering type 1")
-        elif modality == CMode.ONE.name:
-            print("do filtering type 2")
+        filter_file_list_main = []
+        filter_file_list_root = []
+        bypassFlag = False
+        if modality == CMode.ONE.name:
+            filter_file_list_main.append(src)
+            filter_file_list_root = file_found_root
+            bypassFlag = True
+
+        elif modality == CMode.CUSTOM.name:
+            filter_file_list_main = file_found_main
+            filter_file_list_root = file_found_root
+            bypassFlag = True
+
+        elif modality == CMode.GROUP.name:
+            for p in file_found_root:
+                if src in safe_path(p).parts:
+                    filter_file_list_root.append(p)
+
+            for p in file_found_main:
+                if src in safe_path(p).parts:
+                    filter_file_list_main.append(p)
+
+        else:
+            filter_file_list_main = file_found_main
+            filter_file_list_root = file_found_root
 
         # Check of consistency if not custom
-        if modality is not CMode.CUSTOM.name:
-            print("check inconsistency")
+        check_inconsistency(filter_file_list_main, filter_file_list_root, bypassFlag)
 
     else:
         print("TODO: find file if bank")
