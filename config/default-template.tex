@@ -36,7 +36,8 @@
 \usepackage{enumitem}   % per gli indici
 
 \usepackage{graphicx}   % per immagini
-\usepackage{float}
+\usepackage{float}      % consente di posizionare le immagini con precisione
+\floatplacement{figure}{H}
 \usepackage{caption}
 
 \usepackage{longtable}  % per le tabelle
@@ -56,6 +57,8 @@
 \setmainfont{FreeSans}
 \setmonofont{FreeMono}
 
+
+
 \usepackage{tikz}       % per gli schemi con Tikz
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning}
 \usetikzlibrary{arrows.meta, positioning, shapes.geometric, shadows, calc, backgrounds}
@@ -65,16 +68,10 @@
 \usepackage{fancyhdr}   % per gli header/footer
 \usepackage{lastpage}
 
+\usepackage{typicons} % to handle the emojis/icons
+
 $if(draft)$
 \usepackage{draftwatermark} % watermark
-$endif$
-
-% lascia spazio per il numero nel toc se diventa troppo lungo
-% evita sovrapposizioni
-$if(toc)$
-\setlength{\cftsecnumwidth}{3.0em}
-\setlength{\cftsubsecnumwidth}{3.2em}
-\setlength{\cftsubsubsecnumwidth}{4.5em}
 $endif$
 
 % Imposta le dimensioni della pagina
