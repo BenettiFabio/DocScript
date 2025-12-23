@@ -167,192 +167,152 @@ function Para(el)
   end
 end
 
--- Gestione della larghezza delle Tabelle
-function Table(el)
-  local numCols = #el.colspecs
+-- -- Gestione della larghezza delle Tabelle
+-- function Table(el)
+--   local numCols = #el.colspecs
   
-  if numCols == 0 then
-    return el
-  end
+--   if numCols == 0 then
+--     return el
+--   end
   
-  local function getCellText(cell)
-    local text = ""
-    for _, block in ipairs(cell.contents) do
-      if block.t == "Plain" or block.t == "Para" then
-        for _, inline in ipairs(block.content) do
-          if inline.t == "Str" then
-            text = text .. inline.text
-          elseif inline.t == "Space" then
-            text = text .. " "
-          elseif inline.t == "Code" then
-            text = text .. inline.text
-          end
-        end
-      end
-    end
-    return text
-  end
+--   -- Strategia: distribuisci lo spazio in base al numero di colonne
+--   -- Le prime n-1 colonne ottengono una frazione equa dello spazio disponibile
+--   -- L'ultima colonna prende il resto (tipicamente più grande)
   
-  -- 1. Inizializzazione e tracciamento della lunghezza
-  local maxWordLength = {}
-  local totalTextLength = {}
-  local maxCellLength = {} -- Lunghezza massima di una singola cella (riga)
+--   local spaceForContent = 0.6  -- 60% per le colonne di contenuto
+--   local spaceForLast = 0.4     -- 40% per l'ultima colonna (minimo garantito)
   
-  for i = 1, numCols do
-    maxWordLength[i] = 0
-    totalTextLength[i] = 0
-    maxCellLength[i] = 0
-  end
+--   -- Se ci sono poche colonne, possiamo dare più spazio alle prime
+--   if numCols == 2 then
+--     spaceForContent = 0.3
+--     spaceForLast = 0.7
+--   elseif numCols == 3 then
+--     spaceForContent = 0.5
+--     spaceForLast = 0.5
+--   end
   
-  -- Analisi
-  local function analyzeContent(rows)
-    for _, row in ipairs(rows) do
-      for colIdx, cell in ipairs(row.cells) do
-        local text = getCellText(cell)
-        local textLength = #text
+--   -- Calcola larghezza per ogni colonna di contenuto
+--   local contentColWidth = spaceForContent / (numCols - 1)
+  
+--   -- Applica le larghezze
+--   for i = 1, numCols - 1 do
+--     el.colspecs[i] = {el.colspecs[i][1], contentColWidth}
+--   end
+  
+--   el.colspecs[numCols] = {el.colspecs[numCols][1], spaceForLast}
+  
+--   return el
+-- end
 
-        totalTextLength[colIdx] = totalTextLength[colIdx] + textLength
-        
-        -- Aggiorna la lunghezza della cella più lunga in questa colonna
-        maxCellLength[colIdx] = math.max(maxCellLength[colIdx], textLength) 
-        
-        for word in text:gmatch("%S+") do
-          maxWordLength[colIdx] = math.max(maxWordLength[colIdx], #word)
-        end
-      end
-    end
-  end
 
-  if el.head and el.head.rows then analyzeContent(el.head.rows) end
-  for _, tbody in ipairs(el.bodies) do analyzeContent(tbody.body) end
-  
-  -- 2. Verifica della "Semplicità Orrizzontale"
-  
-  local totalRequiredWidth = 0
-  local CHAR_TO_PERCENT = 0.01 -- Stima conservativa: 1% di larghezza per 10 caratteri
-  local MARGIN_PER_COL = 0.03  -- Margine di sicurezza per colonna
-  
-  for i = 1, numCols do
-    -- Stima la larghezza necessaria basata sulla cella più lunga
-    local required = maxCellLength[i] * CHAR_TO_PERCENT 
-    totalRequiredWidth = totalRequiredWidth + required + MARGIN_PER_COL
-  end
 
-  -- Soglia di attivazione: Se la larghezza richiesta è inferiore al 95% dello spazio totale
-  local MAX_SAFE_WIDTH = 0.95
-  local isNarrowEnough = totalRequiredWidth < MAX_SAFE_WIDTH
-  
-  -- === LOGICA DI USCITA: Se è abbastanza stretta, usa la logica fissa/equa ===
-  if isNarrowEnough and numCols > 1 then
-    
-    -- Applico una logica di distribuzione fissa con % bloccate
-    local spaceForContent = 0.6
-    local spaceForLast = 0.4
-    
-    if numCols == 2 then
-      spaceForContent = 0.3 
-      spaceForLast = 0.7
-    elseif numCols == 3 then
-      spaceForContent = 0.5
-      spaceForLast = 0.5
-    end
-    
-    local contentColWidth = (numCols > 1) and (spaceForContent / (numCols - 1)) or spaceForContent
-    
-    for i = 1, numCols - 1 do
-      el.colspecs[i] = {el.colspecs[i][1], contentColWidth}
-    end
-    
-    el.colspecs[numCols] = {el.colspecs[numCols][1], spaceForLast}
-    
-    return el -- Uscita immediata: non c'è bisogno del calcolo dinamico
-  end
-  -- ==========================================================================
 
-  -- 3. Continua con la Logica di Equilibrio (Se è troppo larga o sbilanciata)
-  
-  local minContent = totalTextLength[1]
-  local maxContent = totalTextLength[1]
-  
-  for i = 2, numCols do
-    if totalTextLength[i] < minContent then
-      minContent = totalTextLength[i]
-    end
-    if totalTextLength[i] > maxContent then
-      maxContent = totalTextLength[i]
-    end
-  end
-  
-  -- Margine di sicurezza
-  local marginPerCol = 0.02
-  local totalMargin = marginPerCol * (numCols - 1)
-  local availableSpace = 1.0 - totalMargin
-  
-  -- Soglia di bilanciamento (per tabelle dinamiche/complesse)
-  -- se la colonna piú larga ha almeno il 30% in piu' di testo delle altre -> considero "sbilanciata"
-  local BALANCE_THRESHOLD = 0.30 
-  local differenceIsSignificant = (maxContent - minContent) > (maxContent * BALANCE_THRESHOLD)
-  
-  -- === LOGICA DI EQUILIBRIO: DISTRIBUZIONE EQUA ===
-  if not differenceIsSignificant and numCols > 1 then
-    local equalWidth = availableSpace / numCols
-    for i = 1, numCols do
-      el.colspecs[i] = {el.colspecs[i][1], equalWidth}
-    end
-    return el
-  end
-  -- ===============================================
-  
-  -- 4. Logica Colonna Larga (Solo se la tabella è troppo larga E sbilanciata)
-  
-  local maxContentCol = 1
-  for i = 2, numCols do
-    if totalTextLength[i] > totalTextLength[maxContentCol] then
-      maxContentCol = i
-    end
-  end
-  
-  -- Calcola larghezza fissa per colonne piccole
-  local fixedWidths = {}
-  local totalFixed = 0
-  
-  local CHAR_WIDTH_COEFF = 0.005  
-  local MIN_WIDTH = 0.10
-  local MAX_FIXED_WIDTH = 0.35 
 
-  for i = 1, numCols do
-    if i ~= maxContentCol then
-      -- 1. Stima basata sulla quantità totale di testo nella colonna
-      local estimated_width = totalTextLength[i] * CHAR_WIDTH_COEFF
-      
-      -- 2. Assicurati che rispetti i limiti generosi
-      local width = math.max(MIN_WIDTH, math.min(MAX_FIXED_WIDTH, estimated_width))
-      
-      -- 3. Garanzia per la parola più lunga
-      width = math.max(width, maxWordLength[i] * 0.008 + 0.06)
-      
-      fixedWidths[i] = width
-      totalFixed = totalFixed + width
-    end
-  end
-  
-  local wideWidth = availableSpace - totalFixed
-  
-  -- 5. Applicazione delle Larghezze
-  if wideWidth < 0.25 then
-    local equalWidth = availableSpace / numCols
-    for i = 1, numCols do
-      el.colspecs[i] = {el.colspecs[i][1], equalWidth}
-    end
-  else
-    for i = 1, numCols do
-      if i == maxContentCol then
-        el.colspecs[i] = {el.colspecs[i][1], wideWidth}
-      else
-        el.colspecs[i] = {el.colspecs[i][1], fixedWidths[i]}
-      end
-    end
-  end
-  
-  return el
+-- Mappa emoji shortcode in formato github --> comando LaTeX Typicons
+local emoji_map = {
+  warning = "\\tiWarningOutline",
+  -- aggiungi qui altre mappature se ti servono
+  -- esempio:
+  -- info    = "\\tiInfoOutline",
+  -- error   = "\\tiErrorOutline",
+  information_source = "\\tiInfoLargeOutline",
+  white_check_mark = "\\tiInputChecked",
+  bookmark = "\\tiBookmark",
+  no_entry_sign = "\\tiCancel",
+  x = "\\tiDelete",
+  computer = "\\tiDeviceDesktop",
+  heavy_minus_sign = "\\tiMinusOutline",
+  wrench = "\\tiSpanner",
+  bulb = "\\tiLightbulb",
+  key = "\\tiKeyOutline",
+  -- ... 
+}
+
+-- Funzione di utilità: verifica se il blocco è un RawInline LaTeX
+local function is_latex_raw(inline)
+  return inline.t == "RawInline" and inline.format == "latex"
 end
+
+-- Converte un testo del tipo ":warning:" in un Inline Raw LaTeX
+local function emoji_to_latex(shortcode)
+  local cmd = emoji_map[shortcode]
+  if not cmd then return nil end
+  -- Aggiunge uno spazio alla fine del comando LaTeX
+  local cmd_with_space = cmd .. "\\ "
+  -- Ritorna un RawInline LaTeX contenente il comando (con spazio LaTeX)
+  return pandoc.RawInline("latex", cmd_with_space)
+end
+
+-- --------------------------------------------------------------------
+-- 1. Trasforma le emoji presenti nei paragrafi (e in altri blocchi
+--    di tipo Inlines) quando il target è LaTeX.
+-- --------------------------------------------------------------------
+-- 3️⃣  Funzione principale: opera su ogni Inline di tipo Str
+function Inline(el)
+  -- Operiamo solo se il formato di destinazione è LaTeX
+  if not FORMAT:match("^latex") then return nil end
+
+  if el.t ~= "Str" then return nil end   -- gestiamo solo stringhe
+
+  -- Pattern che accetta lettere, cifre e underscore:
+  --   :nome:          → %w+
+  --   :nome_con_ _:   → %w[_%w]*
+  local pattern = ":(%w[_%w]*)%:"
+
+  local new_inlines = {}
+  local start = 1
+
+  while true do
+    local s, e, name = el.text:find(pattern, start)
+    if not s then
+      -- Nessun altro match: aggiungi il resto della stringa
+      table.insert(new_inlines,
+        pandoc.Str(el.text:sub(start)))
+      break
+    end
+
+    -- Parte precedente all'emoji (se presente)
+    if s > start then
+      table.insert(new_inlines,
+        pandoc.Str(el.text:sub(start, s - 1)))
+    end
+
+    -- Conversione emoji → LaTeX (se conosciuta)
+    local latex = emoji_to_latex(name)
+    if latex then
+      table.insert(new_inlines, latex)
+    else
+      -- Emoji sconosciuta: mantieni il testo originale
+      table.insert(new_inlines,
+        pandoc.Str(":" .. name .. ":"))
+    end
+
+    start = e + 1
+  end
+
+  -- Restituiamo una lista di inlines (o l’unico elemento)
+  if #new_inlines > 1 then
+    return pandoc.Inlines(new_inlines)
+  else
+    return new_inlines[1]
+  end
+end
+
+-- --------------------------------------------------------------------
+-- 2. (Facoltativo) Rimuove le emoji dai formati non‑LaTeX.
+--    Se preferisci mantenere il testo “:warning:” anche in HTML, commenta
+--    questa funzione.
+-- --------------------------------------------------------------------
+-- function Str(el)
+--   if not FORMAT:match("^latex") then
+--     -- Sostituisci gli shortcode con una stringa vuota oppure con
+--     -- un fallback testuale a tua scelta.
+--     -- local cleaned = el.text:gsub(":(%w+):", "")
+--     -- pattern: tra i due due punti sono accettati solo caratteri alfanumerici e l’underscore (_).
+--     local cleaned = el.text:gsub(":(%w[_%w]*)%:", "")
+--     if cleaned ~= el.text then
+--       return pandoc.Str(cleaned)
+--     end
+--   end
+--   return nil
+-- end
