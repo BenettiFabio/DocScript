@@ -356,3 +356,112 @@ function Table(el)
   
   return el
 end
+
+-- Mappa emoji shortcode in formato github --> comando LaTeX Typicons
+local emoji_map = {
+  warning = "\\tiWarningOutline",
+  -- aggiungi qui altre mappature se ti servono
+  -- esempio:
+  -- info    = "\\tiInfoOutline",
+  -- error   = "\\tiErrorOutline",
+  information_source = "\\tiInfoLargeOutline",
+  white_check_mark = "\\tiInputChecked",
+  bookmark = "\\tiBookmark",
+  no_entry_sign = "\\tiCancel",
+  x = "\\tiDelete",
+  computer = "\\tiDeviceDesktop",
+  heavy_minus_sign = "\\tiMinusOutline",
+  wrench = "\\tiSpanner",
+  bulb = "\\tiLightbulb",
+  key = "\\tiKeyOutline",
+  -- ... 
+}
+
+-- Funzione di utilità: verifica se il blocco è un RawInline LaTeX
+local function is_latex_raw(inline)
+  return inline.t == "RawInline" and inline.format == "latex"
+end
+
+-- Converte un testo del tipo ":warning:" in un Inline Raw LaTeX
+local function emoji_to_latex(shortcode)
+  local cmd = emoji_map[shortcode]
+  if not cmd then return nil end
+  -- Aggiunge uno spazio alla fine del comando LaTeX
+  local cmd_with_space = cmd .. "\\ "
+  -- Ritorna un RawInline LaTeX contenente il comando (con spazio LaTeX)
+  return pandoc.RawInline("latex", cmd_with_space)
+end
+
+-- --------------------------------------------------------------------
+-- 1. Trasforma le emoji presenti nei paragrafi (e in altri blocchi
+--    di tipo Inlines) quando il target è LaTeX.
+-- --------------------------------------------------------------------
+-- 3️⃣  Funzione principale: opera su ogni Inline di tipo Str
+function Inline(el)
+  -- Operiamo solo se il formato di destinazione è LaTeX
+  if not FORMAT:match("^latex") then return nil end
+
+  if el.t ~= "Str" then return nil end   -- gestiamo solo stringhe
+
+  -- Pattern che accetta lettere, cifre e underscore:
+  --   :nome:          → %w+
+  --   :nome_con_ _:   → %w[_%w]*
+  local pattern = ":(%w[_%w]*)%:"
+
+  local new_inlines = {}
+  local start = 1
+
+  while true do
+    local s, e, name = el.text:find(pattern, start)
+    if not s then
+      -- Nessun altro match: aggiungi il resto della stringa
+      table.insert(new_inlines,
+        pandoc.Str(el.text:sub(start)))
+      break
+    end
+
+    -- Parte precedente all'emoji (se presente)
+    if s > start then
+      table.insert(new_inlines,
+        pandoc.Str(el.text:sub(start, s - 1)))
+    end
+
+    -- Conversione emoji → LaTeX (se conosciuta)
+    local latex = emoji_to_latex(name)
+    if latex then
+      table.insert(new_inlines, latex)
+    else
+      -- Emoji sconosciuta: mantieni il testo originale
+      table.insert(new_inlines,
+        pandoc.Str(":" .. name .. ":"))
+    end
+
+    start = e + 1
+  end
+
+  -- Restituiamo una lista di inlines (o l’unico elemento)
+  if #new_inlines > 1 then
+    return pandoc.Inlines(new_inlines)
+  else
+    return new_inlines[1]
+  end
+end
+
+-- --------------------------------------------------------------------
+-- 2. (Facoltativo) Rimuove le emoji dai formati non‑LaTeX.
+--    Se preferisci mantenere il testo “:warning:” anche in HTML, commenta
+--    questa funzione.
+-- --------------------------------------------------------------------
+-- function Str(el)
+--   if not FORMAT:match("^latex") then
+--     -- Sostituisci gli shortcode con una stringa vuota oppure con
+--     -- un fallback testuale a tua scelta.
+--     -- local cleaned = el.text:gsub(":(%w+):", "")
+--     -- pattern: tra i due due punti sono accettati solo caratteri alfanumerici e l’underscore (_).
+--     local cleaned = el.text:gsub(":(%w[_%w]*)%:", "")
+--     if cleaned ~= el.text then
+--       return pandoc.Str(cleaned)
+--     end
+--   end
+--   return nil
+-- end

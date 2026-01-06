@@ -36,7 +36,8 @@
 \usepackage{enumitem}   % per gli indici
 
 \usepackage{graphicx}   % per immagini
-\usepackage{float}
+\usepackage{float}      % consente di posizionare immagini con precisione
+\floatplacement{figure}{H}
 \usepackage{caption}
 
 \usepackage{longtable}  % per le tabelle
@@ -64,6 +65,8 @@
 
 \usepackage{fancyhdr}   % per gli header/footer
 \usepackage{lastpage}
+
+\usepackage{typicons}   % to handle the emojis/icons
 
 $if(draft)$
 \usepackage{draftwatermark} % watermark

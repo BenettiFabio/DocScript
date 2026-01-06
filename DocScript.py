@@ -13,7 +13,7 @@ import subprocess
 
 ## DEFINES ##
 
-PY_VERSION = "3.3.0"
+PY_VERSION = "3.3.1"
 
 CONFIG_DIR_NAME     = "config"
 CONFFILE_DIR_NAME   = "config-files"
