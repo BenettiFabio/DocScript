@@ -6,6 +6,7 @@ from src.config import (
     CustomPaths,
     check_inconsistency,
     check_integrity,
+    combine_and_execute,
     create_build_dir,
     create_new_note,
     create_vault_structure,
@@ -91,6 +92,7 @@ def start_note(ConfigPath: CustomPaths, noteName: str | Path) -> None:
 
 def conversion_procedure(
     mode: CMode,
+    cfgCstmPath: CustomPaths,
     src: str | None = None,
     dst: str | None = None,
 ) -> None:
@@ -112,11 +114,12 @@ def conversion_procedure(
             file_found_main = get_all_files_from_main(False)
 
         # Reduce the number of notes to only those of interest
-        filter_file_list_main = []
-        filter_file_list_root = []
+        filter_file_list_main: list[str] = []
+        filter_file_list_root: list[str] = []
         bypassFlag = False
         if modality == CMode.ONE.name:
-            filter_file_list_main.append(src)
+            if src is not None:
+                filter_file_list_main.append(src)
             filter_file_list_root = file_found_root
             bypassFlag = True
 
@@ -150,11 +153,12 @@ def conversion_procedure(
     # Check system requirements
     check_precondition()
 
-    # Create combined_file.md
-    # - remove header from every files
-    # - combine the files
-    # - write yaml on top
+    # Create a list for combined_file.md
+    root_map = {Path(p).name: p for p in filter_file_list_root}
+    only_used_files = [root_map[Path(name).name] for name in filter_file_list_main]
 
     # Effective conversion
+    if dst is not None:
+        combine_and_execute(only_used_files, cfgCstmPath, dst)
 
     # Remove temp files

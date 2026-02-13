@@ -179,19 +179,23 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
     # -------------------------------
     if args.note:
         cMode = CMode.ONE
-        workflow.conversion_procedure(cMode, src=args.note[0], dst=args.note[1])
+        workflow.conversion_procedure(
+            cMode, ConfigCustomPaths, src=args.note[0], dst=args.note[1]
+        )
         return
     if args.group:
         cMode = CMode.GROUP
-        workflow.conversion_procedure(cMode, src=args.group[0], dst=args.group[1])
+        workflow.conversion_procedure(
+            cMode, ConfigCustomPaths, src=args.group[0], dst=args.group[1]
+        )
         return
     if args.all:
         cMode = CMode.ALL
-        workflow.conversion_procedure(cMode, dst=args.all)
+        workflow.conversion_procedure(cMode, ConfigCustomPaths, dst=args.all)
         return
     if args.custom:
         cMode = CMode.CUSTOM
-        workflow.conversion_procedure(cMode, dst=args.custom)
+        workflow.conversion_procedure(cMode, ConfigCustomPaths, dst=args.custom)
         return
 
     print(pyfiglet.figlet_format("DocScript", font="slant"))

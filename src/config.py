@@ -4,6 +4,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from src.pandoc.runner import execute_pandoc
 from src.utils import (
     copy_dir_recursive,
     safe_path,
@@ -246,6 +247,12 @@ def add_new_start(start_file: str | Path) -> str:
         sys.exit(1)
 
     return start_file
+
+
+def chose_right_position(isBank: bool, file: str) -> Path:
+    if not isBank:
+        return safe_path(BUILD_V_PATH, file)
+    return safe_path(BUILD_B_PATH, file)
 
 
 def check_integrity() -> None:
@@ -522,7 +529,9 @@ def check_inconsistency(
             Path(path).name for path in filtered_matching_files_root
         ]
 
-        normalized_main_list: list[str] = [Path(path).name for path in matching_files_main]
+        normalized_main_list: list[str] = [
+            Path(path).name for path in matching_files_main
+        ]
 
         main_set = set(normalized_main_list)
         actual_set = set(normalized_actual_list)
@@ -540,9 +549,9 @@ def check_inconsistency(
         # -----------------------------------------------------------------
 
         # root is the entire vault (_TEMPORARY_DIR included)
-        normalized_actual_list = [Path(path) for path in matching_files_root]
+        normalized_actual_list = [str(Path(path)) for path in matching_files_root]
         normalized_main_list = [Path(path).name for path in matching_files_main]
-        path_by_name = {p.name: p for p in normalized_actual_list}
+        path_by_name = {Path(p).name: p for p in normalized_actual_list}
 
         for filename in normalized_main_list:
             # check the file name if found in root
@@ -553,6 +562,119 @@ def check_inconsistency(
             full_path = path_by_name[filename]
 
             # check if exists in root
-            if not full_path.exists():
+            if not Path(full_path).exists():
                 print(f"Errore: file {full_path} non trovato su filesystem")
                 sys.exit(1)
+
+
+def combine_and_execute(
+    matching_files: list[str], cfgCstmPath: CustomPaths, dst: str
+) -> None:
+    """
+    Combine the respective notes in a single .md file.
+    Remove the header from each and copy a correct yaml data on top.
+    """
+
+    unified = chose_right_position(is_bank(), COMB_FILE_NAME)
+
+    with open(unified, "w", encoding="utf-8") as combined_md_file:
+        for file in matching_files:
+            if os.path.exists(file):
+                # Ottieni il contenuto senza header
+                filtered_lines = remove_std_header(Path(file))
+
+                # Scrivi il contenuto filtrato nel file combinato
+                combined_md_file.writelines(filtered_lines)
+                combined_md_file.write("\n")
+            else:
+                print(f"Avviso: il file '{file}' non è stato trovato e sarà ignorato.")
+
+    # Aggiunge il blocco YAML da config se presente
+    copy_config_yaml(unified, cfgCstmPath)
+
+    print(f"File combinato creato: {unified}")
+
+    dst_path = chose_right_position(is_bank(), dst)
+
+    execute_pandoc(
+        cfgCstmPath.custom_teml_path,
+        cfgCstmPath.custom_luaf_path,
+        cfgCstmPath.custom_pandoc_opt_path,
+        unified,
+        dst_path,
+    )
+
+
+def remove_std_header(filePath: Path) -> list[str]:
+    """
+    Reads a md file, return the content without the specified header.
+    Do not modify any other rows.
+    """
+    if not os.path.exists(filePath):
+        print(f"Errore: il file '{filePath}' non esiste.")
+        sys.exit(1)
+
+    # Read all the file
+    with open(filePath, encoding="utf-8") as file:
+        lines = file.readlines()
+
+    # Remove header rows
+    content_started = False
+    filtered_lines = []
+    for line in lines:
+        if "<!-- /code_chunk_output -->" in line:
+            content_started = True
+            continue
+        if content_started:
+            filtered_lines.append(line)
+
+    # If the header does not exists, return the entire content
+    if not content_started:
+        return lines
+
+    return filtered_lines
+
+
+def copy_config_yaml(CombinedPath: Path, cfgCstmPath: CustomPaths) -> None:
+    """
+    Copy the YAML from the config/.conf file in the specified file
+    Paste this YAML to the top of combined_notes_path
+    """
+
+    try:
+        if cfgCstmPath.custom_yaml_path is not None:
+            # Legge il contenuto del file config/my_yaml.yaml
+            with open(cfgCstmPath.custom_yaml_path, encoding="utf-8") as f:
+                content = f.read()
+
+            yaml_block = None
+            # Se il file inizia con '---' cerco il marcatore di chiusura ('---' o '...')
+            if content.lstrip().startswith("---"):
+                # Trova il primo marcatore di chiusura che compare su una linea a parte
+                m = re.search(r"\n(---|\.\.\.)(?:\r?\n)", content)
+                if m:
+                    yaml_block = content[: m.end()]
+
+            if yaml_block:
+                # Legge il contenuto attuale del file combined_notes.md
+                with open(CombinedPath, encoding="utf-8") as f:
+                    combined_content = f.read()
+
+                # Se il file combined_notes.md ha già un blocco YAML lo rimuovo
+                if combined_content.lstrip().startswith("---"):
+                    m2 = re.search(r"\n(---|\.\.\.)(?:\r?\n)", combined_content)
+                    if m2:
+                        combined_content = combined_content[m2.end() :].lstrip()
+
+                # Aggiunge il nuovo blocco YAML all'inizio
+                new_content = f"{yaml_block}\n\n{combined_content}"
+
+                # Scrive il nuovo contenuto nel file combined_notes.md
+                with open(CombinedPath, "w", encoding="utf-8") as f:
+                    f.write(new_content)
+
+            else:
+                print(f"Nessun blocco YAML trovato in {cfgCstmPath.custom_yaml_path}")
+
+    except Exception as e:
+        print(f"Errore durante la copia del blocco YAML: {str(e)}")
