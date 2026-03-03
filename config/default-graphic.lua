@@ -374,6 +374,7 @@ local emoji_map = {
   wrench = "\\tiSpanner",
   bulb = "\\tiLightbulb",
   key = "\\tiKeyOutline",
+  star = "\\tiStar",
   -- ... 
 }
 
