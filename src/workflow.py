@@ -10,6 +10,7 @@ from src.config import (
     create_build_dir,
     create_new_note,
     create_vault_structure,
+    get_all_files_from_bank,
     get_all_files_from_main,
     get_all_files_from_root,
     is_bank,
@@ -40,7 +41,7 @@ It is the implementation of the user requests handled by cli.py.
 
 def init_vault(bankFlag: bool = False) -> None:
     """
-    Initialize the Vault Structure
+    Initialize the Vault (or the Bank) Structure
     """
 
     if is_bank():
@@ -74,6 +75,11 @@ def init_vault(bankFlag: bool = False) -> None:
 
 
 def start_note(ConfigPath: CustomPaths, noteName: str | Path) -> None:
+    """
+    Insert in the chosen path a new indented basic file.
+    Is necessary to respect the infrastructure rules and the file format.
+    """
+
     noteName = str(noteName)
 
     if is_bank():
@@ -96,6 +102,15 @@ def conversion_procedure(
     src: str | None = None,
     dst: str | None = None,
 ) -> None:
+    """
+    Start a conversion with a single or multiple files, into a .pdf or .tex
+    The file will be generated in build/
+
+    Note:
+    - Files will be searched within the local vault for personal use
+    - Files will be searched within all collaborators' vaults
+    for database use
+    """
 
     # Check modality
     modality = mode.name
@@ -108,10 +123,7 @@ def conversion_procedure(
     if not is_bank():
         # Find files in vault
         file_found_root = get_all_files_from_root()
-        if modality == CMode.CUSTOM.name:
-            file_found_main = get_all_files_from_main(True)
-        else:
-            file_found_main = get_all_files_from_main(False)
+        file_found_main = get_all_files_from_main(mode)
 
         # Reduce the number of notes to only those of interest
         filter_file_list_main: list[str] = []
@@ -145,7 +157,14 @@ def conversion_procedure(
         check_inconsistency(filter_file_list_main, filter_file_list_root, bypassFlag)
 
     else:
-        print("TODO: find file if bank")
+        # Bank: files live in multiple collaborator vaults.
+        # No consistency check (there is no single root to compare against).
+        filter_file_list_main = get_all_files_from_bank(mode)
+        # For the bank case the main list already carries absolute paths,
+        # so root and main can be the same list: the root_map below will
+        # resolve correctly (filename → absolute path).
+        filter_file_list_root = filter_file_list_main
+        bypassFlag = True
 
     # Create Build dir
     create_build_dir()
@@ -160,5 +179,6 @@ def conversion_procedure(
     # Effective conversion
     if dst is not None:
         combine_and_execute(only_used_files, cfgCstmPath, dst)
-
-    # Remove temp files
+    else:
+        print("Errore: nessun file di output selezionato")
+        sys.exit(1)

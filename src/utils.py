@@ -1,8 +1,11 @@
 import os
 import re
 import shutil
+import stat
 import subprocess
 import textwrap
+import time
+from collections.abc import Callable
 from pathlib import Path
 
 ###############
@@ -11,6 +14,23 @@ from pathlib import Path
 """
 Generic all-rounded function
 """
+
+
+def is_network_path() -> bool:
+    """
+    It understands whether it is in a shared folder on a network path or a local folder
+    in Windows. For Linux this distinction is irrelevant.
+    """
+
+    is_windows = os.name == "nt"
+
+    # ====== WIN ======
+    if is_windows:
+        here = os.getcwd()
+        return here.startswith("\\\\") or not here.startswith("C:")
+
+    # ====== UNIX ======
+    return False
 
 
 def normalize_unc_path(windows_path: str) -> str:
@@ -116,6 +136,27 @@ def safe_path(*parts: str | Path) -> Path:
     return Path(to_unix_path(joined))
 
 
+def remove_dir(target: Path, retries: int = 3, delay: float = 1.0) -> None:
+    """
+    Removes a directory tree, retrying on failure (e.g. Windows locks).
+    Forces read-only files to be writable before deletion.
+    """
+
+    def _force_write(func: Callable[..., None], path: str, _exc: object) -> None:
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+
+    for attempt in range(retries):
+        try:
+            shutil.rmtree(target, onerror=_force_write)
+            return
+        except Exception as exc:
+            if attempt < retries - 1:
+                time.sleep(delay)
+            else:
+                print(f"Attenzione: impossibile rimuovere '{target}': {exc}")
+
+
 def copy_dir_recursive(src: str | Path, dst: str | Path) -> None:
     """
     Recursively copies the contents of a `src` directory to `dst`,
@@ -157,6 +198,9 @@ def copy_dir_recursive(src: str | Path, dst: str | Path) -> None:
 
 
 def write_file(fileName: str | Path, content: str) -> None:
+    """
+    Write the specified file name with a content passed
+    """
     fileName = str(fileName)
     content = textwrap.dedent(content)
 
@@ -165,12 +209,16 @@ def write_file(fileName: str | Path, content: str) -> None:
 
 
 def should_skip_dir(dir_path: str, BLACKLIST: list[str]) -> bool:
-    """Check if specified dir need to be excluded from a dirs scan"""
+    """
+    Check if specified dir need to be excluded from a dirs scan
+    """
     dir_path = str(dir_path)
     return dir_path in BLACKLIST
 
 
 def should_skip_file(file_path: str, BLACKLIST: list[str]) -> bool:
-    """Check if specified file need to be excluded from a files scan"""
+    """
+    Check if specified file need to be excluded from a files scan
+    """
     file_name = os.path.basename(file_path)
     return file_name in BLACKLIST

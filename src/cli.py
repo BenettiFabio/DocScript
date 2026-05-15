@@ -1,10 +1,12 @@
 import argparse
+import os
 import sys
 
 import pyfiglet
 
 from src import workflow
 from src.config import CustomPaths, check_config_file, check_priority_opt
+from src.utils import safe_path
 from src.version import DOCSCRIPT_VERSION as DCV
 from src.workflow import CMode
 
@@ -122,6 +124,9 @@ def main() -> None:
 
 
 def dispatch(parser: argparse.ArgumentParser) -> None:
+    """
+    Handle the arguments from cmd line
+    """
 
     args = parser.parse_args()
 
@@ -168,6 +173,7 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
         return
     if args.update:
         print("update-bank")
+        # todo: da aggiungere il comportamento di update per il lavoro condiviso
         # workflow.update_bank()
         return
     if args.version:
@@ -179,23 +185,29 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
     # -------------------------------
     if args.note:
         cMode = CMode.ONE
+        validate_output(args.note[1])
         workflow.conversion_procedure(
             cMode, ConfigCustomPaths, src=args.note[0], dst=args.note[1]
         )
         return
     if args.group:
         cMode = CMode.GROUP
+        validate_output(args.group[1])
         workflow.conversion_procedure(
             cMode, ConfigCustomPaths, src=args.group[0], dst=args.group[1]
         )
         return
     if args.all:
         cMode = CMode.ALL
-        workflow.conversion_procedure(cMode, ConfigCustomPaths, dst=args.all)
+        validate_output(args.all)
+        workflow.conversion_procedure(cMode, ConfigCustomPaths, src=None, dst=args.all)
         return
     if args.custom:
         cMode = CMode.CUSTOM
-        workflow.conversion_procedure(cMode, ConfigCustomPaths, dst=args.custom)
+        validate_output(args.custom)
+        workflow.conversion_procedure(
+            cMode, ConfigCustomPaths, src=None, dst=args.custom
+        )
         return
 
     print(pyfiglet.figlet_format("DocScript", font="slant"))
@@ -241,7 +253,24 @@ def validate_args(args: argparse.Namespace) -> None:
             sys.exit(1)
 
 
+def validate_output(output: str | None) -> None:
+    """
+    Verify that the output file has a valid extension (.pdf or .tex).
+    If it is not valid, terminate the program.
+    """
+    outPath = safe_path(str(output))
+    ext = os.path.splitext(outPath)[1].lower()
+    if ext not in [".pdf", ".tex"]:
+        print(
+            f"Errore: il file di output '{output}' deve avere estensione .pdf o .tex."
+        )
+        sys.exit(1)
+
+
 def get_command(args: argparse.Namespace) -> str:
+    """
+    Return a string from the cmd selected
+    """
     if args.init:
         return "init"
     if args.init_bank:
