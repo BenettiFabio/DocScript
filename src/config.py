@@ -14,6 +14,7 @@ from src.utils import (
     should_skip_file,
     write_file,
     normalize_unc_path,
+    convert_link_to_absolute,
 )
 from src.modes import CMode
 
@@ -33,6 +34,7 @@ _PRJ_SRC_DIR = _PRJ_CONFIG_FILE.parent  # /src
 _PRJ_ROOT_DIR = _PRJ_SRC_DIR.parent  # /DocScript
 _PRJ_PARENT_DIR = _PRJ_ROOT_DIR.parent  # /MyPersonalDocs
 _HOME_DIR = Path.home()
+_APPL_NAME = "DocScript"
 
 _VAULT_DIR = Path(os.path.join(_PRJ_ROOT_DIR, "..", "vault")).resolve()
 _BANK_DIR = Path(os.path.join(_PRJ_ROOT_DIR, "..", "bank")).resolve()
@@ -47,7 +49,7 @@ _BUILD_DIR = "build"
 _TEMPORARY_DIR = "rusco"
 _ASSETS_DIR = "assets"
 _DFLT_CONFIG_DIR = Path(os.path.join(_PRJ_ROOT_DIR, _CONFIG_DIR)).resolve()
-_APPL_DIR = Path(os.path.join(_HOME_DIR, "Documents", "DocScript")).resolve()
+_APPL_DIR = Path(os.path.join(_HOME_DIR, "Documents", _APPL_NAME)).resolve()
 
 COLLAB_FILE_NAME = "collaborator.md"
 COMB_FILE_NAME = "combined_notes.md"
@@ -586,12 +588,13 @@ def get_all_files_from_main(mode: CMode) -> list[str]:
     return matching_files
 
 
-def get_all_files_from_bank(mode: CMode) -> list[str]:
+def get_all_files_from_bank(mode: CMode) -> tuple[list[str], dict[str, str]]:
     """
     Reads collaborator.md to build a map  name → collaborator main.md path.
     Then reads the bank main.md (or custom.md) to know which notes to include
     and in which order.
-    Returns a list of absolute paths resolved inside each collaborator's vault.
+    Returns a list of absolute paths resolved inside each collaborator's vault
+    and a dictionary of active collaborators.
     """
 
     collab_file = safe_path(_BANK_DIR, COLLAB_FILE_NAME)
@@ -637,8 +640,12 @@ def get_all_files_from_bank(mode: CMode) -> list[str]:
             line = line.strip()
             if line.startswith("##") or line.startswith("#"):
                 name = line.lstrip("#").strip()
-                if name in all_collaborators:
+                if name in all_collaborators and name not in active_collaborators:
                     active_collaborators.append(name)
+
+    active_collaborators_map = {
+        name: all_collaborators[name] for name in active_collaborators
+    }
 
     # 3. Resolve each note to an absolute path in the collaborator vault
     matching_files: list[str] = []
@@ -653,9 +660,9 @@ def get_all_files_from_bank(mode: CMode) -> list[str]:
                 continue
 
             note_match = re.search(r"\[.*?\]\(([^)]+\.md)\)", stripped)
-            if note_match and current_collab in active_collaborators:
+            if note_match and current_collab in active_collaborators_map:
                 note_rel = note_match.group(1)
-                collab_main = all_collaborators.get(current_collab)
+                collab_main = active_collaborators_map.get(current_collab)
 
                 if not collab_main:
                     print(
@@ -678,7 +685,7 @@ def get_all_files_from_bank(mode: CMode) -> list[str]:
         print(f"Error: No file found in '{label}'.")
         sys.exit(1)
 
-    return matching_files
+    return matching_files, active_collaborators_map
 
 
 def check_inconsistency(
@@ -743,8 +750,26 @@ def check_inconsistency(
                 sys.exit(1)
 
 
+def copy_assets(output_dir: str, collaborators: dict[str, str]):
+    """
+    Copy the assets directories of all collaborators into output_dir.
+    If multiple collaborators use the same asset subfolders, the contents are
+    merged without overwriting unchanged files.
+    """
+    for name, main_md_path in collaborators.items():
+        collab_assets_dir = os.path.join(
+            os.path.dirname(main_md_path), "assets")
+        if os.path.exists(collab_assets_dir):
+            copy_dir_recursive(collab_assets_dir, output_dir)
+            print(f"Assets copied for {name} into {output_dir}")
+        else:
+            print(
+                f"Warning: assets not found for {name} in {collab_assets_dir}")
+
+
 def combine_and_execute(
     matching_files: list[str],
+    collaborators: dict[str, str],
     cfgCstmPath: CustomPaths,
     dst: str,
 ) -> None:
@@ -806,17 +831,20 @@ def combine_and_execute(
         app_config.mkdir(parents=True, exist_ok=True)
 
         # -- Copy combined note --
+        print(f"1 - Moving combined note... to {app_build}")
         local_unified = app_build / unified.name
         shutil.copy2(unified, local_unified)
 
         # -- Copy assets --
+        print(f"2 - Copying assets... to {app_assets}")
         if app_assets.exists():
             shutil.rmtree(app_assets)
-        if os.path.exists(assets_dir):
-            shutil.copytree(assets_dir, app_assets)
+        app_assets.mkdir(parents=True, exist_ok=True)
+        copy_assets(str(app_assets), collaborators)
 
         # -- Copy config files (renamed to default names so execute_pandoc
         #    doesn't need to know which custom file is in use) --
+        print(f"3 - Copying config files... to {app_config}")
         shutil.copy2(str(cfgCstmPath.custom_teml_path),
                      app_config / TEMPLATE_NAME)
         shutil.copy2(str(cfgCstmPath.custom_luaf_path),
@@ -840,6 +868,7 @@ def combine_and_execute(
         )
 
         # -- Copy result back to bank build --
+        print(f"4 - Copying result... to {dst_path}")
         if local_dst.exists():
             shutil.copy2(local_dst, dst_path)
         else:
@@ -847,7 +876,7 @@ def combine_and_execute(
                 f"Warning: Output '{local_dst}' not found after the conversion.")
 
         # -- Delete _APPL_DIR entirely --
-        remove_dir(app_dir)
+        remove_dir(app_assets)
 
     # Remove temp files
     clean_build_dir(build_dir)
@@ -947,3 +976,75 @@ def clean_build_dir(build_dir: Path) -> None:
             except Exception as exc:
                 print(
                     f"Warning: Impossible remove '{item.name}': {exc}")
+
+
+def update_bank_files() -> None:
+    """
+    Update the collaborative bank by validating collaborator links to their
+    `main.md` files and composing a combined `main.md` in the bank root.
+    """
+
+    print("Updating collaborative bank...")
+
+    bank_dir = safe_path(_BANK_DIR)
+    collab_file = safe_path(bank_dir, COLLAB_FILE_NAME)
+    main_bank_path = safe_path(bank_dir, MAIN_FILE_NAME)
+
+    if not collab_file.exists():
+        print(f"Error: the file '{collab_file}' does not exist.")
+        sys.exit(1)
+
+    # Read collaborator file
+    with open(str(collab_file), "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    collaborator = None
+    errors: list[str] = []
+    # list of (name, path_to_main.md)
+    collab_mainmd: list[tuple[str, Path]] = []
+
+    for line in lines:
+        line = line.strip()
+        if line.startswith("##"):
+            collaborator = line[2:].strip()
+
+        # Search for markdown link to main.md
+        match = re.search(r"\[.*?\]\((.*?main\.md)\)", line)
+        if match:
+            main_md_path = safe_path("..", match.group(1))
+            if not Path(main_md_path).exists():
+                errors.append(
+                    f"Collaborator '{collaborator}': main.md not found at '{main_md_path}'"
+                )
+            else:
+                print(
+                    f"Collaborator '{collaborator}': main.md found at '{main_md_path}'")
+                collab_mainmd.append((collaborator or "", Path(main_md_path)))
+
+    if errors:
+        print("The following errors were found in collaborator main.md links:")
+        for err in errors:
+            print(f"- {err}")
+        sys.exit(1)
+    else:
+        print("All collaborator main.md links are valid.")
+
+    # Read each collaborator's main.md and compose the combined main.md
+    with open(str(main_bank_path), "w", encoding="utf-8") as out:
+        out.write("# Combined Index\n\n")
+        for collaborator, main_md_path in collab_mainmd:
+            out.write(f"## {collaborator}\n\n")
+            with open(str(main_md_path), "r", encoding="utf-8") as mf:
+                for line in mf:
+                    # Skip single # titles
+                    if re.match(r"^#(?!#)", line):
+                        continue
+                    # Convert ## to ###
+                    if line.startswith("##"):
+                        line = "#" + line
+                    # Convert relative links to absolute ones
+                    newline = convert_link_to_absolute(line, str(main_md_path))
+                    out.write(newline)
+                out.write("\n")
+
+    print(f"Combined main.md updated at {main_bank_path}")
