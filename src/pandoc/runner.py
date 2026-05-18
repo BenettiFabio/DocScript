@@ -3,7 +3,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-from src.utils import is_network_path
+from src.utils import (
+    is_network_path,
+    normalize_unc_path,
+    safe_path,
+)
 
 ###############
 # Description #
@@ -50,7 +54,8 @@ def check_precondition() -> None:
 
     if sys.platform.startswith("win"):
         if (
-            os.system('fc-list | findstr /i "FreeSerif FreeSans FreeMono" >nul 2>nul')
+            os.system(
+                'fc-list | findstr /i "FreeSerif FreeSans FreeMono" >nul 2>nul')
             != 0
         ):
             print("Errore: i font GNU FreeFonts non sono installati.")
@@ -85,15 +90,20 @@ def execute_pandoc(
     Write the document in dst path: vault/build/
     """
 
+    # Entrer the Build Directory
+    os.chdir(d_b)
+
+    print("conversion Started, wait please...")
+
     if is_network_path():
         # Eseguo prima la conversione in tex con pandoc
-        tex_path = dst.with_suffix(".tex")
+        tex_path = safe_path(dst).with_suffix(".tex")
 
         command = (
-            f'pandoc "{src}" -o "{tex_path}" '
-            f'--defaults="{pndo}" '
-            f'--template="{tmpl}" '
-            f'--lua-filter="{luaf}"'
+            f'pandoc "{str(normalize_unc_path(src))}" -o "{str(normalize_unc_path(tex_path))}" '
+            f'--defaults="{str(normalize_unc_path(pndo))}" '
+            f'--template="{str(normalize_unc_path(tmpl))}" '
+            f'--lua-filter="{str(normalize_unc_path(luaf))}"'
         )
 
         print(f"Eseguo il comando: {command}")
@@ -123,25 +133,31 @@ def execute_pandoc(
 
     else:
         # Comando per la conversione pulita con pandoc
-        subprocess.run(
-            [
+        try:
+            cmd = [
                 "pandoc",
-                str(src),
+                str(normalize_unc_path(src)),
                 "--pdf-engine=xelatex",
-                "-o",
-                str(dst),
-                "--template",
-                tmpl,
-                "--lua-filter",
-                luaf,
-                "--metadata-file",
-                pndo,
-                "--resource-path",
-                d_v,
-                "--resource-path",
-                d_a,
-                "--resource-path",
-                d_b,
-            ],
-            check=True,
-        )
+                "-o", str(normalize_unc_path(dst)),
+                "--template", str(normalize_unc_path(tmpl)),
+                "--lua-filter", str(normalize_unc_path(luaf)),
+                "--metadata-file", str(normalize_unc_path(pndo)),
+                "--resource-path", str(normalize_unc_path(d_v)),
+                "--resource-path", str(normalize_unc_path(d_a)),
+                "--resource-path", str(normalize_unc_path(d_b)),
+            ]
+
+            subprocess.run(
+                cmd,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError as e:
+            print("STDOUT:")
+            print(e.stdout)
+
+            print("STDERR:")
+            print(e.stderr)
+
+            raise

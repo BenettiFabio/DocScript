@@ -13,8 +13,9 @@ from src.utils import (
     should_skip_dir,
     should_skip_file,
     write_file,
+    normalize_unc_path,
 )
-from src.workflow import CMode
+from src.modes import CMode
 
 ###############
 # Description #
@@ -61,9 +62,11 @@ CUSTOM_FILE_NAME = "custom.md"
 
 YAML_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, YAML_NAME)).resolve()
 TEMPLATE_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, TEMPLATE_NAME)).resolve()
-LUA_FILTER_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, LUA_FILTER_NAME)).resolve()
+LUA_FILTER_PATH = Path(os.path.join(
+    _DFLT_CONFIG_DIR, LUA_FILTER_NAME)).resolve()
 NEW_NOTE_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, NEW_NOTE_NAME)).resolve()
-PANDOC_OPT_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, PANDOC_OPT_NAME)).resolve()
+PANDOC_OPT_PATH = Path(os.path.join(
+    _DFLT_CONFIG_DIR, PANDOC_OPT_NAME)).resolve()
 
 # Vault path
 CONFIG_DIR_VAULT_PATH = Path(
@@ -72,7 +75,8 @@ CONFIG_DIR_VAULT_PATH = Path(
 CONFIG_USR_V_FILES_DIR = Path(
     os.path.join(_VAULT_DIR, _CONFIG_DIR, _USR_CONF_DIR)
 ).resolve()
-INIT_V_PATH = Path(os.path.join(_PRJ_ROOT_DIR, _INITIALIZE_DIR, _INIT_V_DIR)).resolve()
+INIT_V_PATH = Path(os.path.join(
+    _PRJ_ROOT_DIR, _INITIALIZE_DIR, _INIT_V_DIR)).resolve()
 SETUP_V_PATH = Path(
     os.path.join(_PRJ_ROOT_DIR, _INITIALIZE_DIR, _SETUP_V_DIR)
 ).resolve()
@@ -85,7 +89,8 @@ CONFIG_DIR_BANK_PATH = Path(
 CONFIG_USR_B_FILES_DIR = Path(
     os.path.join(_BANK_DIR, _CONFIG_DIR, _USR_CONF_DIR)
 ).resolve()
-INIT_B_PATH = Path(os.path.join(_PRJ_ROOT_DIR, _INITIALIZE_DIR, _INIT_B_DIR)).resolve()
+INIT_B_PATH = Path(os.path.join(
+    _PRJ_ROOT_DIR, _INITIALIZE_DIR, _INIT_B_DIR)).resolve()
 BUILD_B_PATH = Path(os.path.join(_BANK_DIR, _BUILD_DIR)).resolve()
 
 EXCLUDED_DIRS = [
@@ -95,7 +100,8 @@ EXCLUDED_DIRS = [
     # _TEMPORARY_DIR
 ]
 
-EXCLUDED_FILES = [COMB_FILE_NAME, NEW_NOTE_NAME, MAIN_FILE_NAME, CUSTOM_FILE_NAME]
+EXCLUDED_FILES = [COMB_FILE_NAME, NEW_NOTE_NAME,
+                  MAIN_FILE_NAME, CUSTOM_FILE_NAME]
 
 
 # Manage all the non-default path if specified
@@ -235,11 +241,12 @@ def add_new_yaml(yaml_file: str | Path) -> str:
     yaml_file = str(yaml_file)
     ext = os.path.splitext(yaml_file)[1].lower()
     if ext not in [".yaml"]:
-        print(f"Errore: il file di input '{yaml_file}' deve avere estensione .yaml.")
+        print(
+            f"Error: Input file '{yaml_file}' must be .yaml.")
         sys.exit(1)
 
     if not os.path.exists(yaml_file):
-        print(f"Errore: il file di input '{yaml_file}' non trovato.")
+        print(f"Error: Infut file '{yaml_file}' not found.")
         sys.exit(1)
 
     return yaml_file
@@ -252,11 +259,12 @@ def add_new_teml(template_file: str | Path) -> str:
     template_file = str(template_file)
     ext = os.path.splitext(template_file)[1].lower()
     if ext not in [".tex"]:
-        print(f"Errore: il file di input '{template_file}' deve avere estensione .tex.")
+        print(
+            f"Error: Input file '{template_file}' must be .tex.")
         sys.exit(1)
 
     if not os.path.exists(template_file):
-        print(f"Errore: il file di input '{template_file}' non trovato.")
+        print(f"Error: Input file '{template_file}' not found.")
         sys.exit(1)
 
     return template_file
@@ -269,11 +277,12 @@ def add_new_luaf(lua_file: str | Path) -> str:
     lua_file = str(lua_file)
     ext = os.path.splitext(lua_file)[1].lower()
     if ext not in [".lua"]:
-        print(f"Errore: il file di input '{lua_file}' deve avere estensione .lua.")
+        print(
+            f"Error: Input file '{lua_file}' must be .lua.")
         sys.exit(1)
 
     if not os.path.exists(lua_file):
-        print(f"Errore: il file di input '{lua_file}' non trovato.")
+        print(f"Error: Input file '{lua_file}' not found.")
         sys.exit(1)
 
     return lua_file
@@ -286,11 +295,12 @@ def add_new_start(start_file: str | Path) -> str:
     start_file = str(start_file)
     ext = os.path.splitext(start_file)[1].lower()
     if ext not in [".md"]:
-        print(f"Errore: il file di input '{start_file}' deve avere estensione .md.")
+        print(
+            f"Error: Input file '{start_file}' must be .md.")
         sys.exit(1)
 
     if not os.path.exists(start_file):
-        print(f"Errore: il file di input '{start_file}' non trovato.")
+        print(f"Error: Input file '{start_file}' not found.")
         sys.exit(1)
 
     return start_file
@@ -311,17 +321,18 @@ def check_integrity() -> None:
     and use the architecture.
     """
     if not os.path.exists(INIT_V_PATH):
-        print(f"Errore: la cartella template '{INIT_V_PATH}' non esiste.")
+        print(f"Error: Template directory: '{INIT_V_PATH}' does not exists.")
         sys.exit(1)
 
     if not os.path.exists(_DFLT_CONFIG_DIR):
         print(
-            f"Errore: la cartella dei file di config '{_DFLT_CONFIG_DIR}' non esiste."
+            f"Error: config directory: '{_DFLT_CONFIG_DIR}' does not exists."
         )
         sys.exit(1)
 
     if not os.path.exists(SETUP_V_PATH):
-        print(f"Errore: la cartella dei file di setup '{SETUP_V_PATH}' non esiste.")
+        print(
+            f"Error: setup directory: '{SETUP_V_PATH}' does not exists.")
         sys.exit(1)
 
 
@@ -338,7 +349,8 @@ def create_vault_structure(BankFlag: bool = False) -> None:
             
             - [ArgumentName1](main-arg1/main.main-arg1.first-note.md)
         """
-        write_file(Path(os.path.join(_VAULT_DIR, "main.md")).resolve(), contenuto_main)
+        write_file(Path(os.path.join(_VAULT_DIR, "main.md")
+                        ).resolve(), contenuto_main)
 
         # Write the custom.md file with the first default references
         contenuto_custom = """\
@@ -349,22 +361,25 @@ def create_vault_structure(BankFlag: bool = False) -> None:
             # Custom file for conversion order
         """
         write_file(
-            Path(os.path.join(_VAULT_DIR, "custom.md")).resolve(), contenuto_custom
+            Path(os.path.join(_VAULT_DIR, "custom.md")
+                 ).resolve(), contenuto_custom
         )
 
-        print("- Cartella vault : ok\n")
+        print("- Vault Dir : ok\n")
 
         # Create user directory for configuration files
-        print("Copia dei file di configurazione per pandoc...")
+        print("Copying the pandoc configuration files...")
         copy_dir_recursive(_DFLT_CONFIG_DIR, CONFIG_USR_V_FILES_DIR)
 
         # Write the .conf file with the default path
-        # Usa percorsi relativi verso ./config-files nella cartella vault/config
+        # Use relative paths to ./config-files in the vault/config folder
         rel_yaml_path = Path(os.path.join("./", _USR_CONF_DIR, YAML_NAME))
-        rel_template_path = Path(os.path.join("./", _USR_CONF_DIR, TEMPLATE_NAME))
+        rel_template_path = Path(os.path.join(
+            "./", _USR_CONF_DIR, TEMPLATE_NAME))
         rel_lua_path = Path(os.path.join("./", _USR_CONF_DIR, LUA_FILTER_NAME))
         rel_start_path = Path(os.path.join("./", _USR_CONF_DIR, NEW_NOTE_NAME))
-        rel_pandoc_path = Path(os.path.join("./", _USR_CONF_DIR, PANDOC_OPT_NAME))
+        rel_pandoc_path = Path(os.path.join(
+            "./", _USR_CONF_DIR, PANDOC_OPT_NAME))
 
         contenuto_conf = f"""\
             # default configuration - start path from config/
@@ -376,11 +391,11 @@ def create_vault_structure(BankFlag: bool = False) -> None:
         """
         write_file(CONFIG_DIR_VAULT_PATH, contenuto_conf)
 
-        print("- Cartella .config : ok")
+        print("- .config Dir : ok")
 
         # Copy some usefull files out of vault/ dir
         copy_dir_recursive(SETUP_V_PATH, _PRJ_PARENT_DIR)
-        print("- File di configurazione per VSCode : ok\n")
+        print("- VSCode Configuration files : ok\n")
 
     else:
         # Data Bank with collaborators
@@ -395,20 +410,23 @@ def create_vault_structure(BankFlag: bool = False) -> None:
             # Custom file for conversion order
         """
         write_file(
-            Path(os.path.join(_BANK_DIR, "custom.md")).resolve(), contenuto_custom
+            Path(os.path.join(_BANK_DIR, "custom.md")
+                 ).resolve(), contenuto_custom
         )
 
-        print("- Struttura banca dati : ok")
+        print("- Data Bank Structure : ok")
 
         # Create user directory for configuration files
-        print("Copia dei file di configurazione per pandoc...")
+        print("Copying the pandoc configuration files...")
         copy_dir_recursive(_DFLT_CONFIG_DIR, CONFIG_USR_B_FILES_DIR)
 
-        # Scrivo i riferimenti relativi alla cartella config-files dentro il vault
+        # I write the references relating to the config-files folder inside the vault
         rel_yaml_path = Path(os.path.join("./", _USR_CONF_DIR, YAML_NAME))
-        rel_template_path = Path(os.path.join("./", _USR_CONF_DIR, TEMPLATE_NAME))
+        rel_template_path = Path(os.path.join(
+            "./", _USR_CONF_DIR, TEMPLATE_NAME))
         rel_lua_path = Path(os.path.join("./", _USR_CONF_DIR, LUA_FILTER_NAME))
-        rel_pandoc_path = Path(os.path.join("./", _USR_CONF_DIR, PANDOC_OPT_NAME))
+        rel_pandoc_path = Path(os.path.join(
+            "./", _USR_CONF_DIR, PANDOC_OPT_NAME))
 
         contenuto_conf = f"""\
             # default configuration - start path from config/
@@ -419,13 +437,13 @@ def create_vault_structure(BankFlag: bool = False) -> None:
         """
         write_file(CONFIG_DIR_BANK_PATH, contenuto_conf)
 
-        print("- Cartella .config : ok\n")
+        print("- .config Dir : ok\n")
 
         print(
-            "Tips: Per iniziare compila il file `collaborator` "
-            "con i link al main.md dei tuoi collaboratori.\n"
-            "Tips: Successivamente lancia un -u (--update) "
-            "ed aggiorna il file main.md per vedere le note di tutti\n"
+            "Tips: To get started, fill out the `collaborator` file "
+            "with links to your collaborators' main.md files.\n"
+            "Tips: Then run a -u (--update) "
+            "and update the main.md file to see everyone's notes.\n"
         )
 
 
@@ -436,11 +454,11 @@ def create_new_note(ConfigPath: CustomPaths, noteName: str | Path) -> None:
 
     noteName = str(noteName)
 
-    # Usa il percorso custom se impostato, altrimenti usa il default
+    # Set the custom path, use the default instead
     starting_note = ConfigPath.custom_new_note_path
 
     if not os.path.exists(safe_path(str(starting_note))):
-        print(f"Errore: il file template '{starting_note}' non esiste.")
+        print(f"Error: Template file '{starting_note}' does not exist.")
         sys.exit(1)
 
     new_note_path = safe_path(_VAULT_DIR, noteName)
@@ -451,8 +469,8 @@ def create_new_note(ConfigPath: CustomPaths, noteName: str | Path) -> None:
         macro_argomento_dir
     ):
         print(
-            f"Errore: il macro-arg '{noteName.split('/')[0]}' non esiste. "
-            "Crealo manualmente prima di aggiungere note."
+            f"Error: The macro-arg '{noteName.split('/')[0]}' does not exist. "
+            "Create it before adding a note"
         )
         sys.exit(1)
 
@@ -460,8 +478,8 @@ def create_new_note(ConfigPath: CustomPaths, noteName: str | Path) -> None:
     note_name = os.path.basename(noteName)
     if not re.match(rf"^main\.{noteName.split('/')[0]}(?:\..+)?\.md$", note_name):
         print(
-            f"Errore: il nome della nota '{note_name}' non è valido. "
-            "Deve iniziare con 'main.macro-arg.' e terminare con '.md'."
+            f"Error: The note name '{note_name}' is invalid. "
+            "Must start with 'main.macro-arg.' and end with '.md'."
         )
         sys.exit(1)
 
@@ -473,9 +491,9 @@ def create_new_note(ConfigPath: CustomPaths, noteName: str | Path) -> None:
         with open(new_note_path, "w", encoding="utf-8") as new_note_file:
             new_note_file.write(content)
 
-        print(f"Nota creata con successo: {new_note_path}")
+        print(f"Note created successfully: {new_note_path}")
     except Exception as e:
-        print(f"Errore durante la creazione della nota: {e}")
+        print(f"Error creating note: {e}")
         sys.exit(1)
 
 
@@ -530,12 +548,12 @@ def get_all_files_from_main(mode: CMode) -> list[str]:
     if not os.path.exists(main_md_path):
         if custom:
             print(
-                "Errore: il file custom.md non è stato trovato "
-                f"in {os.path.dirname(main_md_path)} ."
+                "Error: The custom.md file was not found "
+                f"in {os.path.dirname(main_md_path)}."
             )
         else:
             print(
-                "Errore: il file main.md non è stato trovato "
+                "Error: The main.md file was not found "
                 f"in {os.path.dirname(main_md_path)} ."
             )
         sys.exit(1)
@@ -550,7 +568,7 @@ def get_all_files_from_main(mode: CMode) -> list[str]:
         if (
             "(" in line
             and ")" in line
-            # Cerca i link che iniziano con l'argomento "(argomento/nome-nota.md)"
+            # Look for links that start with the topic "(topic/note-name.md)"
         ):
             start_idx = line.find("(") + 1
             end_idx = line.find(")")
@@ -561,7 +579,8 @@ def get_all_files_from_main(mode: CMode) -> list[str]:
 
     # If void file exit
     if not matching_files:
-        print(f"Errore: nessun file trovato in {'custom.md' if custom else 'main.md'}.")
+        print(
+            f"Error: No files found in {'custom.md' if custom else 'main.md'}.")
         sys.exit(1)
 
     return matching_files
@@ -577,7 +596,7 @@ def get_all_files_from_bank(mode: CMode) -> list[str]:
 
     collab_file = safe_path(_BANK_DIR, COLLAB_FILE_NAME)
     if not collab_file.exists():
-        print(f"Errore: '{collab_file}' non trovato.")
+        print(f"Error: '{collab_file}' not found.")
         sys.exit(1)
 
     # 1. collaborator.md  →  { name: absolute path of their main.md }
@@ -595,8 +614,8 @@ def get_all_files_from_bank(mode: CMode) -> list[str]:
                 abs_main = safe_path(_BANK_DIR, raw)
                 if not abs_main.exists():
                     print(
-                        f"Errore: main.md di '{current_name}' "
-                        f"non trovato in '{abs_main}'."
+                        f"Error: main.md of '{current_name}' "
+                        f"not found in '{abs_main}'."
                     )
                     sys.exit(1)
                 all_collaborators[current_name] = str(abs_main)
@@ -608,7 +627,7 @@ def get_all_files_from_bank(mode: CMode) -> list[str]:
         index_file = safe_path(_BANK_DIR, MAIN_FILE_NAME)
 
     if not index_file.exists():
-        print(f"Errore: '{index_file}' non trovato.")
+        print(f"Error: '{index_file}' not found.")
         sys.exit(1)
 
     # Collect only the collaborators actually listed in the index file
@@ -640,7 +659,7 @@ def get_all_files_from_bank(mode: CMode) -> list[str]:
 
                 if not collab_main:
                     print(
-                        f"Attenzione: '{current_collab}' non in collaborator.md, skip."
+                        f"Warning: '{current_collab}' not in collaborator.md, skip."
                     )
                     continue
 
@@ -650,13 +669,13 @@ def get_all_files_from_bank(mode: CMode) -> list[str]:
                     matching_files.append(str(note_abs))
                 else:
                     print(
-                        f"Attenzione: nota '{note_rel}' di '{current_collab}' "
-                        f"non trovata in '{note_abs}', skip."
+                        f"Warning: Note '{note_rel}' from '{current_collab}'"
+                        f"not found in '{note_abs}', skip."
                     )
 
     if not matching_files:
         label = CUSTOM_FILE_NAME if mode == CMode.CUSTOM else MAIN_FILE_NAME
-        print(f"Errore: nessun file trovato in '{label}'.")
+        print(f"Error: No file found in '{label}'.")
         sys.exit(1)
 
     return matching_files
@@ -696,7 +715,7 @@ def check_inconsistency(
         missing_in_main = actual_set - main_set
 
         if missing_in_main:
-            print("Errore: i seguenti file .md NON sono inclusi nel main:")
+            print("Error: The following .md files are NOT included in main:")
             for f in sorted(missing_in_main):
                 print(f"- {f}")
             sys.exit(1)
@@ -704,21 +723,23 @@ def check_inconsistency(
         # Check only the existence of files (file names only)
 
         # root is the entire vault (_TEMPORARY_DIR included)
-        normalized_actual_list = [str(Path(path)) for path in matching_files_root]
-        normalized_main_list = [Path(path).name for path in matching_files_main]
+        normalized_actual_list = [str(Path(path))
+                                  for path in matching_files_root]
+        normalized_main_list = [
+            Path(path).name for path in matching_files_main]
         path_by_name = {Path(p).name: p for p in normalized_actual_list}
 
         for filename in normalized_main_list:
             # check the file name if found in root
             if filename not in path_by_name:
-                print(f"Errore: file {filename} non presente nel vault")
+                print(f"Error: File: {filename} does not exist in the vault")
                 sys.exit(1)
 
             full_path = path_by_name[filename]
 
             # check if exists in root
             if not Path(full_path).exists():
-                print(f"Errore: file {full_path} non trovato su filesystem")
+                print(f"Error: File {full_path} not found in the filesystem")
                 sys.exit(1)
 
 
@@ -750,11 +771,11 @@ def combine_and_execute(
                 out.writelines(remove_std_header(Path(file)))
                 out.write("\n")
             else:
-                print(f"Avviso: '{file}' non trovato, sarà ignorato.")
+                print(f"Warning: '{file}' not found, will be ignored.")
 
     # 1.1. Attach the yaml from config files
     copy_config_yaml(unified, cfgCstmPath)
-    print(f"File combinato creato: {unified}")
+    print(f"File combinato creato: {normalize_unc_path(unified)}")
 
     # 2. Resolve base paths
     vault_dir = str(_BANK_DIR) if is_bank() else str(_VAULT_DIR)
@@ -764,14 +785,14 @@ def combine_and_execute(
     # 3a. Vault: direct conversion
     if not is_bank():
         execute_pandoc(
-            str(cfgCstmPath.custom_teml_path),
-            str(cfgCstmPath.custom_luaf_path),
-            str(cfgCstmPath.custom_pandoc_opt_path),
-            unified,
-            dst_path,
-            vault_dir,
-            assets_dir,
-            str(build_dir),
+            str(normalize_unc_path(cfgCstmPath.custom_teml_path)),
+            str(normalize_unc_path(cfgCstmPath.custom_luaf_path)),
+            str(normalize_unc_path(cfgCstmPath.custom_pandoc_opt_path)),
+            safe_path(normalize_unc_path(unified)),
+            safe_path(normalize_unc_path(dst_path)),
+            str(normalize_unc_path(vault_dir)),
+            str(normalize_unc_path(assets_dir)),
+            str(normalize_unc_path(build_dir)),
         )
 
     # 3b. Bank: stage → convert locally → copy back → cleanup
@@ -796,8 +817,10 @@ def combine_and_execute(
 
         # -- Copy config files (renamed to default names so execute_pandoc
         #    doesn't need to know which custom file is in use) --
-        shutil.copy2(str(cfgCstmPath.custom_teml_path), app_config / TEMPLATE_NAME)
-        shutil.copy2(str(cfgCstmPath.custom_luaf_path), app_config / LUA_FILTER_NAME)
+        shutil.copy2(str(cfgCstmPath.custom_teml_path),
+                     app_config / TEMPLATE_NAME)
+        shutil.copy2(str(cfgCstmPath.custom_luaf_path),
+                     app_config / LUA_FILTER_NAME)
         shutil.copy2(
             str(cfgCstmPath.custom_pandoc_opt_path), app_config / PANDOC_OPT_NAME
         )
@@ -820,7 +843,8 @@ def combine_and_execute(
         if local_dst.exists():
             shutil.copy2(local_dst, dst_path)
         else:
-            print(f"Attenzione: output '{local_dst}' non trovato dopo la conversione.")
+            print(
+                f"Warning: Output '{local_dst}' not found after the conversion.")
 
         # -- Delete _APPL_DIR entirely --
         remove_dir(app_dir)
@@ -835,7 +859,7 @@ def remove_std_header(filePath: Path) -> list[str]:
     Do not modify any other rows.
     """
     if not os.path.exists(filePath):
-        print(f"Errore: il file '{filePath}' non esiste.")
+        print(f"Error: The file: '{filePath}' does not exist.")
         sys.exit(1)
 
     # Read all the file
@@ -866,41 +890,42 @@ def copy_config_yaml(CombinedPath: Path, cfgCstmPath: CustomPaths) -> None:
     """
 
     try:
-        # Legge il contenuto del file config/my_yaml.yaml
+        # Read the contents of the config/my_yaml.yaml file
         with open(str(cfgCstmPath.custom_yaml_path), encoding="utf-8") as f:
             content = f.read()
 
         yaml_block = None
-        # Se il file inizia con '---' cerco il marcatore di chiusura ('---' o '...')
+        # If the file starts with '---' I look for the closing marker ('---' or '...')
         if content.lstrip().startswith("---"):
-            # Trova il primo marcatore di chiusura che compare su una linea a parte
+            # Find the first closing marker that appears on a separate line
             m = re.search(r"\n(---|\.\.\.)(?:\r?\n)", content)
             if m:
                 yaml_block = content[: m.end()]
 
         if yaml_block:
-            # Legge il contenuto attuale del file combined_notes.md
+            # Read the current contents of the combined_notes.md file
             with open(CombinedPath, encoding="utf-8") as f:
                 combined_content = f.read()
 
-            # Se il file combined_notes.md ha già un blocco YAML lo rimuovo
+            # If the combined_notes.md file already has a YAML block I remove it
             if combined_content.lstrip().startswith("---"):
                 m2 = re.search(r"\n(---|\.\.\.)(?:\r?\n)", combined_content)
                 if m2:
-                    combined_content = combined_content[m2.end() :].lstrip()
+                    combined_content = combined_content[m2.end():].lstrip()
 
-            # Aggiunge il nuovo blocco YAML all'inizio
+            # Add the new YAML block at the beginning
             new_content = f"{yaml_block}\n\n{combined_content}"
 
-            # Scrive il nuovo contenuto nel file combined_notes.md
+            # Write the new content to the combined_notes.md file
             with open(CombinedPath, "w", encoding="utf-8") as f:
                 f.write(new_content)
 
         else:
-            print(f"Nessun blocco YAML trovato in {cfgCstmPath.custom_yaml_path}")
+            print(
+                f"No YAML block found in {cfgCstmPath.custom_yaml_path}")
 
     except Exception as e:
-        print(f"Errore durante la copia del blocco YAML: {str(e)}")
+        print(f"Error during the copy of the YAML block: {str(e)}")
 
 
 def clean_build_dir(build_dir: Path) -> None:
@@ -918,6 +943,7 @@ def clean_build_dir(build_dir: Path) -> None:
         if item.is_file() and item.suffix.lower() not in allowed:
             try:
                 item.unlink()
-                print(f"Rimosso artefatto: {item.name}")
+                print(f"Revove some artifact: {item.name}")
             except Exception as exc:
-                print(f"Attenzione: impossibile rimuovere '{item.name}': {exc}")
+                print(
+                    f"Warning: Impossible remove '{item.name}': {exc}")

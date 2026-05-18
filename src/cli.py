@@ -6,9 +6,9 @@ import pyfiglet
 
 from src import workflow
 from src.config import CustomPaths, check_config_file, check_priority_opt
+from src.modes import CMode
 from src.utils import safe_path
 from src.version import DOCSCRIPT_VERSION as DCV
-from src.workflow import CMode
 
 ###############
 # Description #
@@ -42,82 +42,82 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         prog="make.py",
         description=(
-            "DocScript - Conversione e gestione documentazione. "
-            "Tips: genera un repo git vuoto e inserisci questo come un"
-            "sottomodulo prima di lanciare un --init"
+            "DocScript - Manage and Convert Documentation "
+            "Tips: create an empty git repo, and add this project"
+            "as a submodule before running --init command"
         ),
         epilog="Freeware Licence 2025 Fabio. Maintainer: BenettiFabio",
         add_help=False,
     )
 
     # -------------------------------
-    # Gruppo 1: Single Operation
+    # Group 1: Single Operation
     # -------------------------------
     group_standalone = parser.add_mutually_exclusive_group()
     group_standalone.add_argument(
-        "-i", "--init", action="store_true", help="Inizializza un nuovo vault"
+        "-i", "--init", action="store_true", help="Initialize a new Vault"
     )
     group_standalone.add_argument(
         "-ib",
         "--init-bank",
         action="store_true",
-        help="Inizializza una banca dati collaborativa",
+        help="Initialize a new collaborative data Bank",
     )
     group_standalone.add_argument(
-        "-s", "--start", metavar="NOTE_NAME", help="Crea una nuova nota"
+        "-s", "--start", metavar="NOTE_NAME", help="Create a new note"
     )
     group_standalone.add_argument(
-        "-u", "--update", action="store_true", help="Aggiorna la banca dati"
+        "-u", "--update", action="store_true", help="Update data Bank"
     )
     group_standalone.add_argument(
-        "-v", "--version", action="store_true", help="Stampa la versione dello script"
+        "-v", "--version", action="store_true", help="Print the script version"
     )
     group_standalone.add_argument(
-        "-h", "--help", action="store_true", help="Mostra questo messaggio di aiuto"
+        "-h", "--help", action="store_true", help="Show this help message"
     )
 
     # -------------------------------
-    # Gruppo 2: Conversion Operation
+    # Group 2: Conversion Operation
     # -------------------------------
     group_conversion = parser.add_mutually_exclusive_group()
     group_conversion.add_argument(
-        "-a", "--all", metavar="OUTPUT", help="Converte tutte le note"
+        "-a", "--all", metavar="OUTPUT", help="Converts all the vault notes"
     )
     group_conversion.add_argument(
         "-g",
         "--group",
         nargs=2,
         metavar=("ARGUMENT", "OUTPUT"),
-        help="Converte un gruppo di note",
+        help="Convert a group of notes",
     )
     group_conversion.add_argument(
         "-n",
         "--note",
         nargs=2,
         metavar=("NOTE", "OUTPUT"),
-        help="Converte una singola nota",
+        help="Converta single note",
     )
     group_conversion.add_argument(
-        "-c", "--custom", metavar="OUTPUT", help="Conversione custom da file custom.md"
+        "-c", "--custom", metavar="OUTPUT", help="Custom conversion from a list in custom.md"
     )
 
     # -------------------------------
     # Gruppo 3: Additive Operation
     # -------------------------------
     parser.add_argument(
-        "-y", "--yaml", metavar="YAML_NAME", help="File YAML personalizzato"
+        "-y", "--yaml", metavar="YAML_NAME", help="Custom YAML file"
     )
     parser.add_argument(
-        "-t", "--template", metavar="TEMPLATE_NAME", help="Template personalizzato"
+        "-t", "--template", metavar="TEMPLATE_NAME", help="Custom Template file"
     )
     parser.add_argument(
-        "-l", "--lua", metavar="LUA_NAME", help="Luafilter personalizzato"
+        "-l", "--lua", metavar="LUA_NAME", help="Custom LuaFilter file"
     )
     parser.add_argument(
         "-p",
         "--pandoc",
         metavar="PANDOC_NAME",
-        help="Applica un --metadata-file a pandoc personalizzato",
+        help="Apply custom --metadata-file into pandoc option",
     )
 
     dispatch(parser)
@@ -173,8 +173,7 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
         return
     if args.update:
         print("update-bank")
-        # todo: da aggiungere il comportamento di update per il lavoro condiviso
-        # workflow.update_bank()
+        workflow.update_bank()
         return
     if args.version:
         print("DocScript v" + DCV)
@@ -200,7 +199,8 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
     if args.all:
         cMode = CMode.ALL
         validate_output(args.all)
-        workflow.conversion_procedure(cMode, ConfigCustomPaths, src=None, dst=args.all)
+        workflow.conversion_procedure(
+            cMode, ConfigCustomPaths, src=None, dst=args.all)
         return
     if args.custom:
         cMode = CMode.CUSTOM
@@ -240,15 +240,15 @@ def validate_args(args: argparse.Namespace) -> None:
         active_conversion = sum(1 for op in conversion_ops if op)
         if active_conversion > 0:
             print(
-                "Errore: le operazioni -i, -ib, -s, -u, -v, -h non possono essere "
-                "combinate con -a, -g, -n, -c"
+                "Error: Operations -i, -ib, -s, -u, -v, -h cannot be combined "
+                "with -a, -g, -n, -c"
             )
             sys.exit(1)
         # Check that there are no additional options
         if args.yaml or args.template:
             print(
-                "Errore: le operazioni -i, -ib, -s, -u, -v, -h non accettano "
-                "opzioni aggiuntive"
+                "Error: Operations -i, -ib, -s, -u, -v, -h do not "
+                "accept additional options"
             )
             sys.exit(1)
 
@@ -262,7 +262,7 @@ def validate_output(output: str | None) -> None:
     ext = os.path.splitext(outPath)[1].lower()
     if ext not in [".pdf", ".tex"]:
         print(
-            f"Errore: il file di output '{output}' deve avere estensione .pdf o .tex."
+            f"Error: The output file '{output}' must be .pdf o .tex."
         )
         sys.exit(1)
 

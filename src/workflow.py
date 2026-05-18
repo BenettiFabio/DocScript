@@ -1,5 +1,4 @@
 import sys
-from enum import Enum
 from pathlib import Path
 
 from src.config import (
@@ -16,16 +15,12 @@ from src.config import (
     is_bank,
     is_vault,
 )
+from src.modes import CMode
 from src.pandoc.runner import check_precondition
-from src.utils import safe_path
-
-
-class CMode(Enum):
-    NONE = 0
-    ONE = 1
-    GROUP = 2
-    ALL = 3
-    CUSTOM = 4
+from src.utils import (
+    convert_link_to_absolute,
+    safe_path
+)
 
 
 ###############
@@ -45,11 +40,11 @@ def init_vault(bankFlag: bool = False) -> None:
     """
 
     if is_bank():
-        print("Errore: la cartella corrente é giá inizializzata come Bank dati.")
+        print("Error: The current folder is already initialized as a Bank.")
         sys.exit(1)
 
     if is_vault():
-        print("Errore: la cartella corrente é giá inizializzata come Vault dati.")
+        print("Error: The current folder is already initialized as a Vault.")
         sys.exit(1)
 
     try:
@@ -57,20 +52,20 @@ def init_vault(bankFlag: bool = False) -> None:
         check_integrity()
 
         if not bankFlag:
-            print("Inizio creazione del vault...")
+            print("Starting Vault creation...")
         else:
-            print("Inizio creazione banca dati...")
+            print("Starting Bank creation...")
 
         create_vault_structure(bankFlag)
 
-        print("Struttura costruita con successo!\n")
+        print("Structure built successfully!\n")
         if not bankFlag:
             print("Enjoy your new Vault! <3")
         else:
             print("Enjoy working with your team mates! <3")
 
     except Exception as e:
-        print(f"Errore durante la costruzione del Vault: {e}")
+        print(f"Error while building the Vault: {e}")
         sys.exit(1)
 
 
@@ -83,7 +78,7 @@ def start_note(ConfigPath: CustomPaths, noteName: str | Path) -> None:
     noteName = str(noteName)
 
     if is_bank():
-        print("Errore: Puoi aggiungere una nota solo in un Vault privato")
+        print("Error: You can add a note only in a private Vault")
         sys.exit(1)
 
     try:
@@ -92,7 +87,7 @@ def start_note(ConfigPath: CustomPaths, noteName: str | Path) -> None:
         create_new_note(ConfigPath, noteName)
 
     except Exception as e:
-        print(f"Errore durante la creazione della nuova nota: {e}")
+        print(f"Error while creating the new note: {e}")
         sys.exit(1)
 
 
@@ -115,7 +110,7 @@ def conversion_procedure(
     # Check modality
     modality = mode.name
     if modality is CMode.NONE.name:
-        print("Error: Richiesta di conversione non applicabile")
+        print("Error: Conversion request not applicable")
         sys.exit(0)
 
     file_found_root = []
@@ -154,7 +149,8 @@ def conversion_procedure(
             filter_file_list_root = file_found_root
 
         # Check of consistency if not custom
-        check_inconsistency(filter_file_list_main, filter_file_list_root, bypassFlag)
+        check_inconsistency(filter_file_list_main,
+                            filter_file_list_root, bypassFlag)
 
     else:
         # Bank: files live in multiple collaborator vaults.
@@ -174,11 +170,84 @@ def conversion_procedure(
 
     # Create a list for combined_file.md
     root_map = {Path(p).name: p for p in filter_file_list_root}
-    only_used_files = [root_map[Path(name).name] for name in filter_file_list_main]
+    only_used_files = [root_map[Path(name).name]
+                       for name in filter_file_list_main]
 
     # Effective conversion
     if dst is not None:
         combine_and_execute(only_used_files, cfgCstmPath, dst)
     else:
-        print("Errore: nessun file di output selezionato")
+        print("Error: No output file selected")
         sys.exit(1)
+
+
+def update_bank() -> None:
+    """
+    Update the collaborative bank by validating collaborator links to their
+    `main.md` files and composing a combined `main.md` in the bank root.
+    """
+
+    print("Updating collaborative bank...")
+
+    bank_dir = safe_path(_BANK_DIR)
+    collab_file = safe_path(bank_dir, COLLAB_FILE_NAME)
+    main_bank_path = safe_path(bank_dir, MAIN_FILE_NAME)
+
+    if not collab_file.exists():
+        print(f"Error: the file '{collab_file}' does not exist.")
+        sys.exit(1)
+
+    # Read collaborator file
+    with open(str(collab_file), "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    collaborator = None
+    errors: list[str] = []
+    # list of (name, path_to_main.md)
+    collab_mainmd: list[tuple[str, Path]] = []
+
+    for line in lines:
+        line = line.strip()
+        if line.startswith("##"):
+            collaborator = line[2:].strip()
+
+        # Search for markdown link to main.md
+        match = re.search(r"\[.*?\]\((.*?main\.md)\)", line)
+        if match:
+            main_md_path = safe_path("..", match.group(1))
+            if not Path(main_md_path).exists():
+                errors.append(
+                    f"Collaborator '{collaborator}': main.md not found at '{main_md_path}'"
+                )
+            else:
+                print(
+                    f"Collaborator '{collaborator}': main.md found at '{main_md_path}'")
+                collab_mainmd.append((collaborator or "", Path(main_md_path)))
+
+    if errors:
+        print("The following errors were found in collaborator main.md links:")
+        for err in errors:
+            print(f"- {err}")
+        sys.exit(1)
+    else:
+        print("All collaborator main.md links are valid.")
+
+    # Read each collaborator's main.md and compose the combined main.md
+    with open(str(main_bank_path), "w", encoding="utf-8") as out:
+        out.write("# Combined Index\n\n")
+        for collaborator, main_md_path in collab_mainmd:
+            out.write(f"## {collaborator}\n\n")
+            with open(str(main_md_path), "r", encoding="utf-8") as mf:
+                for line in mf:
+                    # Skip single # titles
+                    if re.match(r"^#(?!#)", line):
+                        continue
+                    # Convert ## to ###
+                    if line.startswith("##"):
+                        line = "#" + line
+                    # Convert relative links to absolute ones
+                    newline = convert_link_to_absolute(line, str(main_md_path))
+                    out.write(newline)
+                out.write("\n")
+
+    print(f"Combined main.md updated at {main_bank_path}")

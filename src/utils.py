@@ -40,7 +40,8 @@ def normalize_unc_path(windows_path: str) -> str:
     """
 
     # Read all the network disk drive into the system
-    result = subprocess.run("net use", capture_output=True, text=True, shell=True)
+    result = subprocess.run(
+        "net use", capture_output=True, text=True, shell=True)
     lines = result.stdout.splitlines()
     mapped_drives = {}
 
@@ -56,20 +57,25 @@ def normalize_unc_path(windows_path: str) -> str:
     normalized_path = full_path.replace("\\", "/")
 
     # Try to change the entry point with the founded letter if match
+    # WARINING! use the lowercase name of the share path!
     for drive, unc in sorted(
         mapped_drives.items(), key=lambda x: len(x[1]), reverse=True
     ):
         unc_norm = unc.replace("\\", "/")
         unc_parts = unc_norm.strip("/").split("/")
-        full_parts = normalized_path.strip("/").split("/")
+        full_parts = [
+            part.lower()
+            for part in normalized_path.strip("/").split("/")
+        ]
 
         try:
             # Use the first folder
-            idx = full_parts.index(unc_parts[-1])
+            idx = full_parts.index(unc_parts[-1].lower())
 
             # Build the path starting from the first folder found
-            relative_parts = full_parts[idx + 1 :]
+            relative_parts = full_parts[idx + 1:]
             final_path = Path(drive + "/") / Path(*relative_parts)
+
             return str(final_path).replace("\\", "/")
         except ValueError:
             continue  # The final folder is not in the full path, try the next one
@@ -128,10 +134,10 @@ def safe_path(*parts: str | Path) -> Path:
 
     if len(parts) == 1:
         p = parts[0]
-        # stringa o altro: normalizza
+        # string or other: normalize
         return Path(to_unix_path(str(p)))
 
-    # più componenti → join, poi normalizza
+    # more than one components → join, then normalize
     joined = os.path.join(*parts)
     return Path(to_unix_path(joined))
 
@@ -154,7 +160,7 @@ def remove_dir(target: Path, retries: int = 3, delay: float = 1.0) -> None:
             if attempt < retries - 1:
                 time.sleep(delay)
             else:
-                print(f"Attenzione: impossibile rimuovere '{target}': {exc}")
+                print(f"Warning: impossibile remove '{target}': {exc}")
 
 
 def copy_dir_recursive(src: str | Path, dst: str | Path) -> None:
@@ -170,7 +176,7 @@ def copy_dir_recursive(src: str | Path, dst: str | Path) -> None:
     src = str(src)
     dst = str(dst)
     if not os.path.exists(src):
-        raise FileNotFoundError(f"La directory sorgente non esiste: {src}")
+        raise FileNotFoundError(f"Error: The directory {src}, does not exist")
 
     for root, _, files in os.walk(src):
         relative_path = os.path.relpath(root, src)
@@ -222,3 +228,20 @@ def should_skip_file(file_path: str, BLACKLIST: list[str]) -> bool:
     """
     file_name = os.path.basename(file_path)
     return file_name in BLACKLIST
+
+
+def convert_link_to_absolute(markdown_text: str, base_path: str) -> str:
+    """
+    Convert relative Markdown links in `markdown_text` to absolute paths
+    based on `base_path` and return the transformed line.
+    """
+    base_path = Path(base_path).parent.resolve()
+
+    def replacer(match: re.Match) -> str:
+        label = match.group(1)
+        rel_path = match.group(2)
+        abs_path = (base_path / rel_path).resolve()
+        return f"[{label}]({abs_path})"
+
+    pattern = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+    return pattern.sub(replacer, markdown_text).replace("\\", "/")
