@@ -835,6 +835,7 @@ def RemoveHeaderFromFile(file_path):
     # Rimuovi l'header
     content_started = False
     filtered_lines  = []
+    
     for line in lines:
         if "<!-- /code_chunk_output -->" in line:
             content_started = True
@@ -1121,7 +1122,8 @@ def ConversionSingleNote(nota):
     except Exception as e:
         print(f"Errore durante l'eliminazione del file temporaneo: {e}")
 
-def ConversionGroupNote(argomento):
+#def ConversionGroupNote(argomento):
+def ConversionGroupNote(argomento, group_yaml=None):
     # Ottieni i file corrispondenti all'argomento
     print("Consistency check started...")
     matching_files_main = get_files_for_argument_from_main(argomento)
@@ -1139,10 +1141,17 @@ def ConversionGroupNote(argomento):
 
     # Crea la nota .md unita
     combined_note_path = CombineNotes(matching_files_main)
-    # sys.exit(1)
 
+    # Aggiorna il metadata YAML direttamente nel markdown
+    update_group_metadata(
+        combined_note_path,
+        argomento,
+        len(matching_files_main)
+    )
+ 
     # Se arrivato qui allora può eseguire la conversione
-    NoteConversion(combined_note_path) # deve prendere la nota combinata dal build
+    # e deve prendere la nota combinata dal build
+    NoteConversion(combined_note_path) 
 
 def ConversionAllNote(custom):
     global OUTPUT_DIR
@@ -1291,7 +1300,67 @@ def AddStartNewNote(note_path):
         print(f"Errore durante la creazione della nota: {e}")
         sys.exit(1)
 
-def NoteConversion(combined_note_path):    
+def update_group_metadata(md_path, group_name, files_count):
+    """
+    Aggiorna il frontmatter YAML del markdown combinato
+    preservando tutti i metadata originali.
+
+    Sovrascrive:
+    - title
+    - subtitle
+    """
+
+    with open(md_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Nessun frontmatter YAML
+    if not content.startswith("---"):
+        return
+
+    # Trova chiusura YAML
+    end_idx = content.find("\n---", 3)
+
+    if end_idx == -1:
+        end_idx = content.find("\n...", 3)
+
+    if end_idx == -1:
+        print("Errore: chiusura YAML non trovata.")
+        return
+
+    yaml_block = content[:end_idx]
+    body = content[end_idx:]
+
+    # Sanity checks
+    safe_title = group_name.replace(":", " -")
+    safe_subtitle = f"{files_count} note incluse".replace(":", " -")
+
+    # Aggiorna o inserisce title
+    if re.search(r"^CompanyStudyTitle\s*:", yaml_block, flags=re.MULTILINE):
+        yaml_block = re.sub(
+            r'^CompanyStudyTitle\s*:.*$',
+            f'CompanyStudyTitle: "{safe_title.upper()}"',
+            yaml_block,
+            flags=re.MULTILINE
+        )
+    else:
+        yaml_block += f'\nCompanyStudyTitle: "{safe_title.upper()}"'
+
+    # Aggiorna o inserisce subtitle
+    if re.search(r"^subtitle\s*:", yaml_block, flags=re.MULTILINE):
+        yaml_block = re.sub(
+            r'^subtitle\s*:.*$',
+            f'subtitle: "{safe_subtitle}"',
+            yaml_block,
+            flags=re.MULTILINE
+        )
+    else:
+        yaml_block += f'\nsubtitle: "{safe_subtitle}"'
+
+    # Riscrive il markdown
+    with open(md_path, "w", encoding="utf-8") as f:
+        f.write(yaml_block + body)
+
+def NoteConversion(combined_note_path):
     if is_bank:
         path_note   = safe_path(APPLICATION_DIR, BUILD_DIR_NAME, COMB_FILE_NAME)
         out_path    = safe_path(APPLICATION_DIR, BUILD_DIR_NAME, Path(OUTPUT_PATH).name)
@@ -1361,7 +1430,7 @@ def setup_argparse():
     group_standalone = parser.add_mutually_exclusive_group()
     group_standalone.add_argument("-i",     "--init",       action="store_true",        help="Inizializza un nuovo vault")
     group_standalone.add_argument("-ib",    "--init-bank",  action="store_true",        help="Inizializza una banca dati collaborativa")
-    group_standalone.add_argument("-s",     "--start",          metavar="NOTE_NAME",    help="Crea una nuova nota")
+    group_standalone.add_argument("-s",     "--start",      metavar="NOTE_NAME",        help="Crea una nuova nota")
     group_standalone.add_argument("-u",     "--update",     action="store_true",        help="Aggiorna la banca dati")
     group_standalone.add_argument("-h",     "--help",       action="store_true",        help="Mostra questo messaggio di aiuto")
     group_standalone.add_argument("-v",     "--version",    action="store_true",        help="Versione dello script")
@@ -1511,7 +1580,9 @@ def main():
         if args.pandoc:
             print(f"  - Con pandoc opt personalizzato: {args.pandoc}")
             custom_pandoc_opt_path = add_new_yaml(args.pandoc)
-        ConversionGroupNote(argomento)
+        
+        # Effettuo la conversione
+        ConversionGroupNote(argomento)        
 
     elif args.note:
         if len(args.note) < 2:
