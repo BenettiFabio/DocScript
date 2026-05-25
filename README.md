@@ -226,6 +226,26 @@ Es: inserimento di un elemento centrato
 </div>
 ```
 
+Es: inserimento Emoji consentite
+
+> <span style="color: orange;">NOTA:</span> nel caso mancassero delle emoticon, modificare il lua filter in modo che vengano supportate.
+
+Le emoji possono essere inserite usando il formato github
+
+| Emoji                  | Comando LaTeX         | Descrizione                            |
+| :--------------------- | :-------------------- | :------------------------------------- |
+| `:warning:`            | `\tiWarningOutline`   | :warning: Triangolo di avviso          |
+| `:information_source:` | `\tiInfoLargeOutline` | :information_source: Info              |
+| `:white_check_mark:`   | `\tiInputChecked`     | :white_check_mark: Spunta di conferma  |
+| `:bookmark:`           | `\tiBookmark`         | :bookmark: Segnalibro                  |
+| `:no_entry_sign:`      | `\tiCancel`           | :no_entry_sign: Segnale di divieto     |
+| `:x:`                  | `\tiDelete`           | :x: Croce di chiusura                  |
+| `:computer:`           | `\tiDeviceDesktop`    | :computer: Schermo computer            |
+| `:heavy_minus_sign:`   | `\tiMinusOutline`     | :heavy_minus_sign: Segno meno          |
+| `:wrench:`             | `\tiSpanner`          | :wrench: Chiave inglese (manutenzione) |
+| `:bulb:`               | `\tiLightbulb`        | :bulb: Lampadina (idea/suggerimento)   |
+| `:key:`                | `\tiKeyOutline`       | :key: Chiave                           |
+
 Es: inserimento di un pdf "srotolato" direttamente all'interno delle note
 
 ```markdown
