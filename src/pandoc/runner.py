@@ -54,8 +54,7 @@ def check_precondition() -> None:
 
     if sys.platform.startswith("win"):
         if (
-            os.system(
-                'fc-list | findstr /i "FreeSerif FreeSans FreeMono" >nul 2>nul')
+            os.system('fc-list | findstr /i "FreeSerif FreeSans FreeMono" >nul 2>nul')
             != 0
         ):
             print("Errore: i font GNU FreeFonts non sono installati.")
@@ -100,10 +99,11 @@ def execute_pandoc(
         tex_path = safe_path(dst).with_suffix(".tex")
 
         command = (
-            f'pandoc "{str(normalize_unc_path(src))}" -o "{str(normalize_unc_path(tex_path))}" '
-            f'--defaults="{str(normalize_unc_path(pndo))}" '
-            f'--template="{str(normalize_unc_path(tmpl))}" '
-            f'--lua-filter="{str(normalize_unc_path(luaf))}"'
+            f'pandoc "{str(normalize_unc_path(str(src)))}"'
+            f' -o "{str(normalize_unc_path(str(tex_path)))}"'
+            f' --defaults="{str(normalize_unc_path(str(pndo)))}"'
+            f' --template="{str(normalize_unc_path(str(tmpl)))}"'
+            f' --lua-filter="{str(normalize_unc_path(str(luaf)))}"'
         )
 
         print(f"Eseguo il comando: {command}")
@@ -136,15 +136,22 @@ def execute_pandoc(
         try:
             cmd = [
                 "pandoc",
-                str(normalize_unc_path(src)),
+                str(normalize_unc_path(str(src))),
                 "--pdf-engine=xelatex",
-                "-o", str(normalize_unc_path(dst)),
-                "--template", str(normalize_unc_path(tmpl)),
-                "--lua-filter", str(normalize_unc_path(luaf)),
-                "--metadata-file", str(normalize_unc_path(pndo)),
-                "--resource-path", str(normalize_unc_path(d_v)),
-                "--resource-path", str(normalize_unc_path(d_a)),
-                "--resource-path", str(normalize_unc_path(d_b)),
+                "-o",
+                str(normalize_unc_path(str(dst))),
+                "--template",
+                str(normalize_unc_path(str(tmpl))),
+                "--lua-filter",
+                str(normalize_unc_path(str(luaf))),
+                "--metadata-file",
+                str(normalize_unc_path(str(pndo))),
+                "--resource-path",
+                str(normalize_unc_path(d_v)),
+                "--resource-path",
+                str(normalize_unc_path(d_a)),
+                "--resource-path",
+                str(normalize_unc_path(d_b)),
             ]
 
             subprocess.run(

@@ -40,8 +40,7 @@ def normalize_unc_path(windows_path: str) -> str:
     """
 
     # Read all the network disk drive into the system
-    result = subprocess.run(
-        "net use", capture_output=True, text=True, shell=True)
+    result = subprocess.run("net use", capture_output=True, text=True, shell=True)
     lines = result.stdout.splitlines()
     mapped_drives = {}
 
@@ -63,17 +62,14 @@ def normalize_unc_path(windows_path: str) -> str:
     ):
         unc_norm = unc.replace("\\", "/")
         unc_parts = unc_norm.strip("/").split("/")
-        full_parts = [
-            part.lower()
-            for part in normalized_path.strip("/").split("/")
-        ]
+        full_parts = [part.lower() for part in normalized_path.strip("/").split("/")]
 
         try:
             # Use the first folder
             idx = full_parts.index(unc_parts[-1].lower())
 
             # Build the path starting from the first folder found
-            relative_parts = full_parts[idx + 1:]
+            relative_parts = full_parts[idx + 1 :]
             final_path = Path(drive + "/") / Path(*relative_parts)
 
             return str(final_path).replace("\\", "/")
@@ -235,12 +231,12 @@ def convert_link_to_absolute(markdown_text: str, base_path: str) -> str:
     Convert relative Markdown links in `markdown_text` to absolute paths
     based on `base_path` and return the transformed line.
     """
-    base_path = Path(base_path).parent.resolve()
+    base_dir = Path(base_path).parent.resolve()
 
-    def replacer(match: re.Match) -> str:
+    def replacer(match: re.Match[str]) -> str:
         label = match.group(1)
         rel_path = match.group(2)
-        abs_path = (base_path / rel_path).resolve()
+        abs_path = (base_dir / rel_path).resolve()
         return f"[{label}]({abs_path})"
 
     pattern = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")

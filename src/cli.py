@@ -98,21 +98,20 @@ def main() -> None:
         help="Converta single note",
     )
     group_conversion.add_argument(
-        "-c", "--custom", metavar="OUTPUT", help="Custom conversion from a list in custom.md"
+        "-c",
+        "--custom",
+        metavar="OUTPUT",
+        help="Custom conversion from a list in custom.md",
     )
 
     # -------------------------------
     # Gruppo 3: Additive Operation
     # -------------------------------
-    parser.add_argument(
-        "-y", "--yaml", metavar="YAML_NAME", help="Custom YAML file"
-    )
+    parser.add_argument("-y", "--yaml", metavar="YAML_NAME", help="Custom YAML file")
     parser.add_argument(
         "-t", "--template", metavar="TEMPLATE_NAME", help="Custom Template file"
     )
-    parser.add_argument(
-        "-l", "--lua", metavar="LUA_NAME", help="Custom LuaFilter file"
-    )
+    parser.add_argument("-l", "--lua", metavar="LUA_NAME", help="Custom LuaFilter file")
     parser.add_argument(
         "-p",
         "--pandoc",
@@ -199,8 +198,7 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
     if args.all:
         cMode = CMode.ALL
         validate_output(args.all)
-        workflow.conversion_procedure(
-            cMode, ConfigCustomPaths, src=None, dst=args.all)
+        workflow.conversion_procedure(cMode, ConfigCustomPaths, src=None, dst=args.all)
         return
     if args.custom:
         cMode = CMode.CUSTOM
@@ -261,9 +259,7 @@ def validate_output(output: str | None) -> None:
     outPath = safe_path(str(output))
     ext = os.path.splitext(outPath)[1].lower()
     if ext not in [".pdf", ".tex"]:
-        print(
-            f"Error: The output file '{output}' must be .pdf o .tex."
-        )
+        print(f"Error: The output file '{output}' must be .pdf o .tex.")
         sys.exit(1)
 
 

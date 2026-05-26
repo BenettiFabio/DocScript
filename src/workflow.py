@@ -20,7 +20,6 @@ from src.modes import CMode
 from src.pandoc.runner import check_precondition
 from src.utils import safe_path
 
-
 ###############
 # Description #
 ###############
@@ -111,9 +110,9 @@ def conversion_procedure(
         print("Error: Conversion request not applicable")
         sys.exit(0)
 
-    file_found_root = []
-    file_found_main = []
-    collaborators = []
+    file_found_root: list[str] = []
+    file_found_main: list[str] = []
+    collaborators: dict[str, str] = {}
     if not is_bank():
         # Find files in vault
         file_found_root = get_all_files_from_root()
@@ -148,8 +147,7 @@ def conversion_procedure(
             filter_file_list_root = file_found_root
 
         # Check of consistency if not custom
-        check_inconsistency(filter_file_list_main,
-                            filter_file_list_root, bypassFlag)
+        check_inconsistency(filter_file_list_main, filter_file_list_root, bypassFlag)
 
     else:
         # Bank: files live in multiple collaborator vaults.
@@ -169,8 +167,7 @@ def conversion_procedure(
 
     # Create a list for combined_file.md
     root_map = {Path(p).name: p for p in filter_file_list_root}
-    only_used_files = [root_map[Path(name).name]
-                       for name in filter_file_list_main]
+    only_used_files = [root_map[Path(name).name] for name in filter_file_list_main]
 
     # Effective conversion
     if dst is not None:
