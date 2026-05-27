@@ -64,9 +64,11 @@ CUSTOM_FILE_NAME = "custom.md"
 
 YAML_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, YAML_NAME)).resolve()
 TEMPLATE_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, TEMPLATE_NAME)).resolve()
-LUA_FILTER_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, LUA_FILTER_NAME)).resolve()
+LUA_FILTER_PATH = Path(os.path.join(
+    _DFLT_CONFIG_DIR, LUA_FILTER_NAME)).resolve()
 NEW_NOTE_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, NEW_NOTE_NAME)).resolve()
-PANDOC_OPT_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, PANDOC_OPT_NAME)).resolve()
+PANDOC_OPT_PATH = Path(os.path.join(
+    _DFLT_CONFIG_DIR, PANDOC_OPT_NAME)).resolve()
 
 # Vault path
 CONFIG_DIR_VAULT_PATH = Path(
@@ -75,7 +77,8 @@ CONFIG_DIR_VAULT_PATH = Path(
 CONFIG_USR_V_FILES_DIR = Path(
     os.path.join(_VAULT_DIR, _CONFIG_DIR, _USR_CONF_DIR)
 ).resolve()
-INIT_V_PATH = Path(os.path.join(_PRJ_ROOT_DIR, _INITIALIZE_DIR, _INIT_V_DIR)).resolve()
+INIT_V_PATH = Path(os.path.join(
+    _PRJ_ROOT_DIR, _INITIALIZE_DIR, _INIT_V_DIR)).resolve()
 SETUP_V_PATH = Path(
     os.path.join(_PRJ_ROOT_DIR, _INITIALIZE_DIR, _SETUP_V_DIR)
 ).resolve()
@@ -88,7 +91,8 @@ CONFIG_DIR_BANK_PATH = Path(
 CONFIG_USR_B_FILES_DIR = Path(
     os.path.join(_BANK_DIR, _CONFIG_DIR, _USR_CONF_DIR)
 ).resolve()
-INIT_B_PATH = Path(os.path.join(_PRJ_ROOT_DIR, _INITIALIZE_DIR, _INIT_B_DIR)).resolve()
+INIT_B_PATH = Path(os.path.join(
+    _PRJ_ROOT_DIR, _INITIALIZE_DIR, _INIT_B_DIR)).resolve()
 BUILD_B_PATH = Path(os.path.join(_BANK_DIR, _BUILD_DIR)).resolve()
 
 EXCLUDED_DIRS = [
@@ -98,7 +102,8 @@ EXCLUDED_DIRS = [
     # _TEMPORARY_DIR
 ]
 
-EXCLUDED_FILES = [COMB_FILE_NAME, NEW_NOTE_NAME, MAIN_FILE_NAME, CUSTOM_FILE_NAME]
+EXCLUDED_FILES = [COMB_FILE_NAME, NEW_NOTE_NAME,
+                  MAIN_FILE_NAME, CUSTOM_FILE_NAME]
 
 
 # Manage all the non-default path if specified
@@ -318,7 +323,8 @@ def check_integrity() -> None:
         sys.exit(1)
 
     if not os.path.exists(_DFLT_CONFIG_DIR):
-        print(f"Error: config directory: '{_DFLT_CONFIG_DIR}' does not exists.")
+        print(
+            f"Error: config directory: '{_DFLT_CONFIG_DIR}' does not exists.")
         sys.exit(1)
 
     if not os.path.exists(SETUP_V_PATH):
@@ -339,7 +345,8 @@ def create_vault_structure(BankFlag: bool = False) -> None:
             
             - [ArgumentName1](main-arg1/main.main-arg1.first-note.md)
         """
-        write_file(Path(os.path.join(_VAULT_DIR, "main.md")).resolve(), contenuto_main)
+        write_file(Path(os.path.join(_VAULT_DIR, "main.md")
+                        ).resolve(), contenuto_main)
 
         # Write the custom.md file with the first default references
         contenuto_custom = """\
@@ -350,7 +357,8 @@ def create_vault_structure(BankFlag: bool = False) -> None:
             # Custom file for conversion order
         """
         write_file(
-            Path(os.path.join(_VAULT_DIR, "custom.md")).resolve(), contenuto_custom
+            Path(os.path.join(_VAULT_DIR, "custom.md")
+                 ).resolve(), contenuto_custom
         )
 
         print("- Vault Dir : ok\n")
@@ -362,10 +370,12 @@ def create_vault_structure(BankFlag: bool = False) -> None:
         # Write the .conf file with the default path
         # Use relative paths to ./config-files in the vault/config folder
         rel_yaml_path = Path(os.path.join("./", _USR_CONF_DIR, YAML_NAME))
-        rel_template_path = Path(os.path.join("./", _USR_CONF_DIR, TEMPLATE_NAME))
+        rel_template_path = Path(os.path.join(
+            "./", _USR_CONF_DIR, TEMPLATE_NAME))
         rel_lua_path = Path(os.path.join("./", _USR_CONF_DIR, LUA_FILTER_NAME))
         rel_start_path = Path(os.path.join("./", _USR_CONF_DIR, NEW_NOTE_NAME))
-        rel_pandoc_path = Path(os.path.join("./", _USR_CONF_DIR, PANDOC_OPT_NAME))
+        rel_pandoc_path = Path(os.path.join(
+            "./", _USR_CONF_DIR, PANDOC_OPT_NAME))
 
         contenuto_conf = f"""\
             # default configuration - start path from config/
@@ -396,7 +406,8 @@ def create_vault_structure(BankFlag: bool = False) -> None:
             # Custom file for conversion order
         """
         write_file(
-            Path(os.path.join(_BANK_DIR, "custom.md")).resolve(), contenuto_custom
+            Path(os.path.join(_BANK_DIR, "custom.md")
+                 ).resolve(), contenuto_custom
         )
 
         print("- Data Bank Structure : ok")
@@ -407,9 +418,11 @@ def create_vault_structure(BankFlag: bool = False) -> None:
 
         # I write the references relating to the config-files folder inside the vault
         rel_yaml_path = Path(os.path.join("./", _USR_CONF_DIR, YAML_NAME))
-        rel_template_path = Path(os.path.join("./", _USR_CONF_DIR, TEMPLATE_NAME))
+        rel_template_path = Path(os.path.join(
+            "./", _USR_CONF_DIR, TEMPLATE_NAME))
         rel_lua_path = Path(os.path.join("./", _USR_CONF_DIR, LUA_FILTER_NAME))
-        rel_pandoc_path = Path(os.path.join("./", _USR_CONF_DIR, PANDOC_OPT_NAME))
+        rel_pandoc_path = Path(os.path.join(
+            "./", _USR_CONF_DIR, PANDOC_OPT_NAME))
 
         contenuto_conf = f"""\
             # default configuration - start path from config/
@@ -562,7 +575,8 @@ def get_all_files_from_main(mode: CMode) -> list[str]:
 
     # If void file exit
     if not matching_files:
-        print(f"Error: No files found in {'custom.md' if custom else 'main.md'}.")
+        print(
+            f"Error: No files found in {'custom.md' if custom else 'main.md'}.")
         sys.exit(1)
 
     return matching_files
@@ -645,7 +659,8 @@ def get_all_files_from_bank(mode: CMode) -> tuple[list[str], dict[str, str]]:
                 collab_main = active_collaborators_map.get(current_collab)
 
                 if not collab_main:
-                    print(f"Warning: '{current_collab}' not in collaborator.md, skip.")
+                    print(
+                        f"Warning: '{current_collab}' not in collaborator.md, skip.")
                     continue
 
                 note_abs = safe_path(os.path.dirname(collab_main), note_rel)
@@ -708,8 +723,10 @@ def check_inconsistency(
         # Check only the existence of files (file names only)
 
         # root is the entire vault (_TEMPORARY_DIR included)
-        normalized_actual_list = [str(Path(path)) for path in matching_files_root]
-        normalized_main_list = [Path(path).name for path in matching_files_main]
+        normalized_actual_list = [str(Path(path))
+                                  for path in matching_files_root]
+        normalized_main_list = [
+            Path(path).name for path in matching_files_main]
         path_by_name = {Path(p).name: p for p in normalized_actual_list}
 
         for filename in normalized_main_list:
@@ -733,12 +750,14 @@ def copy_assets(output_dir: str, collaborators: dict[str, str]) -> None:
     merged without overwriting unchanged files.
     """
     for name, main_md_path in collaborators.items():
-        collab_assets_dir = os.path.join(os.path.dirname(main_md_path), "assets")
+        collab_assets_dir = os.path.join(
+            os.path.dirname(main_md_path), "assets")
         if os.path.exists(collab_assets_dir):
             copy_dir_recursive(collab_assets_dir, output_dir)
             print(f"Assets copied for {name} into {output_dir}")
         else:
-            print(f"Warning: assets not found for {name} in {collab_assets_dir}")
+            print(
+                f"Warning: assets not found for {name} in {collab_assets_dir}")
 
 
 def combine_and_execute(
@@ -819,8 +838,10 @@ def combine_and_execute(
         # -- Copy config files (renamed to default names so execute_pandoc
         #    doesn't need to know which custom file is in use) --
         print(f"3 - Copying config files... to {app_config}")
-        shutil.copy2(str(cfgCstmPath.custom_teml_path), app_config / TEMPLATE_NAME)
-        shutil.copy2(str(cfgCstmPath.custom_luaf_path), app_config / LUA_FILTER_NAME)
+        shutil.copy2(str(cfgCstmPath.custom_teml_path),
+                     app_config / TEMPLATE_NAME)
+        shutil.copy2(str(cfgCstmPath.custom_luaf_path),
+                     app_config / LUA_FILTER_NAME)
         shutil.copy2(
             str(cfgCstmPath.custom_pandoc_opt_path), app_config / PANDOC_OPT_NAME
         )
@@ -844,7 +865,8 @@ def combine_and_execute(
         if local_dst.exists():
             shutil.copy2(local_dst, dst_path)
         else:
-            print(f"Warning: Output '{local_dst}' not found after the conversion.")
+            print(
+                f"Warning: Output '{local_dst}' not found after the conversion.")
 
         # -- Delete _APPL_DIR entirely --
         remove_dir(app_assets)
@@ -911,7 +933,7 @@ def copy_config_yaml(CombinedPath: Path, cfgCstmPath: CustomPaths) -> None:
             if combined_content.lstrip().startswith("---"):
                 m2 = re.search(r"\n(---|\.\.\.)(?:\r?\n)", combined_content)
                 if m2:
-                    combined_content = combined_content[m2.end() :].lstrip()
+                    combined_content = combined_content[m2.end():].lstrip()
 
             # Add the new YAML block at the beginning
             new_content = f"{yaml_block}\n\n{combined_content}"
@@ -964,7 +986,7 @@ def update_bank_files() -> None:
         sys.exit(1)
 
     # Read collaborator file
-    with open(str(collab_file), encoding="utf-8") as f:
+    with open(normalize_unc_path(str(collab_file)), encoding="utf-8") as f:
         lines = f.readlines()
 
     collaborator = None
@@ -981,6 +1003,7 @@ def update_bank_files() -> None:
         match = re.search(r"\[.*?\]\((.*?main\.md)\)", line)
         if match:
             main_md_path = safe_path("..", match.group(1))
+
             if not Path(main_md_path).exists():
                 errors.append(
                     f"Collaborator '{collaborator}': "
@@ -989,7 +1012,7 @@ def update_bank_files() -> None:
             else:
                 print(
                     f"Collaborator '{collaborator}': "
-                    f"main.md not found at '{main_md_path}'"
+                    f"main.md found at '{main_md_path}'"
                 )
                 collab_mainmd.append((collaborator or "", Path(main_md_path)))
 
@@ -1002,7 +1025,7 @@ def update_bank_files() -> None:
         print("All collaborator main.md links are valid.")
 
     # Read each collaborator's main.md and compose the combined main.md
-    with open(str(main_bank_path), "w", encoding="utf-8") as out:
+    with open(normalize_unc_path(str(main_bank_path)), "w", encoding="utf-8") as out:
         out.write("# Combined Index\n\n")
         for collaborator, main_md_path in collab_mainmd:
             out.write(f"## {collaborator}\n\n")
