@@ -1,4 +1,4 @@
-# DocScript Docupementation Structure
+# DocScript Documentation Structure
 
 > 🇮🇹 [Leggi in italiano](README.it.md) | 🇬🇧 You are reading the English version
 
@@ -233,6 +233,27 @@ E.g.: inserting an "unrolled" pdf directly inside the notes
 [Pdf Name](../assets/macro-arg/pdfs/file-name.pdf)
 ```
 
+E.g.: allowed Emoji insertion
+
+> <span style="color: orange;">NOTE:</span> if some emoticons are missing, modify the lua filter so that they are supported.
+
+Emojis can be inserted using the GitHub format
+
+| Emoji                  | LaTeX Command         | Description                           |
+| :--------------------- | :-------------------- | :------------------------------------ |
+| `:warning:`            | `\tiWarningOutline`   | :warning: Warning triangle            |
+| `:information_source:` | `\tiInfoLargeOutline` | :information_source: Info             |
+| `:white_check_mark:`   | `\tiInputChecked`     | :white_check_mark: Confirmation check |
+| `:bookmark:`           | `\tiBookmark`         | :bookmark: Bookmark                   |
+| `:no_entry_sign:`      | `\tiCancel`           | :no_entry_sign: No entry sign         |
+| `:x:`                  | `\tiDelete`           | :x: Closing cross                     |
+| `:computer:`           | `\tiDeviceDesktop`    | :computer: Computer screen            |
+| `:heavy_minus_sign:`   | `\tiMinusOutline`     | :heavy_minus_sign: Minus sign         |
+| `:wrench:`             | `\tiSpanner`          | :wrench: Wrench (maintenance)         |
+| `:bulb:`               | `\tiLightbulb`        | :bulb: Light bulb (idea/suggestion)   |
+| `:key:`                | `\tiKeyOutline`       | :key: Key                             |
+| `:star:`               | `\tiStar`             | :star: Star                           |
+
 E.g.: inserting one or more mathematical equations one below the other, enclose them inside a verbosity block (\`\`\`) specifying the language `{=latex}`, the content will therefore be pure latex, or the simply math block composed by `$$`:
 
 ```markdown
@@ -271,11 +292,11 @@ CompanyStudyTitle:
 CompanyDocumentCode:
 
 # Layout and Assets Settings
-LogoFileName: '../assets/docfiles/logo-docscript'
-footerText: 'Confidential - Property of Company S.p.A.'
+LogoFileName: "../assets/docfiles/logo-docscript"
+footerText: "Confidential - Property of Company S.p.A."
 
 # Watermark Configuration (if draft: true)
-watermark_text: 'Draft'
+watermark_text: "Draft"
 
 # TOC Configurations
 tocDepth: 5
@@ -290,7 +311,8 @@ From wherever you are, you can invoke `DocScript.py` and it will generate the no
 
 - Insert new notes and new topics inside the vault using `-s`.
 
-- Before converting the official document, take a look at `/vault/config/.conf` to set the files to use during conversion. Especially regarding the `yaml/` file which contains the conversion parameters that will be used in the chosen `template/` in order to obtain more or less complex results based on the needs. In the `.conf` it is also possible to choose a base note to insert as a starting point for all new notes, so as to have a standard.
+- # Before converting the official document, take a look at `/vault/config/.conf` to set the files to use during conversion. Especially regarding the `yaml/` file which contains the conversion parameters that will be used in the chosen `template/` in order to obtain more or less complex results based on the needs. In the `.conf` it is also possible to choose a base note to insert as a starting point for all new notes, so as to have a standard.
+- Prima di convertire il documento ufficiale dare uno sguardo al `/vault/config/.conf` per impostare i file da usare durante la conversione. Sopratutto per quanto riguarda il file `yaml` il quale contiene i parametri di conversione che verranno usati nel `template` scelto in modo da ottenere risultati piú o meno complessi in base alle esigenze. Nel `.conf` é possibile anche scegliere una nota di base da inserire come punto di partenza per tutte le nuove note, cosí da avere uno standard.
 
 - Convert notes, groups of notes (a macro-topic) or the entire vault with `-n` `-g` and `-a` respectively.
 
