@@ -149,8 +149,7 @@ def conversion_procedure(
             filter_file_list_root = file_found_root
 
         # Check of consistency if not custom
-        check_inconsistency(filter_file_list_main,
-                            filter_file_list_root, bypassFlag)
+        check_inconsistency(filter_file_list_main, filter_file_list_root, bypassFlag)
 
     else:
         # Bank: files live in multiple collaborator vaults.
@@ -170,13 +169,11 @@ def conversion_procedure(
 
     # Create a list for combined_file.md
     root_map = {Path(p).name: p for p in filter_file_list_root}
-    only_used_files = [root_map[Path(name).name]
-                       for name in filter_file_list_main]
+    only_used_files = [root_map[Path(name).name] for name in filter_file_list_main]
 
     # Effective conversion
     if dst is not None:
-        combine_and_execute(only_used_files, collaborators,
-                            cfgCstmPath, buildOpts, dst)
+        combine_and_execute(only_used_files, collaborators, cfgCstmPath, buildOpts, dst)
     else:
         print("Error: No output file selected")
         sys.exit(1)

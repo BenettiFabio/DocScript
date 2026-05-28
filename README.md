@@ -80,13 +80,16 @@ python DocScript/DocScript.py --help
     ```bash
     vault/
     ├── main.md
-    ├── macro-arg1/
-    │   ├── main.macro-arg1.sub-arg1.md
-    │   └── main.macro-arg1.sub-arg2.md
-    ├── macro-arg2/
-    │   └── main.macro-arg2.sub-arg1.md
-    └── macro-arg3/
-        └── main.macro-arg3.sub-arg1.md
+    ├── proj1/
+    │   ├── main.proj1.sub-proj1.main.md
+    │   ├── sub-proj1/
+    │   │   └── main.proj1.sub-proj1.sub-arg3.md
+    │   ├── main.proj1.sub-arg1.md
+    │   └── main.proj1.sub-arg2.md
+    ├── proj2/
+    │   └── main.proj2.sub-arg1.md
+    └── proj3/
+        └── main.proj3.sub-arg1.md
     ```
 
     This way, searching for files and their contents is simplified, and it also simplifies the use of any scripts that can leverage the name for possible automations.
@@ -97,6 +100,7 @@ python DocScript/DocScript.py --help
 1.  `main.md`: This file is the index of the entire structure.
     - It will link all the project pages so they can be easily found over time.
     - The `main.md` will be used as the conversion order so that, if the entire vault is converted into a single pdf, the order in which topics should be included is known.
+    - The `main.md` can in turn contain other main files recursively. If there are subfolders, they **must** have their own main files describing the contents of the folder.
 
 2.  **vault:** The Vault is the folder containing all the notes.
     - Note names are divided into _macro-topics_ in the Vault's subfolders.
@@ -119,7 +123,7 @@ python DocScript/DocScript.py --help
     > vault/assets/
     >        ├── docfiles/
     >        │   └── logo-image.png
-    >        ├── macro-arg1/
+    >        ├── proj1/
     >        │   ├── imgs/
     >        │   │   ├── mermaid-imgs/
     >        │   │   │   └── img1-mermaid.md
@@ -128,14 +132,14 @@ python DocScript/DocScript.py --help
     >        │   │   ├── img1.png
     >        │   │   └── img2.png
     >        │   └── pdfs/
-    >        └── macro-arg2/
+    >        └── proj2/
     > ```
     >
     > This way I always know that the source files have the same name as the image or pdf and are separated from the rest.
 
 4.  **DocScripts:** This submodule contains all the default scripts and automations that can be run in the project.
 
-    Inside the submodule there is the `requirements/` folder which already contains fonts and other components to speed up the vault's initial setup.
+    Inside the submodule there is the `requirements/user/` folder which already contains fonts and other components to speed up the vault's initial setup.
 
 5.  **./vault/config:** It is a folder containing all the custom files that can be modified for conversion, including _yaml_, _template_, _lua filter_, and which template to use for _new notes_. Inside the `vault/config/.conf` file, which ones should be used during conversion are specified. For more information see the [Config files priority chapter](#priority-and-usage-of-configuration-files)
 

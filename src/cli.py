@@ -5,7 +5,12 @@ import sys
 import pyfiglet
 
 from src import workflow
-from src.config import CustomPaths, BuildOptions, check_config_file, apply_build_overrides
+from src.config import (
+    CustomPaths,
+    BuildOptions,
+    check_config_file,
+    apply_build_overrides,
+)
 from src.modes import CMode
 from src.utils import safe_path
 from src.version import DOCSCRIPT_VERSION as DCV
@@ -107,13 +112,11 @@ def main() -> None:
     # -------------------------------
     # Gruppo 3: Additive Operation
     # -------------------------------
-    parser.add_argument("-y", "--yaml", metavar="YAML_NAME",
-                        help="Custom YAML file")
+    parser.add_argument("-y", "--yaml", metavar="YAML_NAME", help="Custom YAML file")
     parser.add_argument(
         "-t", "--template", metavar="TEMPLATE_NAME", help="Custom Template file"
     )
-    parser.add_argument("-l", "--lua", metavar="LUA_NAME",
-                        help="Custom LuaFilter file")
+    parser.add_argument("-l", "--lua", metavar="LUA_NAME", help="Custom LuaFilter file")
     parser.add_argument(
         "-p",
         "--pandoc",
@@ -216,7 +219,8 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
         cMode = CMode.ALL
         validate_output(args.all)
         workflow.conversion_procedure(
-            cMode, ConfigCustomPaths, build_opts, src=None, dst=args.all)
+            cMode, ConfigCustomPaths, build_opts, src=None, dst=args.all
+        )
         return
     if args.custom:
         cMode = CMode.CUSTOM

@@ -4,68 +4,67 @@ import sys
 
 
 def setup_hooks():
-    # 1. Trova la cartella dove risiede questo script Python (DocScript/requirements/dev/)
     current_script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    # 2. Definisci la sorgente dei file di hook (la cartella 'hooks' che sta dentro 'dev/')
-    hooks_source_dir = os.path.join(current_script_dir, 'hooks')
+    # Define the source of hook files (the 'hooks' folder inside 'dev/')
+    hooks_source_dir = os.path.join(current_script_dir, "hooks")
 
-    # 3. Risali l'alberatura per trovare il Progetto Principale (MyDocumentation)
     # dev/ -> requirements/ -> DocScript/ -> MyDocumentation/
     requirements_dir = os.path.dirname(current_script_dir)
     submodule_root_dir = os.path.dirname(requirements_dir)
     main_project_dir = os.path.dirname(submodule_root_dir)
 
-    # 4. Definisci il percorso di destinazione dentro il .git del progetto principale
+    # Define the destination path inside the main project's .git
     git_hooks_dest = os.path.join(
-        main_project_dir, '.git', 'modules', 'DocScript', 'hooks')
+        main_project_dir, ".git", "modules", "DocScript", "hooks"
+    )
 
-    print(f"--- Configurazione Git Hooks per il sottomodulo DocScript ---")
-    print(f"Sorgente hook: {hooks_source_dir}")
-    print(f"Destinazione Git: {git_hooks_dest}\n")
+    print("--- Git Hooks configuration for DocScript submodule ---")
+    print(f"Hooks source: {hooks_source_dir}")
+    print(f"Git destination: {git_hooks_dest}\n")
 
-    # Verifica che la cartella sorgente 'hooks/' esista
+    # Verify that the source 'hooks/' folder exists
     if not os.path.exists(hooks_source_dir):
-        print(
-            f"Errore: Non ho trovato la cartella sorgente degli hook in:\n   {hooks_source_dir}")
+        print(f"Error: Hooks source folder not found at:\n   {hooks_source_dir}")
         sys.exit(1)
 
-    # Verifica che la cartella Git di destinazione esista
+    # Verify that the Git destination folder exists
     if not os.path.exists(git_hooks_dest):
-        print(
-            f"Errore: Non ho trovato la cartella Git di destinazione in:\n   {git_hooks_dest}")
-        print("Assicurati che il sottomodulo sia inizializzato nel progetto principale.")
+        print(f"Error: Git destination folder not found at:\n   {git_hooks_dest}")
+        print("Ensure the submodule is initialized in the main project.")
         sys.exit(1)
 
-    # 5. Trova tutti i file nella cartella sorgente hooks/
-    hooks_to_install = [f for f in os.listdir(
-        hooks_source_dir) if os.path.isfile(os.path.join(hooks_source_dir, f))]
+    # Find all files in the source hooks/ folder
+    hooks_to_install = [
+        f
+        for f in os.listdir(hooks_source_dir)
+        if os.path.isfile(os.path.join(hooks_source_dir, f))
+    ]
 
     if not hooks_to_install:
-        print("Nessun file di hook trovato da installare nella cartella sorgente.")
+        print("No hook files found to install in the source folder.")
         sys.exit(0)
 
-    # 6. Copia i file e imposta i permessi
+    # Copy files and set permissions
     for hook_name in hooks_to_install:
         source_path = os.path.join(hooks_source_dir, hook_name)
         dest_path = os.path.join(git_hooks_dest, hook_name)
 
         try:
-            # Copia il file sovrascrivendo eventuali versioni precedenti
+            # Copy the file, overwriting previous versions
             shutil.copy2(source_path, dest_path)
-            print(f"Copiato: {hook_name}")
+            print(f"Copied: {hook_name}")
 
-            # Su sistemi Unix (Linux/macOS), Git richiede che gli hook siano eseguibili
-            if os.name != 'nt':
+            # On Unix systems (Linux/macOS), Git requires hooks to be executable
+            if os.name != "nt":
                 current_permissions = os.stat(dest_path).st_mode
                 os.chmod(dest_path, current_permissions | 0o111)
-                print(
-                    f"   -> Permessi di esecuzione impostati per {hook_name}")
+                print(f"   -> Execution permissions set for {hook_name}")
 
         except Exception as e:
-            print(f"Errore durante la copia di {hook_name}: {e}")
+            print(f"Error copying {hook_name}: {e}")
 
-    print("\nSetup completato! Gli hook del sottomodulo sono pronti.")
+    print("\nSetup complete! Submodule hooks are ready.")
 
 
 if __name__ == "__main__":

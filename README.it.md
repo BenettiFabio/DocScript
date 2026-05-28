@@ -80,13 +80,16 @@ python DocScript/DocScript.py --help
     ```bash
     vault/
     ├── main.md
-    ├── macro-arg1/
-    │   ├── main.macro-arg1.sub-arg1.md
-    │   └── main.macro-arg1.sub-arg2.md
-    ├── macro-arg2/
-    │   └── main.macro-arg2.sub-arg1.md
-    └── macro-arg3/
-        └── main.macro-arg3.sub-arg1.md
+    ├── proj1/
+    │   ├── main.proj1.sub-proj1.main.md
+    │   ├── sub-proj1/
+    │   │   └── main.proj1.sub-proj1.sub-arg3.md
+    │   ├── main.proj1.sub-arg1.md
+    │   └── main.proj1.sub-arg2.md
+    ├── proj2/
+    │   └── main.proj2.sub-arg1.md
+    └── proj3/
+        └── main.proj3.sub-arg1.md
     ```
 
     In Questo modo la ricerca dei file e dei loro contenuti si semplifica e semplifica l'utilizzo anche di eventuali script che possono sfruttare il nome per eventuali automazioni.
@@ -97,6 +100,7 @@ python DocScript/DocScript.py --help
 1.  `main.md`: Questo file è l'indice di tutta la struttura.
     - Andrà a linkare tutte le pagine del progetto in modo da poterle trovare facilmente nel tempo.
     - Il `main.md` verrá utilizzato come ordine di conversione in modo che, se convertito l'intero vault in un unico pdf si conosce in che ordine devono essere inseriti gli argomenti.
+    - Il `main.md` puó a sua volta contenere i altri main in modo ricorsivo. Se sono presenti sottocartelle **devono** esse presenti i rispettivi main che descrivono il contenuto della cartella.
 
 2.  **vault:** Il Vault è la cartella contenente tutte le note.
     - I nomi delle note sono divisi in _macro-argomenti_ nelle sottocartelle del Vault.
@@ -119,7 +123,7 @@ python DocScript/DocScript.py --help
     > vault/assets/
     >        ├── docfiles/
     >        │   └── logo-image.png
-    >        ├── macro-arg1/
+    >        ├── proj1/
     >        │   ├── imgs/
     >        │   │   ├── mermaid-imgs/
     >        │   │   │   └── img1-mermaid.md
@@ -128,14 +132,14 @@ python DocScript/DocScript.py --help
     >        │   │   ├── img1.png
     >        │   │   └── img2.png
     >        │   └── pdfs/
-    >        └── macro-arg2/
+    >        └── proj2/
     > ```
     >
     > In questo modo so sempre che i sorgenti si chiamano con lo stesso nome dell'immagine o del pdf e sono separati dal resto.
 
 4.  **DocScripts:** Questo sottomodulo contiene tutti gli script e le automazioni di default che possono essere eseguiti nel progetto.
 
-    Dentro il sottomodulo é presente la cartella `requirements/` dove sono presenti giá i fonts e altri componenti per velocizzare la messa in servizio del vault.
+    Dentro il sottomodulo é presente la cartella `requirements/user/` dove sono presenti giá i fonts e altri componenti per velocizzare la messa in servizio del vault.
 
 5.  **./vault/config:** É una cartella in cui sono presenti tutti i file custom che possono essere modificati per la conversione tra cui _yaml_, _template_, _lua filter_, e quale template usare per le _nuove note_. Dentro il file `vault/config/.conf` sono specificati quali devono essere usati nella conversione. Per maggiori informazioni vedi il [Capitolo sui file di configurazione](#prioritá-ed-utilizzo-dei-config-file).
 
