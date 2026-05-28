@@ -5,7 +5,7 @@ import sys
 import pyfiglet
 
 from src import workflow
-from src.config import CustomPaths, check_config_file, check_priority_opt
+from src.config import CustomPaths, BuildOptions, check_config_file, apply_build_overrides
 from src.modes import CMode
 from src.utils import safe_path
 from src.version import DOCSCRIPT_VERSION as DCV
@@ -107,16 +107,24 @@ def main() -> None:
     # -------------------------------
     # Gruppo 3: Additive Operation
     # -------------------------------
-    parser.add_argument("-y", "--yaml", metavar="YAML_NAME", help="Custom YAML file")
+    parser.add_argument("-y", "--yaml", metavar="YAML_NAME",
+                        help="Custom YAML file")
     parser.add_argument(
         "-t", "--template", metavar="TEMPLATE_NAME", help="Custom Template file"
     )
-    parser.add_argument("-l", "--lua", metavar="LUA_NAME", help="Custom LuaFilter file")
+    parser.add_argument("-l", "--lua", metavar="LUA_NAME",
+                        help="Custom LuaFilter file")
     parser.add_argument(
         "-p",
         "--pandoc",
         metavar="PANDOC_NAME",
         help="Apply custom --metadata-file into pandoc option",
+    )
+    parser.add_argument(
+        "-T",
+        "--title",
+        metavar="DOCUMENT_TITLE",
+        help="Override document title for this conversion",
     )
 
     dispatch(parser)
@@ -128,6 +136,14 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
     """
 
     args = parser.parse_args()
+
+    build_opts = BuildOptions(
+        title=args.title,
+        yaml=args.yaml,
+        template=args.template,
+        lua=args.lua,
+        pandoc=args.pandoc,
+    )
 
     if args.help and not any([args.all, args.group, args.note, args.custom]):
         print(pyfiglet.figlet_format("DocScript", font="slant"))
@@ -146,12 +162,9 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
             # check the configuration file -> overwrite the defaults
             check_config_file(cfgCstmPath=ConfigCustomPaths)
             # check cli options -> overwrite configuration file options
-            check_priority_opt(
+            apply_build_overrides(
                 cfgCstmPath=ConfigCustomPaths,
-                yaml=args.yaml,
-                template=args.template,
-                lua=args.lua,
-                pandoc=args.pandoc,
+                buildOpts=build_opts,
             )
 
     cMode = CMode.NONE
@@ -185,26 +198,31 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
         cMode = CMode.ONE
         validate_output(args.note[1])
         workflow.conversion_procedure(
-            cMode, ConfigCustomPaths, src=args.note[0], dst=args.note[1]
+            cMode, ConfigCustomPaths, build_opts, src=args.note[0], dst=args.note[1]
         )
         return
     if args.group:
         cMode = CMode.GROUP
         validate_output(args.group[1])
         workflow.conversion_procedure(
-            cMode, ConfigCustomPaths, src=args.group[0], dst=args.group[1]
+            cMode,
+            ConfigCustomPaths,
+            build_opts,
+            src=args.group[0],
+            dst=args.group[1],
         )
         return
     if args.all:
         cMode = CMode.ALL
         validate_output(args.all)
-        workflow.conversion_procedure(cMode, ConfigCustomPaths, src=None, dst=args.all)
+        workflow.conversion_procedure(
+            cMode, ConfigCustomPaths, build_opts, src=None, dst=args.all)
         return
     if args.custom:
         cMode = CMode.CUSTOM
         validate_output(args.custom)
         workflow.conversion_procedure(
-            cMode, ConfigCustomPaths, src=None, dst=args.custom
+            cMode, ConfigCustomPaths, build_opts, src=None, dst=args.custom
         )
         return
 
@@ -218,7 +236,6 @@ def validate_args(args: argparse.Namespace) -> None:
     Validate the coherence of the arguments
     """
 
-    # If it is a standalone operation, it should not have any other options
     standalone_ops = [
         args.init,
         args.init_bank,
@@ -227,28 +244,41 @@ def validate_args(args: argparse.Namespace) -> None:
         args.help,
         args.version,
     ]
-    conversion_ops = [args.all, args.group, args.note, args.custom]
 
-    # Counts how many standalone operations are active
+    conversion_ops = [
+        args.all,
+        args.group,
+        args.note,
+        args.custom,
+    ]
+
+    additive_opts = [
+        args.yaml,
+        args.template,
+        args.lua,
+        args.pandoc,
+        args.title,
+    ]
+
     active_standalone = sum(1 for op in standalone_ops if op)
+    active_conversion = sum(1 for op in conversion_ops if op)
 
-    # If there is an active standalone operation
-    if active_standalone > 0:
-        # Check that there are no conversion operations
-        active_conversion = sum(1 for op in conversion_ops if op)
-        if active_conversion > 0:
-            print(
-                "Error: Operations -i, -ib, -s, -u, -v, -h cannot be combined "
-                "with -a, -g, -n, -c"
-            )
-            sys.exit(1)
-        # Check that there are no additional options
-        if args.yaml or args.template:
-            print(
-                "Error: Operations -i, -ib, -s, -u, -v, -h do not "
-                "accept additional options"
-            )
-            sys.exit(1)
+    # standalone + conversion forbidden
+    if active_standalone > 0 and active_conversion > 0:
+        print(
+            "Error: Operations -i, -ib, -s, -u, -v, -h "
+            "cannot be combined with -a, -g, -n, -c"
+        )
+        sys.exit(1)
+
+    # additive options require conversion mode
+    if any(additive_opts) and active_conversion == 0:
+        print(
+            "Error: Additional options "
+            "(-y, -t, -l, -p, -T) "
+            "require a conversion operation"
+        )
+        sys.exit(1)
 
 
 def validate_output(output: str | None) -> None:

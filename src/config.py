@@ -131,6 +131,15 @@ class CustomPaths:
             self.custom_pandoc_opt_path = str(PANDOC_OPT_PATH)
 
 
+@dataclass
+class BuildOptions:
+    title: str | None = None
+    yaml: str | None = None
+    template: str | None = None
+    lua: str | None = None
+    pandoc: str | None = None
+
+
 def is_bank() -> bool:
     """
     Check if the directory is initialized like a data bank
@@ -207,32 +216,35 @@ def check_config_file(cfgCstmPath: CustomPaths) -> None:
                 cfgCstmPath.custom_pandoc_opt_path = add_new_yaml(path)
 
 
-def check_priority_opt(
+def apply_build_overrides(
     cfgCstmPath: CustomPaths,
-    yaml: str | None = None,
-    template: str | None = None,
-    lua: str | None = None,
-    pandoc: str | None = None,
+    buildOpts: BuildOptions,
 ) -> None:
-    """_summary_
-
-    Args:
-    yaml (Optional[str], optional): _description_. Defaults to None.
-    template (Optional[str], optional): _description_. Defaults to None.
-    lua (Optional[str], optional): _description_. Defaults to None.
-    pandoc (Optional[str], optional): _description_. Defaults to None.
-
-    Checks for terminal options that may change configuration paths.
-    These have higher priority than the configuration file.
     """
-    if template:
-        cfgCstmPath.custom_teml_path = add_new_teml(template)
-    elif lua:
-        cfgCstmPath.custom_luaf_path = add_new_luaf(lua)
-    elif yaml:
-        cfgCstmPath.custom_yaml_path = add_new_yaml(yaml)
-    elif pandoc:
-        cfgCstmPath.custom_pandoc_opt_path = add_new_yaml(pandoc)
+    Override configuration paths using CLI build options.
+
+    CLI options always have higher priority than config file values.
+    """
+
+    if buildOpts.template:
+        cfgCstmPath.custom_teml_path = add_new_teml(
+            buildOpts.template
+        )
+
+    if buildOpts.lua:
+        cfgCstmPath.custom_luaf_path = add_new_luaf(
+            buildOpts.lua
+        )
+
+    if buildOpts.yaml:
+        cfgCstmPath.custom_yaml_path = add_new_yaml(
+            buildOpts.yaml
+        )
+
+    if buildOpts.pandoc:
+        cfgCstmPath.custom_pandoc_opt_path = add_new_yaml(
+            buildOpts.pandoc
+        )
 
 
 def add_new_yaml(yaml_file: str | Path) -> str:
@@ -342,7 +354,7 @@ def create_vault_structure(BankFlag: bool = False) -> None:
         # Write the main.md file with the first default references
         contenuto_main = """\
             # Argument 1
-            
+
             - [ArgumentName1](main-arg1/main.main-arg1.first-note.md)
         """
         write_file(Path(os.path.join(_VAULT_DIR, "main.md")
@@ -764,6 +776,7 @@ def combine_and_execute(
     matching_files: list[str],
     collaborators: dict[str, str],
     cfgCstmPath: CustomPaths,
+    buildOpts: BuildOptions,
     dst: str,
 ) -> None:
     """
@@ -792,7 +805,7 @@ def combine_and_execute(
                 print(f"Warning: '{file}' not found, will be ignored.")
 
     # 1.1. Attach the yaml from config files
-    copy_config_yaml(unified, cfgCstmPath)
+    copy_config_yaml(unified, cfgCstmPath, buildOpts.title)
     print(f"File combinato creato: {normalize_unc_path(str(unified))}")
 
     # 2. Resolve base paths
@@ -905,7 +918,45 @@ def remove_std_header(filePath: Path) -> list[str]:
     return filtered_lines
 
 
-def copy_config_yaml(CombinedPath: Path, cfgCstmPath: CustomPaths) -> None:
+def inject_title_into_yaml(yaml_block: str, title: str) -> str:
+    """
+    Insert or override CompanyStudyTitle
+    inside a YAML frontmatter block.
+    """
+
+    safe_title = title.replace('"', '\\"')
+
+    if re.search(
+        r"^CompanyStudyTitle\s*:",
+        yaml_block,
+        flags=re.MULTILINE,
+    ):
+        return re.sub(
+            r'^CompanyStudyTitle\s*:.*$',
+            f'CompanyStudyTitle: "{safe_title}"',
+            yaml_block,
+            flags=re.MULTILINE,
+        )
+
+    # insert before closing marker
+    closing_match = re.search(
+        r"\n(---|\.\.\.)\s*$",
+        yaml_block,
+    )
+
+    if closing_match:
+        idx = closing_match.start()
+
+        return (
+            yaml_block[:idx]
+            + f'\nCompanyStudyTitle: "{safe_title}"'
+            + yaml_block[idx:]
+        )
+
+    return yaml_block
+
+
+def copy_config_yaml(CombinedPath: Path, cfgCstmPath: CustomPaths, cstmTitle: str | None) -> None:
     """
     Copy the YAML from the config/.conf file in the specified file
     Paste this YAML to the top of combined_notes_path
@@ -923,6 +974,12 @@ def copy_config_yaml(CombinedPath: Path, cfgCstmPath: CustomPaths) -> None:
             m = re.search(r"\n(---|\.\.\.)(?:\r?\n)", content)
             if m:
                 yaml_block = content[: m.end()]
+
+        if yaml_block and cstmTitle:
+            yaml_block = inject_title_into_yaml(
+                yaml_block,
+                cstmTitle
+            )
 
         if yaml_block:
             # Read the current contents of the combined_notes.md file

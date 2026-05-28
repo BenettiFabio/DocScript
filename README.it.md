@@ -137,12 +137,7 @@ python DocScript/DocScript.py --help
 
     Dentro il sottomodulo é presente la cartella `requirements/` dove sono presenti giá i fonts e altri componenti per velocizzare la messa in servizio del vault.
 
-5.  **./vault/config:** É una cartella in cui sono presenti tutti i file custom che possono essere modificati per la conversione tra cui _yaml_, _template_, _lua filter_, e quale template usare per le _nuove note_. Dentro il file `vault/config/.conf` sono specificati quali devono essere usati nella conversione.
-
-    L'ultilizzo del `.conf` non é strettamente necessario in quanto viene seguito un ordine gerarchico per effettuare le conversioni:
-    - se non presente nulla vengono usati quelli di default.
-    - se presenti solo alcuni vengono usati quelli e per tutti gli altri i default.
-    - se presenti tutti ma vengon specificate le opzioni a terminale `-t --template`, `-y --yaml` e `-l --lua` questi ultimi hanno <span style="color: red;">massima prioritá</span>.
+5.  **./vault/config:** É una cartella in cui sono presenti tutti i file custom che possono essere modificati per la conversione tra cui _yaml_, _template_, _lua filter_, e quale template usare per le _nuove note_. Dentro il file `vault/config/.conf` sono specificati quali devono essere usati nella conversione. Per maggiori informazioni vedi il [Capitolo sui file di configurazione](#prioritá-ed-utilizzo-dei-config-file).
 
 6.  **./vault/rusco:** É una cartella di note non molto importanti per tutte quelle cose che non si vuole che permangano nel repo, in questo modo quando si converte l'intero repo con il comando `-a` queste note vengono escluse dai check consistenza in modo che si possano fare note temporanee senza preoccuparsi di inserirle nel `main.md`.
 
@@ -292,11 +287,11 @@ CompanyStudyTitle:
 CompanyDocumentCode:
 
 # Impostazioni di Layout e Assets
-LogoFileName: "../assets/docfiles/logo-docscript"
-footerText: "RISERVATO - PROPRIETÀ DI Company S.p.A."
+LogoFileName: '../assets/docfiles/logo-docscript'
+footerText: 'RISERVATO - PROPRIETÀ DI Company S.p.A.'
 
 # Configurazione Watermark (se draft: true)
-watermark_text: "Draft"
+watermark_text: 'Draft'
 
 # Configurazioni TOC
 tocDepth: 5
@@ -311,7 +306,7 @@ Ovunque ci si trovi é possibile richiamare il `DocScript.py` e questo genererá
 
 - Inserire nuove note e nuovi argomenti dentro il vault mediante `-s`.
 
-- Prima di convertire il documento ufficiale dare uno sguardo al `/vault/config/.conf` per impostare i file da usare durante la conversione. Sopratutto per quanto riguarda il file `yaml/` il quale contiene i parametri di conversione che verranno usati nel `template/` scelto in modo da ottenere risultati piú o meno complessi in base alle esigenze. Nel `.conf` é possibile anche scegliere una nota di base da inserire come punto di partenza per tutte le nuove note, cosí da avere uno standard.
+- Prima di convertire il documento ufficiale dare uno sguardo al `/vault/config/.conf` per impostare i file da usare durante la conversione. Sopratutto per quanto riguarda il file `yaml` il quale contiene i parametri di conversione che verranno usati nel `template` scelto in modo da ottenere risultati piú o meno complessi in base alle esigenze. Nel `.conf` é possibile anche scegliere una nota di base da inserire come punto di partenza per tutte le nuove note, cosí da avere uno standard.
 
 - Convertire note, gruppi di note (un macro-argomento) o l'intero vault con rispettivamente `-n` `-g` e `-a`.
 
@@ -365,7 +360,37 @@ Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#es
 \scripts\DocScript.py -a output.pdf
 \scripts\DocScript.py -c output.pdf
 # queste ultime quattro opzioni -n -g -a -c accettano modifiche temporanee
-# aggiungendo -y -l -t -p per cambiare yaml, lua, template e pandoc options
+# aggiungendo -y -l -t -p -T per cambiare yaml, lua, template e pandoc options e il titolo della nota
 # anche contemporaneamente
-\scripts\DocScript.py -n nome-nota-src.md output.pdf -y path/to/yaml/file.yaml -t path/to/template/file.tex
+\scripts\DocScript.py -n nome-nota-src.md output.pdf -y path/to/yaml/file.yaml -t path/to/template/file.tex -T "Custom Note Title"
 ```
+
+## Prioritá ed utilizzo dei config file
+
+Durante la generazione dei documenti, DocScript utilizza una gerarchia di configurazioni ben definita.
+
+### 1. File di configurazione del vault (`/vault/config/`)
+
+- YAML, template e plugin vengono letti da questa directory.
+- Questi file vengono creati automaticamente durante l’`init` del progetto.
+- Sono completamente modificabili dall’utente.
+- Se eliminati, il sistema utilizza i file di default interni.
+- Se non si gradisce usarli, é possibile commentarne il contenuto e non verranno considerati.
+
+### 2. File di default (fallback)
+
+- Se i file nella directory `/vault/config/` non esistono o sono corrotti,
+  vengono utilizzati i template e configurazioni predefinite del sistema.
+
+### 3. Opzioni da linea di comando (CLI override)
+
+- Le opzioni passate da terminale hanno priorità sulle configurazioni locali.
+- Esempio: `--yaml`, `--template`, `--lua`, `--pandoc`.
+
+### 4. Titolo del documento (`-T / --title`)
+
+- Il titolo segue una regola di override esplicito:
+  - Se `--title` è specificato, questo viene sempre utilizzato.
+  - Anche se il file YAML contiene già un titolo, viene sovrascritto.
+  - Se non è specificato, viene usato il titolo presente nello YAML.
+  - Se anche quello manca, non viene aggiunto nulla.

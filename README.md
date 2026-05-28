@@ -137,7 +137,7 @@ python DocScript/DocScript.py --help
 
     Inside the submodule there is the `requirements/` folder which already contains fonts and other components to speed up the vault's initial setup.
 
-5.  **./vault/config:** It is a folder containing all the custom files that can be modified for conversion, including _yaml_, _template_, _lua filter_, and which template to use for _new notes_. Inside the `vault/config/.conf` file, which ones should be used during conversion are specified.
+5.  **./vault/config:** It is a folder containing all the custom files that can be modified for conversion, including _yaml_, _template_, _lua filter_, and which template to use for _new notes_. Inside the `vault/config/.conf` file, which ones should be used during conversion are specified. For more information see the [Config files priority chapter](#priority-and-usage-of-configuration-files)
 
     The use of `.conf` is not strictly necessary as a hierarchical order is followed to perform conversions:
     - if nothing is present, the defaults are used.
@@ -292,11 +292,11 @@ CompanyStudyTitle:
 CompanyDocumentCode:
 
 # Layout and Assets Settings
-LogoFileName: "../assets/docfiles/logo-docscript"
-footerText: "Confidential - Property of Company S.p.A."
+LogoFileName: '../assets/docfiles/logo-docscript'
+footerText: 'Confidential - Property of Company S.p.A.'
 
 # Watermark Configuration (if draft: true)
-watermark_text: "Draft"
+watermark_text: 'Draft'
 
 # TOC Configurations
 tocDepth: 5
@@ -311,8 +311,7 @@ From wherever you are, you can invoke `DocScript.py` and it will generate the no
 
 - Insert new notes and new topics inside the vault using `-s`.
 
-- # Before converting the official document, take a look at `/vault/config/.conf` to set the files to use during conversion. Especially regarding the `yaml/` file which contains the conversion parameters that will be used in the chosen `template/` in order to obtain more or less complex results based on the needs. In the `.conf` it is also possible to choose a base note to insert as a starting point for all new notes, so as to have a standard.
-- Prima di convertire il documento ufficiale dare uno sguardo al `/vault/config/.conf` per impostare i file da usare durante la conversione. Sopratutto per quanto riguarda il file `yaml` il quale contiene i parametri di conversione che verranno usati nel `template` scelto in modo da ottenere risultati piú o meno complessi in base alle esigenze. Nel `.conf` é possibile anche scegliere una nota di base da inserire come punto di partenza per tutte le nuove note, cosí da avere uno standard.
+- Before converting the official document, take a look at `/vault/config/.conf` to set the files to use during conversion. Especially regarding the `yaml/` file which contains the conversion parameters that will be used in the chosen `template/` in order to obtain more or less complex results based on the needs. In the `.conf` it is also possible to choose a base note to insert as a starting point for all new notes, so as to have a standard.
 
 - Convert notes, groups of notes (a macro-topic) or the entire vault with `-n` `-g` and `-a` respectively.
 
@@ -366,7 +365,37 @@ It is an executable that, regardless of where you are when it is launched, enter
 \scripts\DocScript.py -a output.pdf
 \scripts\DocScript.py -c output.pdf
 # these last four options -n -g -a -c accept temporary modifications
-# by adding -y -l -t -p to change yaml, lua, template and pandoc options
+# by adding -y -l -t -p -T to change yaml, lua, template and pandoc options and NoteTitle
 # even simultaneously
-\scripts\DocScript.py -n source-note-name.md output.pdf -y path/to/yaml/file.yaml -t path/to/template/file.tex
+\scripts\DocScript.py -n source-note-name.md output.pdf -y path/to/yaml/file.yaml -t path/to/template/file.tex -T "Custom Note Title"
 ```
+
+## Priority and usage of configuration files
+
+During document generation, DocScript follows a strict configuration hierarchy.
+
+### 1. Vault configuration files (`/vault/config/`)
+
+- YAML, templates, and plugins are loaded from this directory.
+- These files are automatically created during project initialization.
+- They are fully editable by the user.
+- If deleted, the system falls back to internal default configuration.
+- If you don't like using them, you can comment on their content and they will not be considered.
+
+### 2. Default system configuration (fallback)
+
+- If vault configuration files are missing or invalid,
+  built-in defaults are used instead.
+
+### 3. Command-line interface (CLI overrides)
+
+- CLI options always override local configuration files.
+- Examples: `--yaml`, `--template`, `--lua`, `--pandoc`.
+
+### 4. Document title (`-T / --title`)
+
+- The title follows an explicit override rule:
+  - If `--title` is provided, it is always used.
+  - It overrides any title defined inside the YAML file.
+  - If not provided, the YAML title is used.
+  - If neither exists, a fallback title is generated from the group or file name.
