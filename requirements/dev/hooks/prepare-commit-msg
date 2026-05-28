@@ -1,0 +1,19 @@
+#!/bin/bash
+
+COMMIT_MSG_FILE=$1
+VERSION_FILE="src/version.py"
+
+if [ -f "$VERSION_FILE" ]; then
+    VERSION=$(grep -oP '(?<=DOCSCRIPT_VERSION = ")[^"]+' "$VERSION_FILE")
+
+    # Legge il messaggio attuale (prima riga)
+    ORIGINAL_MSG=$(head -n 1 "$COMMIT_MSG_FILE")
+
+    # Evita doppio wrapping se già presente
+    if [[ "$ORIGINAL_MSG" != \[*\]* ]]; then
+        NEW_MSG="[v$VERSION] $ORIGINAL_MSG"
+
+        # Sovrascrive solo la prima riga
+        sed -i "1s/.*/$NEW_MSG/" "$COMMIT_MSG_FILE"
+    fi
+fi

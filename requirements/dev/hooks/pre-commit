@@ -1,0 +1,25 @@
+#!/bin/bash
+
+VERSION_FILE="src/version.py"
+
+# Verifica esistenza file
+if [ ! -f "$VERSION_FILE" ]; then
+    echo "DOCSCRIPT_VERSION = \"0.0.1\"" > "$VERSION_FILE"
+fi
+
+# Estrae la versione dal file
+CURRENT_VERSION=$(grep -oP '(?<=DOCSCRIPT_VERSION = ")[^"]+' "$VERSION_FILE")
+
+IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+
+# Incremento patch
+patch=$((patch + 1))
+NEW_VERSION="$major.$minor.$patch"
+
+# Aggiorna il file version.py
+sed -i "s/DOCSCRIPT_VERSION = \".*\"/DOCSCRIPT_VERSION = \"$NEW_VERSION\"/" "$VERSION_FILE"
+
+# stage del file aggiornato
+git add "$VERSION_FILE"
+
+echo "=== [Git Hook] Versione aggiornata a: $NEW_VERSION ==="
