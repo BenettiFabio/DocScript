@@ -40,7 +40,8 @@ def normalize_unc_path(windows_path: str) -> str:
     """
 
     # Read all the network disk drive into the system
-    result = subprocess.run("net use", capture_output=True, text=True, shell=True)
+    result = subprocess.run(
+        "net use", capture_output=True, text=True, shell=True)
     lines = result.stdout.splitlines()
     mapped_drives = {}
 
@@ -51,25 +52,25 @@ def normalize_unc_path(windows_path: str) -> str:
             unc_path = parts[1]
             mapped_drives[drive_letter] = unc_path
 
-    # Normalize the path
-    full_path = str(Path(windows_path).resolve())
-    normalized_path = full_path.replace("\\", "/")
+    # Normalize the path preserving the original casing for the returned path.
+    normalized_path = Path(windows_path).resolve().as_posix()
+    path_parts = normalized_path.strip("/").split("/")
+    path_parts_lower = [part.lower() for part in path_parts]
 
-    # Try to change the entry point with the founded letter if match
-    # WARINING! use the lowercase name of the share path!
+    # Try to change the entry point with the founded letter if match.
+    # Compare case-insensitively, but rebuild the returned path using the
+    # original casing already present in the input path.
     for drive, unc in sorted(
         mapped_drives.items(), key=lambda x: len(x[1]), reverse=True
     ):
         unc_norm = unc.replace("\\", "/")
         unc_parts = unc_norm.strip("/").split("/")
-        full_parts = [part.lower() for part in normalized_path.strip("/").split("/")]
 
         try:
-            # Use the first folder
-            idx = full_parts.index(unc_parts[-1].lower())
+            idx = path_parts_lower.index(unc_parts[-1].lower())
 
-            # Build the path starting from the first folder found
-            relative_parts = full_parts[idx + 1 :]
+            # Build the path starting from the first folder found.
+            relative_parts = path_parts[idx + 1:]
             final_path = Path(drive + "/") / Path(*relative_parts)
 
             return str(final_path).replace("\\", "/")
