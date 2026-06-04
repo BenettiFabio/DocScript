@@ -4,6 +4,7 @@ __pycache__/
 .mypy_cache/
 .pytest_cache/
 .vscode/
+tests/
 .tmp/
 *.tmp
 venv/**

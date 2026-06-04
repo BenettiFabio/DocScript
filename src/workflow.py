@@ -5,6 +5,9 @@ from src.config import (
     CustomPaths,
     BuildOptions,
     check_inconsistency,
+    found_main_inconsistency,
+    found_broken_links,
+    fix_links_return_errors,
     check_integrity,
     combine_and_execute,
     create_build_dir,
@@ -186,3 +189,83 @@ def update_bank() -> None:
     """
 
     update_bank_files()
+
+
+def run_linter() -> None:
+    """
+    Verify that the links to all notes in the main file are correctly written
+    by checking the correct paths.
+    Verify that all paths within each note correspond to real assets.
+    Report any inconsistencies to be fixed using the appropriate command.
+    """
+
+    if is_bank():
+        print("Error: Use this cmd only in a personal Vault.")
+        sys.exit(1)
+
+    print("Start parsing all the repo, please wait...")
+
+    # Check if all the files are in the main
+    mode = CMode.ALL
+
+    file_found_root = get_all_files_from_root()
+    file_found_main = get_all_files_from_main(mode)
+    missed_links = found_main_inconsistency(file_found_main,
+                                            file_found_root)
+
+    if missed_links:
+        print("\nWarning: The following .md files are NOT included in main:\n")
+        for f in sorted(missed_links):
+            print(f"- {f}")
+
+    # Parse every single file searching broken links
+    broken_links = found_broken_links(file_found_main)
+
+    if broken_links:
+        print("\nWarning: The following .md files contains broken links:\n")
+        for key, values in broken_links.items():
+            print(f"{key}:")
+            for value in values:
+                print(f"  - {value}")
+            print("\n")
+
+        print("There are several broken links, to fix them automatically use the --fix-link function")
+    else:
+        print("No links appear to be broken in this Vault, enjoy!")
+
+
+def fix_links() -> None:
+    """
+    Verify that the links to all notes in the main file are written correctly,
+    checking the correct paths.
+    Verify that all paths within each note correspond to real assets.
+    Looks for the corresponding assets and corrects them if they exist;
+    otherwise, it corrects them but reports that the file they refer to does not exist.
+    """
+
+    if is_bank():
+        print("Error: Use this cmd only in a personal Vault.")
+        sys.exit(1)
+
+    print("Start parsing all the repo, please wait...")
+
+    mode = CMode.ALL
+    file_found_main = get_all_files_from_main(mode)
+
+    broken_links = found_broken_links(file_found_main)
+
+    # Fixes file locations for assets.
+    # Returns all links that have no reference to real objects.
+
+    not_found_resources = fix_links_return_errors(broken_links)
+
+    if not_found_resources:
+
+        print("\nWarning: The following .md files contains broken links:\n")
+        for key, values in not_found_resources.items():
+            print(f"{key}:")
+            for value in values:
+                print(f"  - {value}")
+            print("\n")
+    else:
+        print("No links appear to be broken in this Vault, enjoy!")

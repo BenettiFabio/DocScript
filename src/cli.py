@@ -32,6 +32,8 @@ JUMP_CHECK_COMMANDS = {
     "init-bank",
     "help",
     "version",
+    "lint",
+    "fix-links"
 }
 NEED_FS_COMMANDS = {
     "start",
@@ -76,6 +78,12 @@ def main() -> None:
     )
     group_standalone.add_argument(
         "-v", "--version", action="store_true", help="Print the script version"
+    )
+    group_standalone.add_argument(
+        "-L", "--lint", action="store_true", help="Consistency check of all links"
+    )
+    group_standalone.add_argument(
+        "-fl", "--fix-links", action="store_true", help="Automatic Fix of all links, run -L before this"
     )
     group_standalone.add_argument(
         "-h", "--help", action="store_true", help="Show this help message"
@@ -193,7 +201,14 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
     if args.version:
         print("DocScript v" + DCV)
         return
-
+    if args.lint:
+        print("Lint all links")
+        workflow.run_linter()
+        return
+    if args.fix_links:
+        print("Automatic fix links")
+        workflow.fix_links()
+        return
     # -------------------------------
     # Group 2
     # -------------------------------
@@ -247,6 +262,8 @@ def validate_args(args: argparse.Namespace) -> None:
         args.update,
         args.help,
         args.version,
+        args.lint,
+        args.fix_links,
     ]
 
     conversion_ops = [
@@ -270,7 +287,7 @@ def validate_args(args: argparse.Namespace) -> None:
     # standalone + conversion forbidden
     if active_standalone > 0 and active_conversion > 0:
         print(
-            "Error: Operations -i, -ib, -s, -u, -v, -h "
+            "Error: Operations -i, -ib, -s, -u, -v, -h -L -fl"
             "cannot be combined with -a, -g, -n, -c"
         )
         sys.exit(1)
@@ -319,4 +336,8 @@ def get_command(args: argparse.Namespace) -> str:
         return "convert-custom"
     if args.version:
         return "version"
+    if args.lint:
+        return "lint"
+    if args.fix_links:
+        return "fix-links"
     return "help"

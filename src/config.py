@@ -791,6 +791,34 @@ def get_all_files_from_bank(mode: CMode) -> tuple[list[str], dict[str, str]]:
     return matching_files, active_collaborators_map
 
 
+def found_main_inconsistency(matching_files_main: list[str], matching_files_root: list[str]) -> set[str]:
+    # Filter “root” files (all .md files in the vault)
+    filtered_matching_files_root = [
+        Path(path).name
+        for path in matching_files_root
+        if not path.startswith(f"{_TEMPORARY_DIR}/")
+        and not Path(path).name.startswith(f"main.{_TEMPORARY_DIR}.")
+    ]
+
+    # Normalize lists (file names only)
+    normalized_actual_list = [
+        Path(path).name for path in filtered_matching_files_root
+    ]
+
+    normalized_main_list: list[str] = [
+        Path(path).name for path in matching_files_main
+    ]
+
+    main_set = set(normalized_main_list)
+    actual_set = set(normalized_actual_list)
+
+    missing_in_main = actual_set - main_set
+
+    missing_in_main = {f for f in missing_in_main if not _is_sub_main(f)}
+
+    return missing_in_main
+
+
 def check_inconsistency(
     matching_files_main: list[str], matching_files_root: list[str], bypassFlag: bool
 ) -> None:
@@ -802,29 +830,8 @@ def check_inconsistency(
 
     if not bypassFlag:
 
-        # Filter “root” files (all .md files in the vault)
-        filtered_matching_files_root = [
-            Path(path).name
-            for path in matching_files_root
-            if not path.startswith(f"{_TEMPORARY_DIR}/")
-            and not Path(path).name.startswith(f"main.{_TEMPORARY_DIR}.")
-        ]
-
-        # Normalize lists (file names only)
-        normalized_actual_list = [
-            Path(path).name for path in filtered_matching_files_root
-        ]
-
-        normalized_main_list: list[str] = [
-            Path(path).name for path in matching_files_main
-        ]
-
-        main_set = set(normalized_main_list)
-        actual_set = set(normalized_actual_list)
-
-        missing_in_main = actual_set - main_set
-
-        missing_in_main = {f for f in missing_in_main if not _is_sub_main(f)}
+        missing_in_main = found_main_inconsistency(
+            matching_files_main, matching_files_root)
 
         if missing_in_main:
             print("Error: The following .md files are NOT included in main:")
@@ -855,6 +862,246 @@ def check_inconsistency(
                 sys.exit(1)
 
 
+def _is_in_comment(pos: int, commentedRanges: list[tuple[int, int]]) -> bool:
+    """
+    Return True if character position *pos* falls inside a comment block.
+    """
+    return any(start <= pos < end for start, end in commentedRanges)
+
+
+def _extract_markdown_link_targets(content: str) -> list[str]:
+    """
+    Extract markdown link targets from both regular links and image links.
+    """
+
+    pattern = re.compile(r'!?\[[^\]]*\]\(([^)]+)\)')
+    matches = pattern.findall(content)
+    return [match.strip() for match in matches]
+
+
+def found_broken_links(matching_files_main: list[str]) -> dict[str, list[str]]:
+    """
+    Parse all .md notes found in the main directory.
+    Return, for each note, the broken local links that do not resolve to
+    an existing file.
+    """
+
+    broken_by_note: dict[str, list[str]] = {}
+    external_pattern = re.compile(r'^(?:[a-z][a-z0-9+.-]*:|#)', re.IGNORECASE)
+
+    for file_path in matching_files_main:
+        note_path = Path(file_path)
+
+        if not note_path.exists() or not note_path.is_file():
+            continue
+
+        with open(note_path, encoding="utf-8") as note_file:
+            content = note_file.read()
+
+        # exclude comments
+        content_without_comments = re.sub(
+            r"<!--.*?-->", "", content, flags=re.DOTALL
+        )
+        local_links = _extract_markdown_link_targets(content_without_comments)
+        broken_links: list[str] = []
+        seen_links: set[str] = set()
+
+        for link_target in local_links:
+            target = link_target.strip()
+
+            if not target:
+                continue
+
+            if external_pattern.match(target):
+                continue
+
+            if target in seen_links:
+                continue
+
+            seen_links.add(target)
+
+            # exlude chapter into links
+            path_part = target.split("#", 1)[0].split("?", 1)[0]
+            if not path_part:
+                continue
+
+            resolved_path = safe_path(note_path.parent, path_part).resolve()
+            if not resolved_path.exists():
+                broken_links.append(target)
+
+        if broken_links:
+            broken_by_note[str(note_path)] = broken_links
+
+    return broken_by_note
+
+
+def _find_asset_candidate(
+    note_path: Path, link_target: str, search_root: Path
+) -> Path | None:
+    """Try to resolve a broken local asset link by looking under the vault
+    assets folder using the link target path as a hint.
+
+    The function intentionally ignores URL fragments (#...) and query strings
+    (?...) when building the candidate path on disk, because those parts only
+    make sense inside the document, not as filesystem components.
+
+    Resolution strategy (in order):
+    1. Resolve the raw path relative to the note's parent directory.
+    2. If the path contains an "assets" segment, use everything after it as a
+       suffix and search recursively under *assets_dir*.
+    3. Fall back to matching by file name only.
+    """
+    raw_target = link_target.strip()
+    if not raw_target:
+        return None
+
+    # Strip fragment and query-string — irrelevant for disk look-up.
+    path_part = raw_target.split("#", 1)[0].split("?", 1)[0]
+
+    # --- Strategy 1: direct relative resolution ---
+    candidate = safe_path(note_path.parent, path_part)
+    if candidate.exists() and candidate.is_file():
+        return candidate
+
+    # --- Strategies 2 & 3: search under the assets directory ---
+    # Build a "suffix" path: either everything after the "assets" segment (so
+    # we preserve sub-directory structure) or just the bare file name.
+    parts = [part for part in Path(path_part).parts if part not in (".", "")]
+
+    if "assets" in parts:
+        # Keep the sub-path that comes after the assets directory name so that
+        # files in nested sub-folders are still matched correctly.
+        suffix = Path(*parts[parts.index("assets") + 1:])
+    else:
+        suffix = Path(parts[-1]) if parts else Path(path_part)
+
+    if suffix.name == "":
+        return None
+
+    for file_path in search_root.rglob("*"):
+        if not file_path.is_file():
+            continue
+
+        relative = file_path.relative_to(search_root).as_posix()
+
+        # Accept the file if its relative path ends with the expected suffix or
+        # if its name alone matches (the "by name" fallback).
+        if relative.endswith(suffix.as_posix()) or file_path.name == suffix.name:
+            return file_path
+
+    return None
+
+
+def _replace_target_outside_comments(text: str, target: str, replacement: str) -> str:
+    """
+    Replace all occurrences of *target* in *text* while preserving every
+    HTML comment block exactly as-is.
+    """
+    result: list[str] = []
+    i = 0
+    length = len(text)
+
+    while i < length:
+        comment_start = text.find("<!--", i)
+        if comment_start == -1:
+            comment_start = length
+
+        # Copy text before the next comment block as-is, replacing the target.
+        segment = text[i:comment_start]
+        if target in segment:
+            segment = segment.replace(target, replacement)
+        result.append(segment)
+
+        if comment_start >= length:
+            break
+
+        comment_end = text.find("-->", comment_start + 4)
+        if comment_end == -1:
+            comment_end = length
+
+        result.append(text[comment_start:comment_end + 3])
+        i = comment_end + 3
+
+    return "".join(result)
+
+
+def fix_links_return_errors(
+    dictFileLinks: dict[str, list[str]],
+) -> dict[str, list[str]]:
+    """
+    Update broken local asset links in Markdown notes so they point to the
+    correct relative path from the note to the real asset file under the vault
+    assets directory.
+
+    The function rewrites each note's content in place and returns a mapping of
+    note path -> list of links that could *not* be resolved.
+
+    Special cases handled:
+    * Links that live inside HTML comment blocks (<!-- … -->) are skipped
+        entirely — they are intentionally hidden and should not be rewritten.
+    """
+    vault_dir = _BANK_DIR if is_bank() else _VAULT_DIR
+    unresolved_links: dict[str, list[str]] = {}
+
+    for note_path_str, broken_links in dictFileLinks.items():
+        note_path = safe_path(note_path_str)
+
+        if not note_path.exists() or not note_path.is_file():
+            continue
+        if _is_sub_main(note_path.name):
+            continue
+
+        original_content = note_path.read_text(encoding="utf-8")
+        updated_content = original_content
+        broken_for_note: list[str] = []
+
+        for link_target in broken_links:
+            target = link_target.strip()
+
+            # --- Skip empty or absolute/protocol links ---
+            if not target:
+                continue
+            if re.match(r"^(?:[a-z][a-z0-9+.-]*:|#)", target, re.IGNORECASE):
+                continue
+
+            # Keep comments untouched; only rewrite real links.
+            path_part = target.split("#", 1)[0].split("?", 1)[0]
+
+            # --- Resolve the file on disk ---
+            candidate = _find_asset_candidate(note_path, path_part, vault_dir)
+
+            candidate = normalize_unc_path(candidate)
+
+            if candidate is None:
+                # File not found anywhere under the vault.
+                broken_for_note.append(target)
+                continue
+
+            rel_target = safe_path(os.path.relpath(
+                candidate, note_path.parent)).as_posix()
+            if not rel_target.startswith("."):
+                rel_target = f"./{rel_target}"
+
+            corrected_target = rel_target
+            if "#" in target:
+                corrected_target += "#" + target.split("#", 1)[1]
+
+            updated_content = _replace_target_outside_comments(
+                updated_content,
+                target,
+                corrected_target,
+            )
+
+        # Write back only when something actually changed.
+        if updated_content != original_content:
+            note_path.write_text(updated_content, encoding="utf-8")
+
+        if broken_for_note:
+            unresolved_links[str(note_path)] = broken_for_note
+
+    return unresolved_links
+
+
 def copy_assets(output_dir: str, collaborators: dict[str, str]) -> None:
     """
     Copy the assets directories of all collaborators into output_dir.
@@ -870,6 +1117,158 @@ def copy_assets(output_dir: str, collaborators: dict[str, str]) -> None:
         else:
             print(
                 f"Warning: assets not found for {name} in {collab_assets_dir}")
+
+
+def normalize_links_after_merge(
+    CombinedPath: Path,
+    vaultD: str,
+    assetD: str,
+) -> None:
+    """
+    Normalize asset links inside a merged markdown document.
+
+    RULES:
+    - asset existing              -> fix
+    - asset missing               -> error
+    - link to other markdown     -> leave untouched
+    - markdown + anchor (#x)     -> leave untouched
+    - internal anchors (#x)      -> leave untouched
+    - links in comments          -> ignored
+    - assets resolved by full path under assets/ (not filename)
+    """
+
+    v_D = safe_path(vaultD)
+    a_D = safe_path(assetD)
+
+    if not CombinedPath.exists():
+        raise FileNotFoundError(CombinedPath)
+
+    content = CombinedPath.read_text(encoding="utf-8")
+    updated_content = content
+
+    # -----------------------------
+    # Build asset index by REL PATH
+    # -----------------------------
+    asset_index: dict[str, Path] = {}
+
+    for asset in a_D.rglob("*"):
+        if asset.is_file():
+            rel = asset.relative_to(a_D).as_posix()
+            asset_index[rel] = asset
+
+    # -----------------------------
+    # Remove comments for parsing
+    # -----------------------------
+    content_without_comments = re.sub(
+        r"<!--.*?-->",
+        "",
+        content,
+        flags=re.DOTALL,
+    )
+
+    local_links = _extract_markdown_link_targets(content_without_comments)
+
+    processed: set[str] = set()
+
+    for target in local_links:
+        target = target.strip()
+
+        if not target or target in processed:
+            continue
+
+        processed.add(target)
+
+        # -----------------------------
+        # skip external URLs
+        # -----------------------------
+        if re.match(r"^(?:[a-z][a-z0-9+.-]*:)", target, re.IGNORECASE):
+            continue
+
+        # -----------------------------
+        # skip internal anchors
+        # -----------------------------
+        if target.startswith("#"):
+            continue
+
+        # split anchor/query
+        path_part = target.split("#", 1)[0].split("?", 1)[0]
+
+        if not path_part:
+            continue
+
+        suffix = Path(path_part)
+
+        # -----------------------------
+        # skip markdown links entirely
+        # -----------------------------
+        if suffix.suffix.lower() == ".md":
+            continue
+
+        # -----------------------------
+        # normalize asset path under assets/
+        # -----------------------------
+        parts = Path(path_part).parts
+
+        if "assets" in parts:
+            suffix_key = Path(*parts[parts.index("assets") + 1:]).as_posix()
+        else:
+            suffix_key = suffix.as_posix()
+
+        # -----------------------------
+        # resolve asset
+        # -----------------------------
+        asset_path = asset_index.get(suffix_key)
+
+        # fallback: try filename only
+        if asset_path is None:
+            matches = [
+                p for rel, p in asset_index.items()
+                if Path(rel).name == suffix.name
+            ]
+
+            if len(matches) == 0:
+                raise FileNotFoundError(
+                    f"Missing asset referenced in merged file: {target}"
+                )
+
+            if len(matches) > 1:
+                raise ValueError(
+                    f"Ambiguous asset reference '{target}'. "
+                    f"Multiple candidates found."
+                )
+
+            asset_path = matches[0]
+
+        # -----------------------------
+        # build relative path from combined file
+        # -----------------------------
+        rel_target = Path(
+            os.path.relpath(asset_path, CombinedPath.parent)
+        ).as_posix()
+
+        if not rel_target.startswith("."):
+            rel_target = "./" + rel_target
+
+        corrected_target = rel_target
+
+        # preserve anchor if present (even though we usually skip md anchors)
+        if "#" in target:
+            corrected_target += "#" + target.split("#", 1)[1]
+
+        # -----------------------------
+        # replace only outside comments
+        # -----------------------------
+        updated_content = _replace_target_outside_comments(
+            updated_content,
+            target,
+            corrected_target,
+        )
+
+    # -----------------------------
+    # write only if changed
+    # -----------------------------
+    if updated_content != content:
+        CombinedPath.write_text(updated_content, encoding="utf-8")
 
 
 def combine_and_execute(
@@ -912,6 +1311,8 @@ def combine_and_execute(
     vault_dir = str(_BANK_DIR) if is_bank() else str(_VAULT_DIR)
     assets_dir = str(safe_path(vault_dir, _ASSETS_DIR))
     build_dir = BUILD_B_PATH if is_bank() else BUILD_V_PATH
+
+    normalize_links_after_merge(unified, vault_dir, assets_dir)
 
     # 3a. Vault: direct conversion
     if not is_bank():
