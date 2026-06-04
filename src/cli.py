@@ -7,6 +7,7 @@ import pyfiglet
 from src import workflow
 from src.config import (
     CustomPaths,
+    AssetsExtList,
     BuildOptions,
     check_config_file,
     apply_build_overrides,
@@ -32,12 +33,12 @@ JUMP_CHECK_COMMANDS = {
     "init-bank",
     "help",
     "version",
-    "lint",
     "fix-links"
 }
 NEED_FS_COMMANDS = {
     "start",
     "update",
+    "lint",
     "convert-all",
     "convert-note",
     "convert-group",
@@ -169,9 +170,13 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
     request = get_command(args)
     if request not in JUMP_CHECK_COMMANDS:
         ConfigCustomPaths = CustomPaths()
+        AssetsCustomExt = AssetsExtList()
         if request in NEED_FS_COMMANDS:
             # check the configuration file -> overwrite the defaults
-            check_config_file(cfgCstmPath=ConfigCustomPaths)
+            check_config_file(
+                cfgCstmPath=ConfigCustomPaths,
+                sstCstmXt=AssetsCustomExt
+            )
             # check cli options -> overwrite configuration file options
             apply_build_overrides(
                 cfgCstmPath=ConfigCustomPaths,
@@ -203,7 +208,7 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
         return
     if args.lint:
         print("Lint all links")
-        workflow.run_linter()
+        workflow.run_linter(AssetsCustomExt)
         return
     if args.fix_links:
         print("Automatic fix links")

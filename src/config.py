@@ -2,6 +2,7 @@ import os
 import re
 import shutil
 import sys
+import ast
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -105,6 +106,17 @@ EXCLUDED_DIRS = [
 EXCLUDED_FILES = [COMB_FILE_NAME, NEW_NOTE_NAME,
                   MAIN_FILE_NAME, CUSTOM_FILE_NAME]
 
+ACCEPTED_ASSETS_EXT_DEFAULT = [
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".eps",
+    ".pdf",
+    ".tar",
+    ".zip",
+    ".7z",
+]
+
 
 # Manage all the non-default path if specified
 @dataclass
@@ -129,6 +141,18 @@ class CustomPaths:
             self.custom_new_note_path = str(NEW_NOTE_PATH)
         if self.custom_pandoc_opt_path is None:
             self.custom_pandoc_opt_path = str(PANDOC_OPT_PATH)
+
+
+@dataclass
+class AssetsExtList:
+    assets_accepted_ext: list[str] | None = None
+
+    def __post_init__(self) -> None:
+        """
+        Set Defaults if not initialized
+        """
+        if self.assets_accepted_ext is None:
+            self.assets_accepted_ext = ACCEPTED_ASSETS_EXT_DEFAULT
 
 
 @dataclass
@@ -165,7 +189,7 @@ def is_vault() -> bool:
     return False
 
 
-def check_config_file(cfgCstmPath: CustomPaths) -> None:
+def check_config_file(cfgCstmPath: CustomPaths, sstCstmXt=AssetsExtList) -> None:
     """
     Reads a configuration file and updates custom paths.
     It will use these paths to convert notes.
@@ -183,7 +207,8 @@ def check_config_file(cfgCstmPath: CustomPaths) -> None:
     if not os.path.exists(config_path_to_use):
         return
 
-    pattern = re.compile(r'^\.(\w+)\s*=\s*"([^"]+)"$')
+    pattern_path = re.compile(r'^\.(\w+)\s*=\s*"([^"]+)"$')
+    pattern_assets = re.compile(r'^\.(\w+)\s*=\s*(\[.*?\])$')
 
     with open(config_path_to_use, encoding="utf-8") as conf_file:
         for line in conf_file:
@@ -192,28 +217,42 @@ def check_config_file(cfgCstmPath: CustomPaths) -> None:
             if not line.startswith("."):
                 continue
 
-            match = pattern.match(line)
-            if not match:
+            match = pattern_path.match(line)
+            if match:
+                key, value = match.groups()
+                # I need an absolute path: I use safe_path() with two arguments
+                # this way it resolves and becomes an absolute path.
+                if is_bank():
+                    path = safe_path(_BANK_DIR, _CONFIG_DIR, value)
+                else:
+                    path = safe_path(_VAULT_DIR, _CONFIG_DIR, value)
+
+                if key == "template":
+                    cfgCstmPath.custom_teml_path = add_new_teml(path)
+                elif key == "lua":
+                    cfgCstmPath.custom_luaf_path = add_new_luaf(path)
+                elif key == "yaml":
+                    cfgCstmPath.custom_yaml_path = add_new_yaml(path)
+                elif key == "start":
+                    cfgCstmPath.custom_new_note_path = add_new_start(path)
+                elif key == "pandoc":
+                    cfgCstmPath.custom_pandoc_opt_path = add_new_yaml(path)
                 continue
 
-            key, value = match.groups()
-            # I need an absolute path: I use safe_path() with two arguments
-            # this way it resolves and becomes an absolute path.
-            if is_bank():
-                path = safe_path(_BANK_DIR, _CONFIG_DIR, value)
-            else:
-                path = safe_path(_VAULT_DIR, _CONFIG_DIR, value)
+            match = pattern_assets.match(line)
+            if match:
+                key, value = match.groups()
 
-            if key == "template":
-                cfgCstmPath.custom_teml_path = add_new_teml(path)
-            elif key == "lua":
-                cfgCstmPath.custom_luaf_path = add_new_luaf(path)
-            elif key == "yaml":
-                cfgCstmPath.custom_yaml_path = add_new_yaml(path)
-            elif key == "start":
-                cfgCstmPath.custom_new_note_path = add_new_start(path)
-            elif key == "pandoc":
-                cfgCstmPath.custom_pandoc_opt_path = add_new_yaml(path)
+                if key == "assets_ext":
+                    try:
+                        # ast.literal_eval moves '[".png", ".jpg"]' in [".png", ".jpg"]
+                        parsed_list = ast.literal_eval(value)
+                        if isinstance(parsed_list, list):
+                            sstCstmXt.assets_accepted_ext = parsed_list
+                    except (ValueError, SyntaxError):
+                        # ignore some errors
+                        pass
+                continue
 
 
 def apply_build_overrides(
@@ -879,7 +918,117 @@ def _extract_markdown_link_targets(content: str) -> list[str]:
     return [match.strip() for match in matches]
 
 
-def found_broken_links(matching_files_main: list[str]) -> dict[str, list[str]]:
+def find_unused_assets(
+    file_found_main: list[str],
+) -> list[Path]:
+    """
+    Return all asset files present under assetD that are never
+    referenced by any markdown note.
+
+    Links inside HTML comments are ignored.
+    External URLs, anchors and .md links are ignored.
+    """
+
+    vault_dir = str(_BANK_DIR) if is_bank() else str(_VAULT_DIR)
+    assets_dir = str(safe_path(vault_dir, _ASSETS_DIR))
+    a_D = safe_path(assets_dir)
+    # -----------------------------
+    # 1. Collect ALL assets
+    # -----------------------------
+    all_assets: dict[str, Path] = {}
+
+    for asset in a_D.rglob("*"):
+        if asset.is_file():
+            rel = asset.relative_to(a_D).as_posix()
+
+            # Skip assets/docfiles/ folder
+            if rel.startswith("docfiles/"):
+                continue
+
+            all_assets[rel] = asset
+
+    # -----------------------------
+    # 2. Collect referenced assets
+    # -----------------------------
+    referenced: set[str] = set()
+
+    external_pattern = re.compile(
+        r"^(?:[a-z][a-z0-9+.-]*:|#)",
+        re.IGNORECASE,
+    )
+
+    for file_path in file_found_main:
+        note_path = Path(file_path)
+
+        if not note_path.exists() or not note_path.is_file():
+            continue
+
+        content = note_path.read_text(encoding="utf-8")
+
+        # Ignore comment blocks
+        content = re.sub(
+            r"<!--.*?-->",
+            "",
+            content,
+            flags=re.DOTALL,
+        )
+
+        links = _extract_markdown_link_targets(content)
+
+        for target in links:
+            target = target.strip()
+
+            if not target:
+                continue
+
+            if external_pattern.match(target):
+                continue
+
+            path_part = target.split("#", 1)[0].split("?", 1)[0]
+
+            if not path_part:
+                continue
+
+            suffix = Path(path_part)
+
+            # Ignore note-to-note links
+            if suffix.suffix.lower() == ".md":
+                continue
+
+            parts = suffix.parts
+
+            if "assets" in parts:
+                rel_asset = Path(
+                    *parts[parts.index("assets") + 1:]
+                ).as_posix()
+
+                referenced.add(rel_asset)
+            else:
+                # Fallback for legacy links that only specify filename
+                referenced.add(suffix.name)
+
+    # -----------------------------
+    # 3. Determine unused assets
+    # -----------------------------
+    unused_assets: list[Path] = []
+
+    for rel_path, abs_path in all_assets.items():
+
+        if rel_path in referenced:
+            continue
+
+        # Handle filename-only references
+        filename = Path(rel_path).name
+
+        if filename in referenced:
+            continue
+
+        unused_assets.append(abs_path)
+
+    return sorted(unused_assets)
+
+
+def find_broken_links(matching_files_main: list[str]) -> dict[str, list[str]]:
     """
     Parse all .md notes found in the main directory.
     Return, for each note, the broken local links that do not resolve to

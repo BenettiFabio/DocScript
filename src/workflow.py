@@ -3,10 +3,12 @@ from pathlib import Path
 
 from src.config import (
     CustomPaths,
+    AssetsExtList,
     BuildOptions,
     check_inconsistency,
     found_main_inconsistency,
-    found_broken_links,
+    find_broken_links,
+    find_unused_assets,
     fix_links_return_errors,
     check_integrity,
     combine_and_execute,
@@ -191,7 +193,7 @@ def update_bank() -> None:
     update_bank_files()
 
 
-def run_linter() -> None:
+def run_linter(sstCstmXt: AssetsExtList) -> None:
     """
     Verify that the links to all notes in the main file are correctly written
     by checking the correct paths.
@@ -219,7 +221,7 @@ def run_linter() -> None:
             print(f"- {f}")
 
     # Parse every single file searching broken links
-    broken_links = found_broken_links(file_found_main)
+    broken_links = find_broken_links(file_found_main)
 
     if broken_links:
         print("\nWarning: The following .md files contains broken links:\n")
@@ -232,6 +234,26 @@ def run_linter() -> None:
         print("There are several broken links, to fix them automatically use the --fix-link function")
     else:
         print("No links appear to be broken in this Vault, enjoy!")
+
+    # Check of unused assets
+    unreferred_assets = find_unused_assets(file_found_main)
+
+    filtered_unref_assets = [
+        asset for asset in unreferred_assets
+        if asset.suffix.lower() in sstCstmXt.assets_accepted_ext
+    ]
+
+    if filtered_unref_assets:
+        print("\nWarning: There is some unreferred assets files:\n")
+
+        for element in filtered_unref_assets:
+            print(f"  - {element}")
+        print("\n")
+
+        print(
+            "\nTips: please check them, then run --fix-links to automatically"
+            "fix everything possible and try -L again for further verification \n"
+        )
 
 
 def fix_links() -> None:
@@ -252,7 +274,7 @@ def fix_links() -> None:
     mode = CMode.ALL
     file_found_main = get_all_files_from_main(mode)
 
-    broken_links = found_broken_links(file_found_main)
+    broken_links = find_broken_links(file_found_main)
 
     # Fixes file locations for assets.
     # Returns all links that have no reference to real objects.
