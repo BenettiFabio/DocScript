@@ -33,11 +33,13 @@ def is_network_path() -> bool:
     return False
 
 
-def normalize_unc_path(windows_path: str) -> str:
+def normalize_unc_path(windowsPath: str) -> str:
     """
     Convert a UNC Windows path with backslash (\\\\server\\share\\path)
     in a compatible path with external instruments like pandoc (//server/share/path).
     """
+
+    windows_path = windowsPath
 
     # Read all the network disk drive into the system
     result = subprocess.run(
@@ -80,7 +82,7 @@ def normalize_unc_path(windows_path: str) -> str:
     return windows_path  # bypass
 
 
-def to_unix_path(raw_path: str) -> str:
+def to_unix_path(rawPath: str) -> str:
     """
     Converts a path from Windows/UNC to a valid POSIX path.
 
@@ -93,6 +95,9 @@ def to_unix_path(raw_path: str) -> str:
     it changes to '/c/folder' (lowercase) – only
     when running on Linux.
     """
+
+    raw_path = rawPath
+
     is_windows = os.name == "nt"
 
     # Remove extra prefix
@@ -211,25 +216,25 @@ def write_file(fileName: str | Path, content: str) -> None:
         f.write(content)
 
 
-def should_skip_dir(dir_path: str, BLACKLIST: list[str]) -> bool:
+def should_skip_dir(dirPath: str, BLACKLIST: list[str]) -> bool:
     """
     Check if specified dir need to be excluded from a dirs scan
     """
-    dir_path = str(dir_path)
+    dir_path = str(dirPath)
     return dir_path in BLACKLIST
 
 
-def should_skip_file(file_path: str, BLACKLIST: list[str]) -> bool:
+def should_skip_file(filePath: str, BLACKLIST: list[str]) -> bool:
     """
     Check if specified file need to be excluded from a files scan
     """
-    file_name = os.path.basename(file_path)
+    file_name = os.path.basename(filePath)
     return file_name in BLACKLIST
 
 
-def convert_link_to_absolute(markdown_text: str, base_path: str) -> str:
+def convert_link_to_absolute(markdownText: str, base_path: str) -> str:
     """
-    Convert relative Markdown links in `markdown_text` to absolute paths
+    Convert relative Markdown links in `markdownText` to absolute paths
     based on `base_path` and return the transformed line.
     """
     base_dir = Path(base_path).parent.resolve()
@@ -241,4 +246,4 @@ def convert_link_to_absolute(markdown_text: str, base_path: str) -> str:
         return f"[{label}]({abs_path})"
 
     pattern = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
-    return pattern.sub(replacer, markdown_text).replace("\\", "/")
+    return pattern.sub(replacer, markdownText).replace("\\", "/")

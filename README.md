@@ -363,6 +363,11 @@ It is an executable that, regardless of where you are when it is launched, enter
 \scripts\DocScript.py -ib
 # adding a md note
 \scripts\DocScript.py -s macro-topic-name/new-note-name.md
+# checks that links inside notes are correct
+# also verifies that all assets are used and reports unused ones
+\scripts\DocScript.py -L
+# should be run AFTER -L in order to automatically fix links highlighted by -L
+\scripts\DocScript.py -fl
 # pdf generation
 \scripts\DocScript.py -n source-note-name.md output.pdf
 \scripts\DocScript.py -g macro-topic-name output.pdf
@@ -376,7 +381,7 @@ It is an executable that, regardless of where you are when it is launched, enter
 
 ## Priority and usage of configuration files
 
-During document generation, DocScript follows a strict configuration hierarchy.
+DocScript uses the various paths defined in the `.conf` file during document generation to determine which configuration files to apply. It follows a well-defined configuration hierarchy.
 
 ### 1. Vault configuration files (`/vault/config/`)
 
@@ -403,3 +408,50 @@ During document generation, DocScript follows a strict configuration hierarchy.
   - It overrides any title defined inside the YAML file.
   - If not provided, the YAML title is used.
   - If neither exists, a fallback title is generated from the group or file name.
+
+## Linter and Automatic Link Fix
+
+### Linter
+
+This is particularly useful when moving `.md` notes into subfolders, since any images or attachments referenced via relative paths may no longer be correctly reachable.
+
+### Checks performed
+
+- Verifies that all registered files are present in the main vault.
+- Verifies that all links point to existing resources (excluding commented links).
+- Verifies that all resources in the `assets/` folder are actually used.
+
+### Configuration of checked extensions
+
+It is possible to limit resource checking to specific extensions via the `.conf` file:
+
+```python
+.assets_ext = ['.png', '.jpg', '.jpeg', '.eps', '.pdf', '.tar', '.zip', '.7z']
+```
+
+This allows excluding source files stored in assets but not directly used in the vault (for example `.py` scripts, `.md` Mermaid files, etc.).
+
+### Default values
+
+If no configuration is specified, the following extensions are used:
+
+```python
+ACCEPTED_ASSETS_EXT_DEFAULT = [
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".eps",
+    ".pdf",
+    ".tar",
+    ".zip",
+    ".7z",
+]
+```
+
+## Automatic Link Fixer
+
+> <span style="color: red;">ATT!</span>: this feature directly modifies the vault notes.
+
+Unlike the linter, which only checks link validity, the Automatic Link Fixer automatically updates invalid links, making them point to the correct resource located in the `assets/` folder.
+
+This allows you to quickly fix incorrect references caused by moving or reorganizing notes.

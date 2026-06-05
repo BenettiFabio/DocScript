@@ -6,7 +6,7 @@ from src.config import (
     AssetsExtList,
     BuildOptions,
     check_inconsistency,
-    found_main_inconsistency,
+    find_main_inconsistency,
     find_broken_links,
     find_unused_assets,
     fix_links_return_errors,
@@ -154,7 +154,8 @@ def conversion_procedure(
             filter_file_list_root = file_found_root
 
         # Check of consistency if not custom
-        check_inconsistency(filter_file_list_main, filter_file_list_root, bypassFlag)
+        check_inconsistency(filter_file_list_main,
+                            filter_file_list_root, bypassFlag)
 
     else:
         # Bank: files live in multiple collaborator vaults.
@@ -174,11 +175,15 @@ def conversion_procedure(
 
     # Create a list for combined_file.md
     root_map = {Path(p).name: p for p in filter_file_list_root}
-    only_used_files = [root_map[Path(name).name] for name in filter_file_list_main]
+    only_used_files = [
+        root_map[Path(name).name]
+        for name in filter_file_list_main
+    ]
 
     # Effective conversion
     if dst is not None:
-        combine_and_execute(only_used_files, collaborators, cfgCstmPath, buildOpts, dst)
+        combine_and_execute(only_used_files, collaborators,
+                            cfgCstmPath, buildOpts, dst)
     else:
         print("Error: No output file selected")
         sys.exit(1)
@@ -212,8 +217,7 @@ def run_linter(sstCstmXt: AssetsExtList) -> None:
 
     file_found_root = get_all_files_from_root()
     file_found_main = get_all_files_from_main(mode)
-    missed_links = found_main_inconsistency(file_found_main,
-                                            file_found_root)
+    missed_links = find_main_inconsistency(file_found_main, file_found_root)
 
     if missed_links:
         print("\nWarning: The following .md files are NOT included in main:\n")
@@ -231,17 +235,21 @@ def run_linter(sstCstmXt: AssetsExtList) -> None:
                 print(f"  - {value}")
             print("\n")
 
-        print("There are several broken links, to fix them automatically use the --fix-link function")
+        print(
+            "There are several broken links, to fix them automatically use the --fix-link function"
+        )
     else:
         print("No links appear to be broken in this Vault, enjoy!")
 
     # Check of unused assets
     unreferred_assets = find_unused_assets(file_found_main)
 
-    filtered_unref_assets = [
-        asset for asset in unreferred_assets
-        if asset.suffix.lower() in sstCstmXt.assets_accepted_ext
-    ]
+    if sstCstmXt.assets_accepted_ext is not None:
+        filtered_unref_assets = [
+            asset
+            for asset in unreferred_assets
+            if asset.suffix.lower() in sstCstmXt.assets_accepted_ext
+        ]
 
     if filtered_unref_assets:
         print("\nWarning: There is some unreferred assets files:\n")

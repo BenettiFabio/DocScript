@@ -33,7 +33,7 @@ JUMP_CHECK_COMMANDS = {
     "init-bank",
     "help",
     "version",
-    "fix-links"
+    "fix-links",
 }
 NEED_FS_COMMANDS = {
     "start",
@@ -84,7 +84,10 @@ def main() -> None:
         "-L", "--lint", action="store_true", help="Consistency check of all links"
     )
     group_standalone.add_argument(
-        "-fl", "--fix-links", action="store_true", help="Automatic Fix of all links, run -L before this"
+        "-fl",
+        "--fix-links",
+        action="store_true",
+        help="Automatic Fix of all links, run -L before this",
     )
     group_standalone.add_argument(
         "-h", "--help", action="store_true", help="Show this help message"
@@ -173,10 +176,7 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
         AssetsCustomExt = AssetsExtList()
         if request in NEED_FS_COMMANDS:
             # check the configuration file -> overwrite the defaults
-            check_config_file(
-                cfgCstmPath=ConfigCustomPaths,
-                sstCstmXt=AssetsCustomExt
-            )
+            check_config_file(cfgCstmPath=ConfigCustomPaths, sstCstmXt=AssetsCustomExt)
             # check cli options -> overwrite configuration file options
             apply_build_overrides(
                 cfgCstmPath=ConfigCustomPaths,

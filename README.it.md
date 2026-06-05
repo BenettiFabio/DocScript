@@ -358,6 +358,11 @@ Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#es
 \scripts\DocScript.py -ib
 # aggiunta di una nota md
 \scripts\DocScript.py -s nome-macro-argomento/nome-nuova-nota.md
+# verifica che i link siano corretti dentro le note
+# verifica inoltre che tutti gli assets siano usati e segnale quelli unused
+\scripts\DocScript.py -L
+# da lanciare DOPO -L in modo da fare un fix automatico dei link evidenziati da -L
+\scripts\DocScript.py -fl
 # generazione di pdf
 \scripts\DocScript.py -n nome-nota-src.md output.pdf
 \scripts\DocScript.py -g nome-macro-argomento output.pdf
@@ -371,7 +376,7 @@ Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#es
 
 ## Prioritá ed utilizzo dei config file
 
-Durante la generazione dei documenti, DocScript utilizza una gerarchia di configurazioni ben definita.
+Durante la generazione dei documenti DocScript utilizza i vari path presenti nel `.conf` per specificare quali file di configurazione utilizzare. DocScript utilizza una gerarchia di configurazioni ben definita.
 
 ### 1. File di configurazione del vault (`/vault/config/`)
 
@@ -398,3 +403,50 @@ Durante la generazione dei documenti, DocScript utilizza una gerarchia di config
   - Anche se il file YAML contiene già un titolo, viene sovrascritto.
   - Se non è specificato, viene usato il titolo presente nello YAML.
   - Se anche quello manca, non viene aggiunto nulla.
+
+## Linter e Link Fix Automatico
+
+### Linter
+
+Questo è particolarmente utile quando si spostano note `.md` in sottocartelle, poiché eventuali immagini o allegati referenziati tramite percorsi relativi potrebbero non essere più raggiungibili correttamente.
+
+### Controlli eseguiti
+
+- Verifica che tutti i file registrati siano presenti nel vault principale.
+- Verifica che tutti i link puntino a risorse esistenti (esclusi i link commentati).
+- Verifica che tutte le risorse presenti nella cartella `assets/` siano effettivamente utilizzate.
+
+### Configurazione delle estensioni controllate
+
+È possibile limitare il controllo delle risorse a specifiche estensioni tramite il file `.conf`:
+
+```python
+.assets_ext = ['.png', '.jpg', '.jpeg', '.eps', '.pdf', '.tar', '.zip', '.7z']
+```
+
+Questo permette di escludere file sorgente mantenuti negli asset ma non utilizzati direttamente nel vault (ad esempio script `.py`, file Mermaid `.md`, ecc.).
+
+### Valori predefiniti
+
+Se non viene specificata alcuna configurazione, vengono utilizzate le seguenti estensioni:
+
+```python
+ACCEPTED_ASSETS_EXT_DEFAULT = [
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".eps",
+    ".pdf",
+    ".tar",
+    ".zip",
+    ".7z",
+]
+```
+
+## Automatic Link Fixer
+
+> <span style="color: red;">ATT!</span>: questa funzione modifica direttamente le note del vault.
+
+A differenza del linter, che si limita a verificare la validità dei collegamenti, l'Automatic Link Fixer aggiorna automaticamente i link non validi, facendoli puntare alla corretta risorsa presente nella cartella `assets/`.
+
+In questo modo è possibile correggere rapidamente riferimenti errati causati da spostamenti o riorganizzazioni delle note.

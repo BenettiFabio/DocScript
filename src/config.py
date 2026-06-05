@@ -143,6 +143,7 @@ class CustomPaths:
             self.custom_pandoc_opt_path = str(PANDOC_OPT_PATH)
 
 
+# Manage the list of ext of file in assets
 @dataclass
 class AssetsExtList:
     assets_accepted_ext: list[str] | None = None
@@ -155,6 +156,7 @@ class AssetsExtList:
             self.assets_accepted_ext = ACCEPTED_ASSETS_EXT_DEFAULT
 
 
+# Manage some variable usefull in conversion
 @dataclass
 class BuildOptions:
     title: str | None = None
@@ -208,7 +210,7 @@ def check_config_file(cfgCstmPath: CustomPaths, sstCstmXt=AssetsExtList) -> None
         return
 
     pattern_path = re.compile(r'^\.(\w+)\s*=\s*"([^"]+)"$')
-    pattern_assets = re.compile(r'^\.(\w+)\s*=\s*(\[.*?\])$')
+    pattern_assets = re.compile(r"^\.(\w+)\s*=\s*(\[.*?\])$")
 
     with open(config_path_to_use, encoding="utf-8") as conf_file:
         for line in conf_file:
@@ -278,12 +280,12 @@ def apply_build_overrides(
         cfgCstmPath.custom_pandoc_opt_path = add_new_yaml(buildOpts.pandoc)
 
 
-def add_new_yaml(yaml_file: str | Path) -> str:
+def add_new_yaml(yamlFile: str | Path) -> str:
     """
     Update yaml file if the format is correct
     """
 
-    yaml_file = str(yaml_file)
+    yaml_file = str(yamlFile)
     ext = os.path.splitext(yaml_file)[1].lower()
     if ext not in [".yaml"]:
         print(f"Error: Input file '{yaml_file}' must be .yaml.")
@@ -296,11 +298,11 @@ def add_new_yaml(yaml_file: str | Path) -> str:
     return yaml_file
 
 
-def add_new_teml(template_file: str | Path) -> str:
+def add_new_teml(templateFile: str | Path) -> str:
     """
     Update template file if the format is correct
     """
-    template_file = str(template_file)
+    template_file = str(templateFile)
     ext = os.path.splitext(template_file)[1].lower()
     if ext not in [".tex"]:
         print(f"Error: Input file '{template_file}' must be .tex.")
@@ -313,11 +315,11 @@ def add_new_teml(template_file: str | Path) -> str:
     return template_file
 
 
-def add_new_luaf(lua_file: str | Path) -> str:
+def add_new_luaf(luaFile: str | Path) -> str:
     """
     Update lua filter file if the format is correct
     """
-    lua_file = str(lua_file)
+    lua_file = str(luaFile)
     ext = os.path.splitext(lua_file)[1].lower()
     if ext not in [".lua"]:
         print(f"Error: Input file '{lua_file}' must be .lua.")
@@ -330,11 +332,11 @@ def add_new_luaf(lua_file: str | Path) -> str:
     return lua_file
 
 
-def add_new_start(start_file: str | Path) -> str:
+def add_new_start(startFile: str | Path) -> str:
     """
     Update starting file if the format is correct
     """
-    start_file = str(start_file)
+    start_file = str(startFile)
     ext = os.path.splitext(start_file)[1].lower()
     if ext not in [".md"]:
         print(f"Error: Input file '{start_file}' must be .md.")
@@ -380,7 +382,9 @@ def create_vault_structure(BankFlag: bool = False) -> None:
     Initialize the architecture starting from the initialization dir
     """
     if not BankFlag:
-        # Classic Vault!
+        # ===============================
+        #           VAULT ELAB
+        # ===============================
         copy_dir_recursive(INIT_V_PATH, _VAULT_DIR)
         # Write the main.md file with the first default references
         contenuto_main = """\
@@ -400,8 +404,9 @@ def create_vault_structure(BankFlag: bool = False) -> None:
             # Custom file for conversion order
         """
         write_file(
-            Path(os.path.join(_VAULT_DIR, "custom.md")
-                 ).resolve(), contenuto_custom
+            Path(
+                os.path.join(_VAULT_DIR, "custom.md")
+            ).resolve(), contenuto_custom
         )
 
         print("- Vault Dir : ok\n")
@@ -437,7 +442,9 @@ def create_vault_structure(BankFlag: bool = False) -> None:
         print("- VSCode Configuration files : ok\n")
 
     else:
-        # Data Bank with collaborators
+        # ===============================
+        #           BANK ELAB
+        # ===============================
         copy_dir_recursive(INIT_B_PATH, _BANK_DIR)
 
         # Write the custom.md file with the first default references
@@ -449,8 +456,9 @@ def create_vault_structure(BankFlag: bool = False) -> None:
             # Custom file for conversion order
         """
         write_file(
-            Path(os.path.join(_BANK_DIR, "custom.md")
-                 ).resolve(), contenuto_custom
+            Path(
+                os.path.join(_BANK_DIR, "custom.md")
+            ).resolve(), contenuto_custom
         )
 
         print("- Data Bank Structure : ok")
@@ -491,7 +499,7 @@ def create_new_note(ConfigPath: CustomPaths, noteName: str | Path) -> None:
     Create a new documentation note, with a minimal content already indented
     """
 
-    noteName = str(noteName)
+    note_name = str(noteName)
 
     # Set the custom path, use the default instead
     starting_note = ConfigPath.custom_new_note_path
@@ -500,22 +508,22 @@ def create_new_note(ConfigPath: CustomPaths, noteName: str | Path) -> None:
         print(f"Error: Template file '{starting_note}' does not exist.")
         sys.exit(1)
 
-    new_note_path = safe_path(_VAULT_DIR, noteName)
+    new_note_path = safe_path(_VAULT_DIR, note_name)
 
     # Check name like macro-arg/note-name.md
-    macro_argomento_dir = safe_path(_VAULT_DIR, noteName.split("/")[0])
+    macro_argomento_dir = safe_path(_VAULT_DIR, note_name.split("/")[0])
     if not os.path.exists(macro_argomento_dir) or not os.path.isdir(
         macro_argomento_dir
     ):
         print(
-            f"Error: The macro-arg '{noteName.split('/')[0]}' does not exist. "
+            f"Error: The macro-arg '{note_name.split('/')[0]}' does not exist. "
             "Create it before adding a note"
         )
         sys.exit(1)
 
     # Check consistency name
-    note_name = os.path.basename(noteName)
-    if not re.match(rf"^main\.{noteName.split('/')[0]}(?:\..+)?\.md$", note_name):
+    note_name = os.path.basename(note_name)
+    if not re.match(rf"^main\.{note_name.split('/')[0]}(?:\..+)?\.md$", note_name):
         print(
             f"Error: The note name '{note_name}' is invalid. "
             "Must start with 'main.macro-arg.' and end with '.md'."
@@ -569,12 +577,12 @@ def get_all_files_from_root() -> list[str]:
     return matched_files
 
 
-def _is_sub_main(file_path: str) -> bool:
+def _is_sub_main(filePath: str) -> bool:
     """
     Check if a file is a sub-main.md file.
     Pattern: folder/main.folder.*.md
     """
-    filename = file_path.split("/")[-1]
+    filename = filePath.split("/")[-1]
 
     pattern = r"^main\.[^.]+\.[^.]+(?:\.[^.]+)*\.main\.md$"
 
@@ -830,23 +838,23 @@ def get_all_files_from_bank(mode: CMode) -> tuple[list[str], dict[str, str]]:
     return matching_files, active_collaborators_map
 
 
-def found_main_inconsistency(matching_files_main: list[str], matching_files_root: list[str]) -> set[str]:
+def find_main_inconsistency(
+    matchingFileMain: list[str], matchingFileRoot: list[str]
+) -> set[str]:
     # Filter “root” files (all .md files in the vault)
     filtered_matching_files_root = [
         Path(path).name
-        for path in matching_files_root
+        for path in matchingFileRoot
         if not path.startswith(f"{_TEMPORARY_DIR}/")
         and not Path(path).name.startswith(f"main.{_TEMPORARY_DIR}.")
     ]
 
     # Normalize lists (file names only)
     normalized_actual_list = [
-        Path(path).name for path in filtered_matching_files_root
-    ]
+        Path(path).name for path in filtered_matching_files_root]
 
     normalized_main_list: list[str] = [
-        Path(path).name for path in matching_files_main
-    ]
+        Path(path).name for path in matchingFileMain]
 
     main_set = set(normalized_main_list)
     actual_set = set(normalized_actual_list)
@@ -859,7 +867,7 @@ def found_main_inconsistency(matching_files_main: list[str], matching_files_root
 
 
 def check_inconsistency(
-    matching_files_main: list[str], matching_files_root: list[str], bypassFlag: bool
+    matchingFileMain: list[str], matchingFileRoot: list[str], bypassFlag: bool
 ) -> None:
     """
     Check that all actual files are referenced in main.
@@ -869,8 +877,9 @@ def check_inconsistency(
 
     if not bypassFlag:
 
-        missing_in_main = found_main_inconsistency(
-            matching_files_main, matching_files_root)
+        missing_in_main = find_main_inconsistency(
+            matchingFileMain, matchingFileRoot
+        )
 
         if missing_in_main:
             print("Error: The following .md files are NOT included in main:")
@@ -881,10 +890,12 @@ def check_inconsistency(
         # Check only the existence of files (file names only)
 
         # root is the entire vault (_TEMPORARY_DIR included)
-        normalized_actual_list = [str(Path(path))
-                                  for path in matching_files_root]
+        normalized_actual_list = [
+            str(Path(path)) for path in matchingFileRoot
+        ]
         normalized_main_list = [
-            Path(path).name for path in matching_files_main]
+            Path(path).name for path in matchingFileMain
+        ]
         path_by_name = {Path(p).name: p for p in normalized_actual_list}
 
         for filename in normalized_main_list:
@@ -913,13 +924,13 @@ def _extract_markdown_link_targets(content: str) -> list[str]:
     Extract markdown link targets from both regular links and image links.
     """
 
-    pattern = re.compile(r'!?\[[^\]]*\]\(([^)]+)\)')
+    pattern = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
     matches = pattern.findall(content)
     return [match.strip() for match in matches]
 
 
 def find_unused_assets(
-    file_found_main: list[str],
+    fileFoundMain: list[str],
 ) -> list[Path]:
     """
     Return all asset files present under assetD that are never
@@ -957,7 +968,7 @@ def find_unused_assets(
         re.IGNORECASE,
     )
 
-    for file_path in file_found_main:
+    for file_path in fileFoundMain:
         note_path = Path(file_path)
 
         if not note_path.exists() or not note_path.is_file():
@@ -998,9 +1009,7 @@ def find_unused_assets(
             parts = suffix.parts
 
             if "assets" in parts:
-                rel_asset = Path(
-                    *parts[parts.index("assets") + 1:]
-                ).as_posix()
+                rel_asset = Path(*parts[parts.index("assets") + 1:]).as_posix()
 
                 referenced.add(rel_asset)
             else:
@@ -1028,7 +1037,7 @@ def find_unused_assets(
     return sorted(unused_assets)
 
 
-def find_broken_links(matching_files_main: list[str]) -> dict[str, list[str]]:
+def find_broken_links(matchingFilesMain: list[str]) -> dict[str, list[str]]:
     """
     Parse all .md notes found in the main directory.
     Return, for each note, the broken local links that do not resolve to
@@ -1036,9 +1045,9 @@ def find_broken_links(matching_files_main: list[str]) -> dict[str, list[str]]:
     """
 
     broken_by_note: dict[str, list[str]] = {}
-    external_pattern = re.compile(r'^(?:[a-z][a-z0-9+.-]*:|#)', re.IGNORECASE)
+    external_pattern = re.compile(r"^(?:[a-z][a-z0-9+.-]*:|#)", re.IGNORECASE)
 
-    for file_path in matching_files_main:
+    for file_path in matchingFilesMain:
         note_path = Path(file_path)
 
         if not note_path.exists() or not note_path.is_file():
@@ -1049,8 +1058,7 @@ def find_broken_links(matching_files_main: list[str]) -> dict[str, list[str]]:
 
         # exclude comments
         content_without_comments = re.sub(
-            r"<!--.*?-->", "", content, flags=re.DOTALL
-        )
+            r"<!--.*?-->", "", content, flags=re.DOTALL)
         local_links = _extract_markdown_link_targets(content_without_comments)
         broken_links: list[str] = []
         seen_links: set[str] = set()
@@ -1085,7 +1093,7 @@ def find_broken_links(matching_files_main: list[str]) -> dict[str, list[str]]:
 
 
 def _find_asset_candidate(
-    note_path: Path, link_target: str, search_root: Path
+    notePath: Path, linkTarget: str, searchRoot: Path
 ) -> Path | None:
     """Try to resolve a broken local asset link by looking under the vault
     assets folder using the link target path as a hint.
@@ -1100,7 +1108,7 @@ def _find_asset_candidate(
        suffix and search recursively under *assets_dir*.
     3. Fall back to matching by file name only.
     """
-    raw_target = link_target.strip()
+    raw_target = linkTarget.strip()
     if not raw_target:
         return None
 
@@ -1108,7 +1116,7 @@ def _find_asset_candidate(
     path_part = raw_target.split("#", 1)[0].split("?", 1)[0]
 
     # --- Strategy 1: direct relative resolution ---
-    candidate = safe_path(note_path.parent, path_part)
+    candidate = safe_path(notePath.parent, path_part)
     if candidate.exists() and candidate.is_file():
         return candidate
 
@@ -1127,11 +1135,11 @@ def _find_asset_candidate(
     if suffix.name == "":
         return None
 
-    for file_path in search_root.rglob("*"):
+    for file_path in searchRoot.rglob("*"):
         if not file_path.is_file():
             continue
 
-        relative = file_path.relative_to(search_root).as_posix()
+        relative = file_path.relative_to(searchRoot).as_posix()
 
         # Accept the file if its relative path ends with the expected suffix or
         # if its name alone matches (the "by name" fallback).
@@ -1168,7 +1176,7 @@ def _replace_target_outside_comments(text: str, target: str, replacement: str) -
         if comment_end == -1:
             comment_end = length
 
-        result.append(text[comment_start:comment_end + 3])
+        result.append(text[comment_start: comment_end + 3])
         i = comment_end + 3
 
     return "".join(result)
@@ -1219,15 +1227,16 @@ def fix_links_return_errors(
             # --- Resolve the file on disk ---
             candidate = _find_asset_candidate(note_path, path_part, vault_dir)
 
-            candidate = normalize_unc_path(candidate)
+            candidate = safe_path(normalize_unc_path(str(candidate)))
 
             if candidate is None:
                 # File not found anywhere under the vault.
                 broken_for_note.append(target)
                 continue
 
-            rel_target = safe_path(os.path.relpath(
-                candidate, note_path.parent)).as_posix()
+            rel_target = safe_path(
+                os.path.relpath(candidate, note_path.parent)
+            ).as_posix()
             if not rel_target.startswith("."):
                 rel_target = f"./{rel_target}"
 
@@ -1251,9 +1260,9 @@ def fix_links_return_errors(
     return unresolved_links
 
 
-def copy_assets(output_dir: str, collaborators: dict[str, str]) -> None:
+def copy_assets(outputDir: str, collaborators: dict[str, str]) -> None:
     """
-    Copy the assets directories of all collaborators into output_dir.
+    Copy the assets directories of all collaborators into outputDir.
     If multiple collaborators use the same asset subfolders, the contents are
     merged without overwriting unchanged files.
     """
@@ -1261,8 +1270,8 @@ def copy_assets(output_dir: str, collaborators: dict[str, str]) -> None:
         collab_assets_dir = os.path.join(
             os.path.dirname(main_md_path), "assets")
         if os.path.exists(collab_assets_dir):
-            copy_dir_recursive(collab_assets_dir, output_dir)
-            print(f"Assets copied for {name} into {output_dir}")
+            copy_dir_recursive(collab_assets_dir, outputDir)
+            print(f"Assets copied for {name} into {outputDir}")
         else:
             print(
                 f"Warning: assets not found for {name} in {collab_assets_dir}")
@@ -1286,7 +1295,6 @@ def normalize_links_after_merge(
     - assets resolved by full path under assets/ (not filename)
     """
 
-    v_D = safe_path(vaultD)
     a_D = safe_path(assetD)
 
     if not CombinedPath.exists():
@@ -1371,8 +1379,7 @@ def normalize_links_after_merge(
         # fallback: try filename only
         if asset_path is None:
             matches = [
-                p for rel, p in asset_index.items()
-                if Path(rel).name == suffix.name
+                p for rel, p in asset_index.items() if Path(rel).name == suffix.name
             ]
 
             if len(matches) == 0:
@@ -1391,9 +1398,8 @@ def normalize_links_after_merge(
         # -----------------------------
         # build relative path from combined file
         # -----------------------------
-        rel_target = Path(
-            os.path.relpath(asset_path, CombinedPath.parent)
-        ).as_posix()
+        rel_target = Path(os.path.relpath(
+            asset_path, CombinedPath.parent)).as_posix()
 
         if not rel_target.startswith("."):
             rel_target = "./" + rel_target
@@ -1421,7 +1427,7 @@ def normalize_links_after_merge(
 
 
 def combine_and_execute(
-    matching_files: list[str],
+    matchingFiles: list[str],
     collaborators: dict[str, str],
     cfgCstmPath: CustomPaths,
     buildOpts: BuildOptions,
@@ -1445,7 +1451,7 @@ def combine_and_execute(
     dst_path = chose_right_position(is_bank(), dst)
 
     with open(unified, "w", encoding="utf-8") as out:
-        for file in matching_files:
+        for file in matchingFiles:
             if os.path.exists(file):
                 out.writelines(remove_std_header(Path(file)))
                 out.write("\n")
@@ -1465,6 +1471,9 @@ def combine_and_execute(
 
     # 3a. Vault: direct conversion
     if not is_bank():
+        # ===============================
+        #           VAULT ELAB
+        # ===============================
         execute_pandoc(
             str(normalize_unc_path(str(cfgCstmPath.custom_teml_path))),
             str(normalize_unc_path(str(cfgCstmPath.custom_luaf_path))),
@@ -1478,6 +1487,9 @@ def combine_and_execute(
 
     # 3b. Bank: stage → convert locally → copy back → cleanup
     else:
+        # ===============================
+        #           BANK ELAB
+        # ===============================
         app_dir = safe_path(_APPL_DIR)
         app_build = app_dir / _BUILD_DIR
         app_config = app_dir / _CONFIG_DIR
@@ -1501,12 +1513,17 @@ def combine_and_execute(
         # -- Copy config files (renamed to default names so execute_pandoc
         #    doesn't need to know which custom file is in use) --
         print(f"3 - Copying config files... to {app_config}")
-        shutil.copy2(str(cfgCstmPath.custom_teml_path),
-                     app_config / TEMPLATE_NAME)
-        shutil.copy2(str(cfgCstmPath.custom_luaf_path),
-                     app_config / LUA_FILTER_NAME)
         shutil.copy2(
-            str(cfgCstmPath.custom_pandoc_opt_path), app_config / PANDOC_OPT_NAME
+            str(cfgCstmPath.custom_teml_path),
+            app_config / TEMPLATE_NAME
+        )
+        shutil.copy2(
+            str(cfgCstmPath.custom_luaf_path),
+            app_config / LUA_FILTER_NAME
+        )
+        shutil.copy2(
+            str(cfgCstmPath.custom_pandoc_opt_path),
+            app_config / PANDOC_OPT_NAME
         )
 
         # -- Convert locally --
@@ -1568,11 +1585,13 @@ def remove_std_header(filePath: Path) -> list[str]:
     return filtered_lines
 
 
-def inject_title_into_yaml(yaml_block: str, title: str) -> str:
+def inject_title_into_yaml(yamlBlock: str, title: str) -> str:
     """
     Insert or override CompanyStudyTitle
     inside a YAML frontmatter block.
     """
+
+    yaml_block = yamlBlock
 
     safe_title = title.replace('"', '\\"')
 
@@ -1654,18 +1673,18 @@ def copy_config_yaml(
         print(f"Error during the copy of the YAML block: {str(e)}")
 
 
-def clean_build_dir(build_dir: Path) -> None:
+def clean_build_dir(buildDir: Path) -> None:
     """
-    Removes from build_dir every file whose extension is not
+    Removes from buildDir every file whose extension is not
     .md, .tex or .pdf (e.g. latexmk artefacts: .aux, .log, .fls, …).
     Subdirectories are left untouched.
     """
     allowed = {".md", ".tex", ".pdf"}
 
-    if not build_dir.exists():
+    if not buildDir.exists():
         return
 
-    for item in build_dir.iterdir():
+    for item in buildDir.iterdir():
         if item.is_file() and item.suffix.lower() not in allowed:
             try:
                 item.unlink()
