@@ -522,11 +522,17 @@ def create_new_note(ConfigPath: CustomPaths, noteName: str | Path) -> None:
         sys.exit(1)
 
     # Check consistency name
-    note_name = os.path.basename(note_name)
-    if not re.match(rf"^main\.{note_name.split('/')[0]}(?:\..+)?\.md$", note_name):
+    note_path = Path(note_name)
+    macro_name = note_path.parts[0] if len(note_path.parts) > 1 else None
+    note_base_name = note_path.name
+
+    if macro_name is None or not re.fullmatch(
+        rf"main\.{re.escape(macro_name)}(?:\..+)?\.md",
+        note_base_name,
+    ):
         print(
             f"Error: The note name '{note_name}' is invalid. "
-            "Must start with 'main.macro-arg.' and end with '.md'."
+            "Must follow 'folder/main.folder.<something>.md'."
         )
         sys.exit(1)
 
