@@ -54,7 +54,8 @@ def check_precondition() -> None:
 
     if sys.platform.startswith("win"):
         if (
-            os.system('fc-list | findstr /i "FreeSerif FreeSans FreeMono" >nul 2>nul')
+            os.system(
+                'fc-list | findstr /i "FreeSerif FreeSans FreeMono" >nul 2>nul')
             != 0
         ):
             print("Errore: i font GNU FreeFonts non sono installati.")
@@ -144,7 +145,7 @@ def execute_pandoc(
                 str(normalize_unc_path(str(tmpl))),
                 "--lua-filter",
                 str(normalize_unc_path(str(luaf))),
-                "--metadata-file",
+                "--defaults",
                 str(normalize_unc_path(str(pndo))),
                 "--resource-path",
                 str(normalize_unc_path(d_v)),
@@ -154,12 +155,17 @@ def execute_pandoc(
                 str(normalize_unc_path(d_b)),
             ]
 
+            print("run the command: \n")
+            cmd_str = " ".join(cmd)
+            print(cmd_str)
+
             subprocess.run(
                 cmd,
                 check=True,
                 capture_output=True,
                 text=True,
             )
+
         except subprocess.CalledProcessError as e:
             print("STDOUT:")
             print(e.stdout)
