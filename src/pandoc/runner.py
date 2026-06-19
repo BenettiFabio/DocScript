@@ -26,31 +26,31 @@ def check_precondition() -> None:
 
     if sys.platform.startswith("win"):
         if os.system("where xelatex >nul 2>nul") != 0:
-            print("Errore: xelatex non installato o non nel PATH.")
+            print("Error: xelatex not installed or not in PATH.")
             sys.exit(1)
         else:
-            print("xelatex installato.")
+            print("xelatex installed.")
 
     if sys.platform.startswith("linux"):
         if os.system("which xelatex > /dev/null") != 0:
-            print("Errore: xelatex non installato o non nel PATH.")
+            print("Error: xelatex not installed or not in PATH.")
             sys.exit(1)
         else:
-            print("xelatex installato.")
+            print("xelatex installed.")
 
     if sys.platform.startswith("win"):
         if os.system("where pandoc >nul 2>nul") != 0:
-            print("Errore: pandoc non installato o non nel PATH.")
+            print("Error: pandoc not installed or not in PATH.")
             sys.exit(1)
         else:
-            print("pandoc installato.")
+            print("pandoc installed.")
 
     if sys.platform.startswith("linux"):
         if os.system("which pandoc > /dev/null") != 0:
-            print("Errore: pandoc non installato o non nel PATH.")
+            print("Error: pandoc not installed or not in PATH.")
             sys.exit(1)
         else:
-            print("pandoc installato.")
+            print("pandoc installed.")
 
     if sys.platform.startswith("win"):
         if (
@@ -58,20 +58,20 @@ def check_precondition() -> None:
                 'fc-list | findstr /i "FreeSerif FreeSans FreeMono" >nul 2>nul')
             != 0
         ):
-            print("Errore: i font GNU FreeFonts non sono installati.")
+            print("Error: GNU FreeFonts not installed.")
             sys.exit(1)
         else:
-            print("Font GNU FreeFonts installati.")
+            print("GNU FreeFonts installed.")
 
     if sys.platform.startswith("linux"):
         if os.system("locate Free .ttf | grep /usr/share/fonts/TTF/ > /dev/null") != 0:
             print(
-                "Errore: i font GNU FreeFonts non "
-                "sono installati in /usr/share/fonts/TTF ."
+                "Error: GNU FreeFonts not installed "
+                "in /usr/share/fonts/TTF ."
             )
             sys.exit(1)
         else:
-            print("Font GNU FreeFonts installati.")
+            print("GNU FreeFonts installed.")
 
 
 def execute_pandoc(
@@ -96,7 +96,7 @@ def execute_pandoc(
     print("conversion Started, wait please...")
 
     if is_network_path():
-        # Eseguo prima la conversione in tex con pandoc
+        # Run the first Tex converson with pandoc
         tex_path = safe_path(dst).with_suffix(".tex")
 
         command = (
@@ -107,20 +107,20 @@ def execute_pandoc(
             f' --lua-filter="{str(normalize_unc_path(str(luaf)))}"'
         )
 
-        print(f"Eseguo il comando: {command}")
+        print(f"run the command: {command}")
         os.system(command)
 
-        # Eseguo poi la conversione in pdf con latexmk
+        # Run the second conversion in pdf with latexmk
         subprocess.run(
             ["latexmk", "-xelatex", tex_path.name],
-            cwd=tex_path.parent,  # la directory dove è stato creato il .tex
+            cwd=tex_path.parent,  # the dir of the .tex
             # shell=True
-            check=True,  # opzionale: solleva CalledProcessError se il comando fallisce
+            check=True,  # optional: rise CalledProcessError if command fails
         )
 
-        # Pulizia della cartella di build
+        # Clean the build dir
         folder = tex_path.parent
-        filename = tex_path.stem  # es. 'file' da 'file.tex'
+        filename = tex_path.stem  # es. 'file' from 'file.tex'
         allowed = {f"{filename}.pdf", f"{filename}.tex"}
 
         for item in folder.iterdir():
@@ -129,11 +129,11 @@ def execute_pandoc(
                 and item.name.startswith(filename)
                 and item.name not in allowed
             ):
-                print(f"Rimuovo: {item}")
-                item.unlink()  # Cancella il file
+                print(f"remove: {item}")
+                item.unlink()  # Delete the file
 
     else:
-        # Comando per la conversione pulita con pandoc
+        # Clean conversion with pandoc
         try:
             cmd = [
                 "pandoc",
