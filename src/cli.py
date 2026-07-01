@@ -13,6 +13,10 @@ from src.config import (
     apply_build_overrides,
 )
 from src.modes import CMode
+from src.pandoc.runner import (
+    SUPPORTED_OUTPUT_EXTENSIONS,
+    SUPPORTED_OUTPUT_EXTENSIONS_TEXT,
+)
 from src.utils import safe_path
 from src.version import DOCSCRIPT_VERSION as DCV
 
@@ -124,11 +128,13 @@ def main() -> None:
     # -------------------------------
     # Gruppo 3: Additive Operation
     # -------------------------------
-    parser.add_argument("-y", "--yaml", metavar="YAML_NAME", help="Custom YAML file")
+    parser.add_argument("-y", "--yaml", metavar="YAML_NAME",
+                        help="Custom YAML file")
     parser.add_argument(
         "-t", "--template", metavar="TEMPLATE_NAME", help="Custom Template file"
     )
-    parser.add_argument("-l", "--lua", metavar="LUA_NAME", help="Custom LuaFilter file")
+    parser.add_argument("-l", "--lua", metavar="LUA_NAME",
+                        help="Custom LuaFilter file")
     parser.add_argument(
         "-p",
         "--pandoc",
@@ -176,7 +182,8 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
         AssetsCustomExt = AssetsExtList()
         if request in NEED_FS_COMMANDS:
             # check the configuration file -> overwrite the defaults
-            check_config_file(cfgCstmPath=ConfigCustomPaths, sstCstmXt=AssetsCustomExt)
+            check_config_file(cfgCstmPath=ConfigCustomPaths,
+                              sstCstmXt=AssetsCustomExt)
             # check cli options -> overwrite configuration file options
             apply_build_overrides(
                 cfgCstmPath=ConfigCustomPaths,
@@ -309,13 +316,15 @@ def validate_args(args: argparse.Namespace) -> None:
 
 def validate_output(output: str | None) -> None:
     """
-    Verify that the output file has a valid extension (.pdf or .tex).
+    Verify that the output file has a supported extension.
     If it is not valid, terminate the program.
     """
     outPath = safe_path(str(output))
     ext = os.path.splitext(outPath)[1].lower()
-    if ext not in [".pdf", ".tex"]:
-        print(f"Error: The output file '{output}' must be .pdf o .tex.")
+    if ext not in SUPPORTED_OUTPUT_EXTENSIONS:
+        print(
+            f"Error: The output file '{output}' must be {SUPPORTED_OUTPUT_EXTENSIONS_TEXT}"
+        )
         sys.exit(1)
 
 

@@ -7,7 +7,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.modes import CMode
-from src.pandoc.runner import execute_pandoc
+from src.pandoc.runner import (
+    SUPPORTED_OUTPUT_EXTENSIONS,
+    execute_pandoc,
+)
 from src.utils import (
     convert_link_to_absolute,
     copy_dir_recursive,
@@ -1682,10 +1685,10 @@ def copy_config_yaml(
 def clean_build_dir(buildDir: Path) -> None:
     """
     Removes from buildDir every file whose extension is not
-    .md, .tex or .pdf (e.g. latexmk artefacts: .aux, .log, .fls, …).
+    .md, .tex, .pdf, .docx or .odt (e.g. latexmk artefacts: .aux, .log, .fls, …).
     Subdirectories are left untouched.
     """
-    allowed = {".md", ".tex", ".pdf"}
+    allowed = {".md", *SUPPORTED_OUTPUT_EXTENSIONS}
 
     if not buildDir.exists():
         return

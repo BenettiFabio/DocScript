@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -16,6 +17,33 @@ from src.utils import (
 The contents of this file are all the functions
 that describe the behavior of pandoc env
 """
+
+SUPPORTED_OUTPUT_EXTENSIONS = (".pdf", ".tex", ".docx", ".odt")
+SUPPORTED_OUTPUT_EXTENSIONS_TEXT = ".pdf, .tex, .docx, or .odt."
+
+
+def _run_logged_command(
+    command: list[str],
+    *,
+    cwd: str | None = None,
+) -> subprocess.CompletedProcess[str]:
+    """Print the command before executing it and run it with the same options."""
+    print("run the command:")
+    if cwd:
+        print(f"cwd: {cwd}")
+    for item in command:
+        print(f"  {item}")
+    print()
+
+    return subprocess.run(
+        command,
+        cwd=cwd,
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
 
 
 def check_precondition() -> None:
@@ -86,61 +114,96 @@ def execute_pandoc(
 ) -> None:
     """
     Convert the src path: vault/build/combined_notes.md,
-    to a destination using template and files passed
-    Write the document in dst path: vault/build/
+    to a destination using template and files passed.
+    Write the document in dst path: vault/build/.
+    Supports .pdf, .tex, .docx and .odt outputs.
     """
+
+    out_path = safe_path(dst)
+    output_ext = out_path.suffix.lower()
+
+    if output_ext not in SUPPORTED_OUTPUT_EXTENSIONS:
+        raise ValueError(
+            f"Unsupported output extension '{out_path.suffix}'. "
+            f"Use {SUPPORTED_OUTPUT_EXTENSIONS_TEXT}"
+        )
 
     # Entrer the Build Directory
     os.chdir(d_b)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
 
     print("conversion Started, wait please...")
 
-    if is_network_path():
-        # Run the first Tex converson with pandoc
-        tex_path = safe_path(dst).with_suffix(".tex")
+    tex_path = out_path.with_suffix(".tex")
 
-        command = (
-            f'pandoc "{str(normalize_unc_path(str(src)))}"'
-            f' -o "{str(normalize_unc_path(str(tex_path)))}"'
-            f' --defaults="{str(normalize_unc_path(str(pndo)))}"'
-            f' --template="{str(normalize_unc_path(str(tmpl)))}"'
-            f' --lua-filter="{str(normalize_unc_path(str(luaf)))}"'
-        )
-
-        print(f"run the command: {command}")
-        os.system(command)
-
-        # Run the second conversion in pdf with latexmk
-        subprocess.run(
-            ["latexmk", "-xelatex", tex_path.name],
-            cwd=tex_path.parent,  # the dir of the .tex
-            # shell=True
-            check=True,  # optional: rise CalledProcessError if command fails
-        )
-
-        # Clean the build dir
-        folder = tex_path.parent
-        filename = tex_path.stem  # es. 'file' from 'file.tex'
-        allowed = {f"{filename}.pdf", f"{filename}.tex"}
-
-        for item in folder.iterdir():
-            if (
-                item.is_file()
-                and item.name.startswith(filename)
-                and item.name not in allowed
-            ):
-                print(f"remove: {item}")
-                item.unlink()  # Delete the file
-
-    else:
-        # Clean conversion with pandoc
-        try:
+    try:
+        if is_network_path():
             cmd = [
                 "pandoc",
                 str(normalize_unc_path(str(src))),
-                "--pdf-engine=xelatex",
                 "-o",
-                str(normalize_unc_path(str(dst))),
+                str(normalize_unc_path(str(tex_path))),
+                "--defaults",
+                str(normalize_unc_path(str(pndo))),
+                "--template",
+                str(normalize_unc_path(str(tmpl))),
+                "--lua-filter",
+                str(normalize_unc_path(str(luaf))),
+                "--resource-path",
+                str(normalize_unc_path(d_v)),
+                "--resource-path",
+                str(normalize_unc_path(d_a)),
+                "--resource-path",
+                str(normalize_unc_path(d_b)),
+            ]
+
+            _run_logged_command(cmd)
+
+            if output_ext == ".pdf":
+                _run_logged_command(
+                    ["latexmk", "-xelatex", tex_path.name],
+                    cwd=str(tex_path.parent),
+                )
+                generated_pdf = tex_path.with_suffix(".pdf")
+                if generated_pdf.exists() and generated_pdf != out_path:
+                    shutil.copy2(generated_pdf, out_path)
+
+            elif output_ext in {".docx", ".odt"}:
+                _run_logged_command(
+                    [
+                        "pandoc",
+                        str(normalize_unc_path(str(tex_path))),
+                        "-o",
+                        str(normalize_unc_path(str(out_path))),
+                    ]
+                )
+
+            elif output_ext == ".tex" and tex_path != out_path:
+                shutil.copy2(tex_path, out_path)
+
+            # Clean the build dir
+            folder = tex_path.parent
+            filename = tex_path.stem  # es. 'file' from 'file.tex'
+            allowed = {
+                out_path.name,
+                *[f"{filename}{ext}" for ext in SUPPORTED_OUTPUT_EXTENSIONS],
+            }
+
+            for item in folder.iterdir():
+                if (
+                    item.is_file()
+                    and item.name.startswith(filename)
+                    and item.name not in allowed
+                ):
+                    print(f"remove: {item}")
+                    item.unlink()  # Delete the file
+
+        else:
+            cmd = [
+                "pandoc",
+                str(normalize_unc_path(str(src))),
+                "-o",
+                str(normalize_unc_path(str(out_path))),
                 "--template",
                 str(normalize_unc_path(str(tmpl))),
                 "--lua-filter",
@@ -155,22 +218,16 @@ def execute_pandoc(
                 str(normalize_unc_path(d_b)),
             ]
 
-            print("run the command: \n")
-            cmd_str = " ".join(cmd)
-            print(cmd_str)
+            if output_ext == ".pdf":
+                cmd.insert(2, "--pdf-engine=xelatex")
 
-            subprocess.run(
-                cmd,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
+            _run_logged_command(cmd)
 
-        except subprocess.CalledProcessError as e:
-            print("STDOUT:")
-            print(e.stdout)
+    except subprocess.CalledProcessError as e:
+        print("STDOUT:")
+        print(e.stdout)
 
-            print("STDERR:")
-            print(e.stderr)
+        print("STDERR:")
+        print(e.stderr)
 
-            raise
+        raise
