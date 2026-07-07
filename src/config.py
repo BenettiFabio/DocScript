@@ -1476,10 +1476,9 @@ def combine_and_execute(
     assets_dir = str(safe_path(vault_dir, _ASSETS_DIR))
     build_dir = BUILD_B_PATH if is_bank() else BUILD_V_PATH
 
-    normalize_links_after_merge(unified, vault_dir, assets_dir)
-
     # 3a. Vault: direct conversion
     if not is_bank():
+        normalize_links_after_merge(unified, vault_dir, assets_dir)
         # ===============================
         #           VAULT ELAB
         # ===============================
@@ -1537,6 +1536,8 @@ def combine_and_execute(
 
         # -- Convert locally --
         local_dst = app_build / Path(dst_path).name
+
+        normalize_links_after_merge(local_unified, app_build, app_assets)
 
         execute_pandoc(
             str(app_config / TEMPLATE_NAME),
