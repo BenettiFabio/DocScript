@@ -267,10 +267,9 @@ equation_1\\
 equation_2\\
 equation_3
 \end{aligned}
+\tag{5}
 $$
 ```
-
-> <span style="color: orange;">NOTE:</span> it will not be visible in VSCode preview but will render well in pdf.
 
 E.g.: pre-build yaml programming with default template
 
