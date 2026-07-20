@@ -161,7 +161,14 @@ def execute_pandoc(
 
             if output_ext == ".pdf":
                 _run_logged_command(
-                    ["latexmk", "-xelatex", tex_path.name],
+                    [
+                        "latexmk",
+                        "-xelatex",
+                        "-interaction=nonstopmode",
+                        "-halt-on-error",
+                        "-file-line-error",
+                        tex_path.name
+                    ],
                     cwd=str(tex_path.parent),
                 )
                 generated_pdf = tex_path.with_suffix(".pdf")
