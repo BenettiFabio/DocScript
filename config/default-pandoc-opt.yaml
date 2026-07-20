@@ -5,8 +5,10 @@
 # Per template e filtri Lua, utilizza i comandi appositi della tua architettura.
 # ----------------------------------------------------------------------
 
-# Opzione per trattare i titoli di primo livello come capitoli.
+# Option to handle math blocks in different formats
+from: markdown+tex_math_dollars+tex_math_single_backslash
+# Option for handle first level titles like chapters
 top-level-division: chapter
-# Opzione per abilitare il pacchetto 'listings' per la formattazione del codice in LaTeX.
+# Option to enable the 'listings' functionality for code formatting in LaTeX.
 listings: true
 pdf-engine: xelatex
