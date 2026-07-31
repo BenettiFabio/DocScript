@@ -67,7 +67,7 @@ python DocScript/DocScript.py --help
 
 4. <span style="color: brown;">Compilare le note per creare .pdf e .tex</span>
 
-   A questo punto o hai un _vault_ o hai una _banca_ dati, se sai giá usarli benissimo! **Enjoy!**, in caso contrario vai pure alle procedure di conversione per un vault personale [Qui](#build-di-un-documento) e per una nota con collaboratori in una banca dati [Qui](#build-di-un-documento-con-collaboratori).
+   A questo punto o hai un _vault_ o hai una _banca_ dati, se sai giá usarli e hai giá tutte le [dipendenze](#dipendenze-librerie) benissimo! **Enjoy!**, in caso contrario vai pure alle procedure di conversione per un vault personale [Qui](#build-di-un-documento) e per una nota con collaboratori in una banca dati [Qui](#build-di-un-documento-con-collaboratori).
 
    Ricorda peró che le conversioni dei documenti devono rispettare dei constraint specifici quindi se é la tua prima volta qui prosegui pure la lettura con la [struttura del progetto](#struttura-del-progetto)!
 
@@ -147,9 +147,10 @@ python DocScript/DocScript.py --help
 
 # Dipendenze librerie
 
-1. Pandoc: serve a convertire da .tex a .pdf (da inserire negli env Path)
-2. MikTeX: serve ad avere LateX installato
-3. Fonts: GNU FreeFonts (FreeSans e FreeMono)
+1. **MikTeX**: serve ad avere LateX installato e nel path
+2. **Pandoc** (<=3.7.0.1): serve a convertire da .tex a .pdf (da inserire negli env Path)
+3. Fonts: **GNU FreeFonts** (_FreeSans_, _FreeMono_, _FreeSerif_), fai attenzione ad installarli con i diritti di amministratore. Per facilitare all'installazione di questi sono presenti dentro la cartella `DocScript/requirements/user`.
+4. Stroberry Perl: anche questo da inserire nei path di sistema
 
 # Dipendenze utili VSCode
 
