@@ -110,6 +110,10 @@ end
 -- end
 
 function Image(img)
+  if not FORMAT:match("^latex") then
+    return img  -- lascia l'immagine intatta per epub/html
+  end
+
   local raw_width = img.attributes["width"]
   local width
 
@@ -136,14 +140,24 @@ end
 -- Funzione per gestire i div
 function Div(el)
   if el.attributes.style == "text-align:center;" then
-    -- Blocchi centrati
-    table.insert(el.content, 1, pandoc.RawBlock('latex', '\\begin{center}'))
-    table.insert(el.content, pandoc.RawBlock('latex', '\\end{center}'))
-    return el.content
+    if FORMAT:match("^latex") then
+      -- Blocchi centrati
+      table.insert(el.content, 1, pandoc.RawBlock('latex', '\\begin{center}'))
+      table.insert(el.content, pandoc.RawBlock('latex', '\\end{center}'))
+      return el.content
+    else
+      -- Se non Latex (quindi epub) lascia il div intatto
+      return el
+    end
 
   elseif el.attributes.style == "page-break-after: always;" then
     -- Interruzione di pagina
-    return pandoc.RawBlock('latex', '\\newpage')
+    if FORMAT:match("^latex") then
+      return pandoc.RawBlock('latex', '\\newpage')
+    else
+      -- se epub puó rimanere intatto
+      return el
+    end
 
   else
     -- Altri div rimangono invariati

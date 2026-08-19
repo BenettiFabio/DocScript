@@ -18,8 +18,9 @@ The contents of this file are all the functions
 that describe the behavior of pandoc env
 """
 
-SUPPORTED_OUTPUT_EXTENSIONS = (".pdf", ".tex", ".docx", ".odt")
-SUPPORTED_OUTPUT_EXTENSIONS_TEXT = ".pdf, .tex, .docx, or .odt."
+SUPPORTED_OUTPUT_EXTENSIONS = (".pdf", ".tex", ".docx", ".odt", ".epub")
+SUPPORTED_OUTPUT_EXTENSIONS_TEXT = ".pdf, .tex, .epub, .docx or .odt."
+SUPPORTED_OUTPUT_LATEX_EXT = (".pdf", ".tex", ".docx", ".odt")
 
 
 def _run_logged_command(
@@ -111,6 +112,9 @@ def execute_pandoc(
     d_v: str,  # dir vault
     d_a: str,  # dir assets
     d_b: str,  # dir build finale
+    epub_css: str,    # path to css   for epub conversion
+    epub_cover: str,  # path to cover for epub conversion
+    epub_luaf: str,
 ) -> None:
     """
     Convert the src path: vault/build/combined_notes.md,
@@ -135,75 +139,105 @@ def execute_pandoc(
     print("conversion Started, wait please...")
 
     tex_path = out_path.with_suffix(".tex")
+    is_latex_target = output_ext in SUPPORTED_OUTPUT_LATEX_EXT
 
     try:
         if is_network_path():
-            cmd = [
-                "pandoc",
-                str(normalize_unc_path(str(src))),
-                "-o",
-                str(normalize_unc_path(str(tex_path))),
-                "--defaults",
-                str(normalize_unc_path(str(pndo))),
-                "--template",
-                str(normalize_unc_path(str(tmpl))),
-                "--lua-filter",
-                str(normalize_unc_path(str(luaf))),
-                "--resource-path",
-                str(normalize_unc_path(d_v)),
-                "--resource-path",
-                str(normalize_unc_path(d_a)),
-                "--resource-path",
-                str(normalize_unc_path(d_b)),
-            ]
+            if is_latex_target:
+                cmd = [
+                    "pandoc",
+                    str(normalize_unc_path(str(src))),
+                    "-o",
+                    str(normalize_unc_path(str(tex_path))),
+                    "--defaults",
+                    str(normalize_unc_path(str(pndo))),
+                    "--template",
+                    str(normalize_unc_path(str(tmpl))),
+                    "--lua-filter",
+                    str(normalize_unc_path(str(luaf))),
+                    "--resource-path",
+                    str(normalize_unc_path(d_v)),
+                    "--resource-path",
+                    str(normalize_unc_path(d_a)),
+                    "--resource-path",
+                    str(normalize_unc_path(d_b)),
+                ]
 
-            _run_logged_command(cmd)
+                _run_logged_command(cmd)
 
-            if output_ext == ".pdf":
-                _run_logged_command(
-                    [
-                        "latexmk",
-                        "-xelatex",
-                        "-interaction=nonstopmode",
-                        "-halt-on-error",
-                        "-file-line-error",
-                        tex_path.name
-                    ],
-                    cwd=str(tex_path.parent),
-                )
-                generated_pdf = tex_path.with_suffix(".pdf")
-                if generated_pdf.exists() and generated_pdf != out_path:
-                    shutil.copy2(generated_pdf, out_path)
+                if output_ext == ".pdf":
+                    _run_logged_command(
+                        [
+                            "latexmk",
+                            "-xelatex",
+                            "-interaction=nonstopmode",
+                            "-halt-on-error",
+                            "-file-line-error",
+                            tex_path.name
+                        ],
+                        cwd=str(tex_path.parent),
+                    )
+                    generated_pdf = tex_path.with_suffix(".pdf")
+                    if generated_pdf.exists() and generated_pdf != out_path:
+                        shutil.copy2(generated_pdf, out_path)
 
-            elif output_ext in {".docx", ".odt"}:
-                _run_logged_command(
-                    [
-                        "pandoc",
-                        str(normalize_unc_path(str(tex_path))),
-                        "-o",
-                        str(normalize_unc_path(str(out_path))),
-                    ]
-                )
+                elif output_ext in {".docx", ".odt"}:
+                    _run_logged_command(
+                        [
+                            "pandoc",
+                            str(normalize_unc_path(str(tex_path))),
+                            "-o",
+                            str(normalize_unc_path(str(out_path))),
+                        ]
+                    )
 
-            elif output_ext == ".tex" and tex_path != out_path:
-                shutil.copy2(tex_path, out_path)
+                elif output_ext == ".tex" and tex_path != out_path:
+                    shutil.copy2(tex_path, out_path)
 
-            # Clean the build dir
-            folder = tex_path.parent
-            filename = tex_path.stem  # es. 'file' from 'file.tex'
-            allowed = {
-                out_path.name,
-                *[f"{filename}{ext}" for ext in SUPPORTED_OUTPUT_EXTENSIONS],
-            }
+                # Clean the build dir
+                folder = tex_path.parent
+                filename = tex_path.stem  # es. 'file' from 'file.tex'
+                allowed = {
+                    out_path.name,
+                    *[f"{filename}{ext}" for ext in SUPPORTED_OUTPUT_EXTENSIONS],
+                }
 
-            for item in folder.iterdir():
-                if (
-                    item.is_file()
-                    and item.name.startswith(filename)
-                    and item.name not in allowed
-                ):
-                    print(f"remove: {item}")
-                    item.unlink()  # Delete the file
+                for item in folder.iterdir():
+                    if (
+                        item.is_file()
+                        and item.name.startswith(filename)
+                        and item.name not in allowed
+                    ):
+                        print(f"remove: {item}")
+                        item.unlink()  # Delete the file
+
+            else:  # .epub on network path : direct conversion without the .tex step
+                cmd = [
+                    "pandoc",
+                    str(normalize_unc_path(str(src))),
+                    "-o",
+                    str(normalize_unc_path(str(out_path))),
+                    "--defaults",
+                    str(normalize_unc_path(str(pndo))),
+                    "--resource-path",
+                    str(normalize_unc_path(d_v)),
+                    "--resource-path",
+                    str(normalize_unc_path(d_a)),
+                    "--resource-path",
+                    str(normalize_unc_path(d_b)),
+                ]
+
+                cmd += [
+                    "--lua-filter",
+                    str(normalize_unc_path(str(epub_luaf))),
+                    "--mathml",
+                ]
+                if epub_css:
+                    cmd += ["--css", str(normalize_unc_path(str(epub_css)))]
+                if epub_cover:
+                    cmd += ["--epub-cover-image",
+                            str(normalize_unc_path(str(epub_cover)))]
+                _run_logged_command(cmd)
 
         else:
             cmd = [
@@ -211,8 +245,6 @@ def execute_pandoc(
                 str(normalize_unc_path(str(src))),
                 "-o",
                 str(normalize_unc_path(str(out_path))),
-                "--template",
-                str(normalize_unc_path(str(tmpl))),
                 "--lua-filter",
                 str(normalize_unc_path(str(luaf))),
                 "--defaults",
@@ -225,8 +257,31 @@ def execute_pandoc(
                 str(normalize_unc_path(d_b)),
             ]
 
-            if output_ext == ".pdf":
-                cmd.insert(2, "--pdf-engine=xelatex")
+            if is_latex_target:
+                cmd += [
+                    "--template",
+                    str(normalize_unc_path(str(tmpl))),
+                ]
+
+                if output_ext == ".pdf":
+                    cmd.insert(2, "--pdf-engine=xelatex")
+
+            else:  # .epub use different template
+                cmd += [
+                    "--lua-filter",
+                    str(normalize_unc_path(str(epub_luaf))),
+                ]
+
+                if epub_css:
+                    cmd += [
+                        "--css",
+                        str(normalize_unc_path(str(epub_css)))
+                    ]
+                if epub_cover:
+                    cmd += [
+                        "--epub-cover-image",
+                        str(normalize_unc_path(str(epub_cover)))
+                    ]
 
             _run_logged_command(cmd)
 

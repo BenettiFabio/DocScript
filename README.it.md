@@ -213,6 +213,8 @@ Come si vede nella immagine Fig.\ref{img: titolo-image} _Titolo immagine_
 > <div style="page-break-after: always;"></div>
 > ```
 
+> <span style="color: orange;">NOTA:</span> se si vuole usare il formato `.epub` usare solo immagini di formati compatibili (non .eps, .svg, ...)
+
 Es: inserimento titoli con simboli nel nome come `=`, `+`, `.`, `()` o `'`
 
 ```markdown
@@ -232,6 +234,8 @@ Es: inserimento di un pdf "srotolato" direttamente all'interno delle note
 ```markdown
 [Nome Del Pdf](../assets/macro-arg/pdfs/nome-file.pdf)
 ```
+
+> <span style="color: orange;">NOTA:</span> non usare se si intende convertire in formato `.epub`.
 
 Es: inserimento Emoji consentite
 
@@ -370,6 +374,7 @@ Per ulteriori informazioni sul formato dei comandi vedi il [capitolo finale](#es
 \scripts\DocScript.py -c output.pdf
 # queste ultime quattro opzioni -n -g -a -c accettano modifiche temporanee
 # aggiungendo -y -l -t -p -T per cambiare yaml, lua, template e pandoc options e il titolo della nota
+# nella conversione in epub é possibile selezionare anche -et, -ec, -el rispettivamente epub_template, epub_cover e epub_lua_filter se impostati ma la conversione é in formato diverso da epub vengono ingnorati
 # anche contemporaneamente
 \scripts\DocScript.py -n nome-nota-src.md output.pdf -y path/to/yaml/file.yaml -t path/to/template/file.tex -T "Custom Note Title"
 ```
@@ -394,7 +399,7 @@ Durante la generazione dei documenti DocScript utilizza i vari path presenti nel
 ### 3. Opzioni da linea di comando (CLI override)
 
 - Le opzioni passate da terminale hanno priorità sulle configurazioni locali.
-- Esempio: `--yaml`, `--template`, `--lua`, `--pandoc`.
+- Esempio: `--yaml`, `--template`, `--lua`, `--pandoc`, `--epub-template`, `--epub-cover`, `--epub-lua`.
 
 ### 4. Titolo del documento (`-T / --title`)
 

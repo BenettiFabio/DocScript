@@ -61,7 +61,11 @@ NEW_NOTE_NAME = "default-note.md"  # Name of new note file
 YAML_NAME = "default-yaml.yaml"  # Name of YAML file
 TEMPLATE_NAME = "default-template.tex"  # Name of TEMPLATE file
 LUA_FILTER_NAME = "default-graphic.lua"  # Name of LUA FILTER file
+# Name of LUA FILTER specific for epub format
+EPUB_LUAF_NAME = "default-epub-filter.lua"
 PANDOC_OPT_NAME = "default-pandoc-opt.yaml"  # Name of PANDOC option file
+EPUB_TEMPL_NAME = "default-epub-template.css"  # Name of epub template file
+EPUB_COVER_NAME = "default-epub-cover.png"  # Name of epub cover file
 CONFIG_FILE_NAME = ".conf"
 MAIN_FILE_NAME = "main.md"
 CUSTOM_FILE_NAME = "custom.md"
@@ -73,6 +77,12 @@ LUA_FILTER_PATH = Path(os.path.join(
 NEW_NOTE_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, NEW_NOTE_NAME)).resolve()
 PANDOC_OPT_PATH = Path(os.path.join(
     _DFLT_CONFIG_DIR, PANDOC_OPT_NAME)).resolve()
+EPUB_TEMPL_PATH = Path(os.path.join(
+    _DFLT_CONFIG_DIR, EPUB_TEMPL_NAME)).resolve()
+EPUB_COVER_PATH = Path(os.path.join(
+    _DFLT_CONFIG_DIR, EPUB_COVER_NAME)).resolve()
+EPUB_LUAF_PATH = Path(os.path.join(
+    _DFLT_CONFIG_DIR, EPUB_LUAF_NAME)).resolve()
 
 # Vault path
 CONFIG_DIR_VAULT_PATH = Path(
@@ -129,6 +139,9 @@ class CustomPaths:
     custom_yaml_path: str | None = None
     custom_new_note_path: str | None = None
     custom_pandoc_opt_path: str | None = None
+    custom_epub_temp_path: str | None = None
+    custom_epub_cover_path: str | None = None
+    custom_epub_luaf_path: str | None = None
 
     def __post_init__(self) -> None:
         """
@@ -144,6 +157,12 @@ class CustomPaths:
             self.custom_new_note_path = str(NEW_NOTE_PATH)
         if self.custom_pandoc_opt_path is None:
             self.custom_pandoc_opt_path = str(PANDOC_OPT_PATH)
+        if self.custom_epub_temp_path is None:
+            self.custom_epub_temp_path = str(EPUB_TEMPL_PATH)
+        if self.custom_epub_cover_path is None:
+            self.custom_epub_cover_path = str(EPUB_COVER_PATH)
+        if self.custom_epub_luaf_path is None:
+            self.custom_epub_luaf_path = str(EPUB_LUAF_PATH)
 
 
 # Manage the list of ext of file in assets
@@ -166,7 +185,10 @@ class BuildOptions:
     yaml: str | None = None
     template: str | None = None
     lua: str | None = None
+    epub_lua: str | None = None
     pandoc: str | None = None
+    epub_templ: str | None = None
+    epub_cover: str | None = None
 
 
 def is_bank() -> bool:
@@ -242,6 +264,12 @@ def check_config_file(cfgCstmPath: CustomPaths, sstCstmXt=AssetsExtList) -> None
                     cfgCstmPath.custom_new_note_path = add_new_start(path)
                 elif key == "pandoc":
                     cfgCstmPath.custom_pandoc_opt_path = add_new_yaml(path)
+                elif key == "epub_temp":
+                    cfgCstmPath.custom_epub_temp_path = add_new_css(path)
+                elif key == "epub_cover":
+                    cfgCstmPath.custom_epub_cover_path = add_new_image(path)
+                elif key == "epub_lua":
+                    cfgCstmPath.custom_epub_luaf_path = add_new_luaf(path)
                 continue
 
             match = pattern_assets.match(line)
@@ -282,6 +310,17 @@ def apply_build_overrides(
     if buildOpts.pandoc:
         cfgCstmPath.custom_pandoc_opt_path = add_new_yaml(buildOpts.pandoc)
 
+    if buildOpts.epub_templ:
+        cfgCstmPath.custom_epub_temp_path = add_new_css(buildOpts.epub_templ)
+
+    if buildOpts.epub_cover:
+        cfgCstmPath.custom_epub_cover_path = add_new_image(
+            buildOpts.epub_cover)
+
+    if buildOpts.epub_lua:
+        cfgCstmPath.custom_epub_luaf_path = add_new_luaf(
+            buildOpts.epub_lua)
+
 
 def add_new_yaml(yamlFile: str | Path) -> str:
     """
@@ -299,6 +338,42 @@ def add_new_yaml(yamlFile: str | Path) -> str:
         sys.exit(1)
 
     return yaml_file
+
+
+def add_new_css(cssFile: str | Path) -> str:
+    """
+    Update css file if the format is correct
+    """
+
+    css_file = str(cssFile)
+    ext = os.path.splitext(yaml_file)[1].lower()
+    if ext not in [".css"]:
+        print(f"Error: Input file '{css_file}' must be .css.")
+        sys.exit(1)
+
+    if not os.path.exists(css_file):
+        print(f"Error: Infut file '{css_file}' not found.")
+        sys.exit(1)
+
+    return css_file
+
+
+def add_new_image(imageFile: str | Path) -> str:
+    """
+    Update images file if the format is correct
+    """
+
+    image_file = str(imageFile)
+    ext = os.path.splitext(image_file)[1].lower()
+    if ext not in [".jpeg", ".jpg", ".png", ".svg"]:
+        print(f"Error: Input file '{image_file}' must be .jpg, .png ....")
+        sys.exit(1)
+
+    if not os.path.exists(image_file):
+        print(f"Error: Infut file '{image_file}' not found.")
+        sys.exit(1)
+
+    return image_file
 
 
 def add_new_teml(templateFile: str | Path) -> str:
@@ -427,6 +502,12 @@ def create_vault_structure(BankFlag: bool = False) -> None:
         rel_start_path = Path(os.path.join("./", _USR_CONF_DIR, NEW_NOTE_NAME))
         rel_pandoc_path = Path(os.path.join(
             "./", _USR_CONF_DIR, PANDOC_OPT_NAME))
+        rel_epub_temp_path = Path(os.path.join(
+            "./", _USR_CONF_DIR, EPUB_TEMPL_NAME))
+        rel_epub_cover_path = Path(os.path.join(
+            "./", _USR_CONF_DIR, EPUB_COVER_NAME))
+        rel_epub_lua_path = Path(os.path.join(
+            "./", _USR_CONF_DIR, EPUB_LUAF_NAME))
 
         contenuto_conf = f"""\
             # default configuration - start path from config/
@@ -434,6 +515,9 @@ def create_vault_structure(BankFlag: bool = False) -> None:
             .yaml="{rel_yaml_path}"
             .template="{rel_template_path}"
             .lua="{rel_lua_path}"
+            .epub_templ="{rel_epub_temp_path}"
+            .epub_cover="{rel_epub_cover_path}"
+            .epub_lua="{rel_epub_lua_path}"
             .start="{rel_start_path}"
         """
         write_file(CONFIG_DIR_VAULT_PATH, contenuto_conf)
@@ -477,6 +561,12 @@ def create_vault_structure(BankFlag: bool = False) -> None:
         rel_lua_path = Path(os.path.join("./", _USR_CONF_DIR, LUA_FILTER_NAME))
         rel_pandoc_path = Path(os.path.join(
             "./", _USR_CONF_DIR, PANDOC_OPT_NAME))
+        rel_epub_temp_path = Path(os.path.join(
+            "./", _USR_CONF_DIR, EPUB_TEMPL_NAME))
+        rel_epub_cover_path = Path(os.path.join(
+            "./", _USR_CONF_DIR, EPUB_COVER_NAME))
+        rel_epub_lua_path = Path(os.path.join(
+            "./", _USR_CONF_DIR, EPUB_LUAF_NAME))
 
         contenuto_conf = f"""\
             # default configuration - start path from config/
@@ -484,6 +574,9 @@ def create_vault_structure(BankFlag: bool = False) -> None:
             .yaml="{rel_yaml_path}"
             .template="{rel_template_path}"
             .lua="{rel_lua_path}"
+            .epub_templ="{rel_epub_temp_path}"
+            .epub_cover="{rel_epub_cover_path}"
+            .epub_lua="{rel_epub_lua_path}"
         """
         write_file(CONFIG_DIR_BANK_PATH, contenuto_conf)
 
@@ -1491,6 +1584,9 @@ def combine_and_execute(
             str(normalize_unc_path(vault_dir)),
             str(normalize_unc_path(assets_dir)),
             str(normalize_unc_path(str(build_dir))),
+            str(normalize_unc_path(str(cfgCstmPath.custom_epub_temp_path))),
+            str(normalize_unc_path(str(cfgCstmPath.custom_epub_cover_path))),
+            str(normalize_unc_path(str(cfgCstmPath.custom_epub_luaf_path))),
         )
 
     # 3b. Bank: stage → convert locally → copy back → cleanup
@@ -1548,6 +1644,9 @@ def combine_and_execute(
             str(app_dir),
             str(app_assets),
             str(app_build),
+            str(app_config / EPUB_TEMPL_NAME),
+            str(app_config / EPUB_COVER_NAME),
+            str(app_config / EPUB_LUAF_NAME),
         )
 
         # -- Copy result back to bank build --

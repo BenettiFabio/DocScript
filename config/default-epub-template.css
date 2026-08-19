@@ -1,0 +1,326 @@
+@font-face {
+  font-family: 'FreeSans';
+  src: url('../fonts/FreeSans.ttf');
+  font-weight: normal;
+}
+@font-face {
+  font-family: 'FreeSans';
+  src: url('../fonts/FreeSansBold.ttf');
+  font-weight: bold;
+}
+@font-face {
+  font-family: 'FreeMono';
+  src: url('../fonts/FreeMono.ttf');
+}
+
+body {
+  font-family: 'FreeSans', 'Liberation Sans', sans-serif;
+  line-height: 1.5;
+  margin: 1em;
+  text-align: justify;
+}
+
+/* ---- Capitoli: riga separatrice, equivalente al filetto
+   dell'header/footer fancyhdr ------------------------------------ */
+h1 {
+  font-family: 'FreeSans', sans-serif;
+  font-size: 1.6em;
+  font-weight: bold;
+  border-bottom: 1pt solid #000;
+  padding-bottom: 0.3em;
+  margin-top: 0;
+  page-break-before: always;
+}
+h2 {
+  font-size: 1.35em;
+  font-weight: bold;
+  margin-top: 1.4em;
+}
+h3 {
+  font-size: 1.15em;
+  font-weight: bold;
+  margin-top: 1.2em;
+}
+h4,
+h5,
+h6 {
+  font-weight: bold;
+}
+
+/* ---- Copertina / titlepage --------------------------------------
+   Epub non ha un comando \maketitle: la "copertina" vera e propria
+   si imposta con --epub-cover-image=logo-cover.png (immagine a
+   pagina intera, quella che il reader mostra nello scaffale).
+   Per una PAGINA titolo interna equivalente al tuo \begin{titlepage}
+   (logo + CompanyProject + CompanyStudyTitle + autore + data),
+   la strada e' inserire un blocco raw HTML in cima al Markdown
+   sorgente, es.:
+
+     ```{=html}
+     <div class="cover-page">
+       <img src="logo.png" alt="logo" class="cover-logo"/>
+       <p class="cover-project">NOME PROGETTO</p>
+       <p class="cover-title">TITOLO DOCUMENTO</p>
+       <p class="cover-author">AUTORE</p>
+       <p class="cover-date">DATA</p>
+     </div>
+     ```
+   e questa classe .cover-page la stilizza: */
+.cover-page {
+  text-align: center;
+  page-break-after: always;
+}
+.cover-logo {
+  max-width: 50%;
+  margin: 2em auto 1em;
+}
+.cover-project {
+  font-size: 1.1em;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.cover-title {
+  font-size: 1.6em;
+  font-weight: bold;
+  margin: 0.5em 0;
+}
+.cover-author,
+.cover-date {
+  font-size: 0.95em;
+  color: #444;
+}
+
+/* ---- Colophon --------------------------------------------------
+   Il tuo fancyhdr mette CompanyDepartment / CompanyDocumentCode /
+   footerText su ogni pagina: in epub (reflowable, senza pagine
+   fisse) non esiste un footer ripetuto. L'equivalente e' UNA
+   pagina "colophon" a inizio o fine documento con questi dati,
+   anche qui via blocco raw HTML nella sorgente:
+
+     ```{=html}
+     <div class="colophon">
+       <p>Dipartimento: Ingegneria</p>
+       <p>Codice documento: DOC-001</p>
+       <p>Nota a piÃ¨ pagina originale</p>
+     </div>
+     ```
+*/
+.colophon {
+  font-size: 0.85em;
+  color: #555;
+  border-top: 0.5pt solid #999;
+  padding-top: 0.6em;
+  margin-top: 2em;
+}
+
+/* ---- Colori testo personalizzati -------------------------------- */
+.darkviolet {
+  color: rgb(148, 0, 255);
+}
+.red {
+  color: rgb(255, 0, 0);
+}
+.orange {
+  color: rgb(255, 165, 0);
+}
+.skyblue {
+  color: rgb(135, 206, 250);
+}
+.brown {
+  color: rgb(165, 42, 42);
+}
+.green {
+  color: rgb(0, 128, 0);
+}
+
+/* ---- Evidenziatori "a marcatore" (equivalenti a hlyellow, ecc.) - */
+.hl-yellow {
+  background-color: rgb(255, 249, 196);
+}
+.hl-red {
+  background-color: rgb(255, 205, 210);
+}
+.hl-green {
+  background-color: rgb(200, 230, 201);
+}
+.hl-violet {
+  background-color: rgb(232, 215, 255);
+}
+.hl-orange {
+  background-color: rgb(255, 224, 178);
+}
+.hl-skyblue {
+  background-color: rgb(187, 222, 251);
+}
+
+/* ---- Box di evidenziazione tipo tcolorbox -----------------------
+   Il tuo template usa tcolorbox per box con bordo/sfondo colorato
+   (note, avvisi...). In Markdown non esiste sintassi nativa per
+   "box colorato": va reso o con blockquote + classe custom via
+   attributo pandoc ( > testo {.hl-yellow} non funziona su
+   blockquote semplice: serve un div fenced:
+
+     ::: {.callout-yellow}
+     Testo del box.
+     :::
+
+   con extension pandoc "fenced_divs" (attiva di default). */
+div.callout-yellow,
+div.callout-red,
+div.callout-green,
+div.callout-violet,
+div.callout-orange,
+div.callout-skyblue {
+  border-left: 4pt solid #333;
+  padding: 0.6em 1em;
+  margin: 1em 0;
+  border-radius: 3pt;
+}
+div.callout-yellow {
+  background-color: rgb(255, 249, 196);
+  border-left-color: #c9a800;
+}
+div.callout-red {
+  background-color: rgb(255, 205, 210);
+  border-left-color: #c62828;
+}
+div.callout-green {
+  background-color: rgb(200, 230, 201);
+  border-left-color: #2e7d32;
+}
+div.callout-violet {
+  background-color: rgb(232, 215, 255);
+  border-left-color: #6a1b9a;
+}
+div.callout-orange {
+  background-color: rgb(255, 224, 178);
+  border-left-color: #ef6c00;
+}
+div.callout-skyblue {
+  background-color: rgb(187, 222, 251);
+  border-left-color: #1565c0;
+}
+
+/* ---- Blocchi "framed" (package framed) --------------------------- */
+blockquote {
+  border-left: 3pt solid #999;
+  padding: 0.4em 1em;
+  margin: 1em 0;
+  color: #333;
+  font-style: italic;
+}
+
+/* ---- Blocchi di codice, stile "tango" ---------------------------- */
+pre,
+code {
+  font-family: 'FreeMono', 'Liberation Mono', monospace;
+  font-size: 0.85em;
+}
+
+pre {
+  background-color: #f5f5f5;
+  border: 1px solid #ccc;
+  padding: 0.6em;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  counter-reset: line;
+}
+
+/* Numerazione riga stile lstset numbers=left. Funziona SOLO se il
+   fenced code nella sorgente ha l'attributo .numberLines, es.:
+     ```{.python .numberLines}
+   Ogni pandoc <span class="line"> diventa numerabile via CSS. */
+pre.numberSource code > span {
+  counter-increment: line;
+}
+pre.numberSource code > span::before {
+  content: counter(line);
+  display: inline-block;
+  width: 2em;
+  margin-right: 0.8em;
+  color: #999;
+  text-align: right;
+  font-size: 0.8em;
+}
+
+code {
+  background-color: #f0f0f0;
+  padding: 0.1em 0.3em;
+}
+
+/* Coloriture keyword/commento/stringa (span generati da
+   --highlight-style di pandoc), riallineate alla palette tango */
+span.kw {
+  color: #3465a4;
+  font-weight: bold;
+}
+span.co {
+  color: #4e9a06;
+  font-style: italic;
+}
+span.st {
+  color: #cc0000;
+}
+
+/* ---- Tabelle (equivalenti a longtable/booktabs) ------------------ */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+}
+th,
+td {
+  border: 1px solid #999;
+  padding: 0.4em 0.6em;
+  text-align: left;
+}
+th {
+  background-color: #eeeeec;
+  font-weight: bold;
+}
+
+/* ---- Liste (equivalente enumitem / tightlist) --------------------- */
+ul,
+ol {
+  margin: 0.6em 0;
+  padding-left: 1.4em;
+}
+li {
+  margin-bottom: 0.2em;
+}
+
+/* ---- Immagini (equivalente a \graphicspath + float H + caption) - */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1em auto;
+}
+figcaption {
+  font-size: 0.85em;
+  text-align: center;
+  font-style: italic;
+  color: #555;
+}
+
+/* ---- Link (equivalente a hyperref) -------------------------------- */
+a {
+  color: #3465a4;
+  text-decoration: none;
+}
+
+/* ---- Watermark "DRAFT" --------------------------------------------
+   Un vero watermark diagonale ripetuto su ogni pagina non esiste in
+   epub (nessun concetto di pagina fissa). L'equivalente accettato e'
+   un banner in cima a ogni capitolo, da inserire nella sorgente con
+   un div .draft-banner (solo se draft=true nei tuoi metadata). */
+div.draft-banner {
+  background-color: rgb(255, 191, 191);
+  color: #7a1f1f;
+  text-align: center;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.4em;
+  margin-bottom: 1em;
+}

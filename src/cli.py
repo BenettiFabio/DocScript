@@ -134,13 +134,30 @@ def main() -> None:
         "-t", "--template", metavar="TEMPLATE_NAME", help="Custom Template file"
     )
     parser.add_argument("-l", "--lua", metavar="LUA_NAME",
-                        help="Custom LuaFilter file")
+                        help="Custom Lua Filter file")
     parser.add_argument(
         "-p",
         "--pandoc",
         metavar="PANDOC_NAME",
         help="Apply custom --metadata-file into pandoc option",
     )
+    parser.add_argument(
+        "-et",
+        "--epub-template",
+        metavar="EPUB_TEMPLATE_CSS_NAME",
+        help="Apply custom --css into pandoc option",
+    )
+    parser.add_argument(
+        "-ec",
+        "--epub-cover",
+        metavar="EPUB_COVER_IMAGE_NAME",
+        help="Apply custom --epub-cover-image into pandoc option (.jpg, .jpeg, .png)",
+    )
+    parser.add_argument(
+        "-el",
+        "--epub-lua",
+        metavar="EPUB_LUA_NAME",
+        help="Custom Lua Filter specific for epub files")
     parser.add_argument(
         "-T",
         "--title",
@@ -163,7 +180,10 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
         yaml=args.yaml,
         template=args.template,
         lua=args.lua,
+        epub_lua=args.epub_lua,
         pandoc=args.pandoc,
+        epub_templ=args.epub_template,
+        epub_cover=args.epub_cover,
     )
 
     if args.help and not any([args.all, args.group, args.note, args.custom]):
@@ -289,8 +309,11 @@ def validate_args(args: argparse.Namespace) -> None:
         args.yaml,
         args.template,
         args.lua,
+        args.epub_lua,
         args.pandoc,
         args.title,
+        args.epub_template,
+        args.epub_cover,
     ]
 
     active_standalone = sum(1 for op in standalone_ops if op)
@@ -308,7 +331,7 @@ def validate_args(args: argparse.Namespace) -> None:
     if any(additive_opts) and active_conversion == 0:
         print(
             "Error: Additional options "
-            "(-y, -t, -l, -p, -T) "
+            "(-y, -t, -l, -p, -T, -et, -ec, -el) "
             "require a conversion operation"
         )
         sys.exit(1)
