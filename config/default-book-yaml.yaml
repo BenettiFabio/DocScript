@@ -1,0 +1,20 @@
+---
+# =============================================================
+#
+# YAML DI DEFAULT PER IL TEMPLATE "LIBRO / NARRATIVA"
+# (default-book-template.tex + default-book-epub-template.css)
+#
+# =============================================================
+
+title: 'Book Title'
+subtitle: '' # optional
+author: 'Author Name'
+date: '2026'
+rights: '© Author Name, 2026, All rights are reserved.'
+dedication: '' # optional
+toc: true
+paperwidth: '14cm'
+paperheight: '21cm'
+style-modern: false
+mainfont: 'EB Garamond'
+---

@@ -1,0 +1,109 @@
+/* =============================================================
+   STYLESHEET LIBRO / NARRATIVA (EPUB)
+
+   Toggle di stile: nel blocco :root sotto e' attivo di default il
+   tema CLASSICO. Per passare al tema MODERNO, commenta il blocco
+   "CLASSICO" e scommenta il blocco "MODERNO".
+
+   Il default (classico) e' coerente con 
+   default-book-pdf-template.tex, che usa lo stile
+   classico quando non passi --metadata style-modern=true.
+   ============================================================= */
+
+:root {
+  /* --- CLASSICO (default) --- */
+  --font-body: Georgia, 'EB Garamond', 'Palatino Linotype', serif;
+  /* --font-body: serif; */
+  --font-heading: 'EB Garamond', Georgia, serif;
+  /* --font-heading: serif; */
+  --heading-transform: none;
+  --heading-align: center;
+  --heading-style: italic;
+  --scene-break-glyph: '*   *   *';
+  --body-size: 1em;
+  --line-height: 1.5;
+
+  /* --- MODERNO: scommenta questo blocco e commenta quello sopra ---
+  --font-body: "Helvetica Neue", Arial, sans-serif;
+  --font-heading: "Helvetica Neue", Arial, sans-serif;
+  --heading-transform: uppercase;
+  --heading-align: left;
+  --heading-style: normal;
+  --scene-break-glyph: "\2022\A0 \A0 \2022\A0 \A0 \2022"; -- • • •
+  --body-size: 1em;
+  --line-height: 1.6;
+  */
+}
+
+html {
+  font-family: var(--font-body);
+  font-size: var(--body-size);
+  line-height: var(--line-height);
+}
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: 1em;
+  line-height: var(--line-height);
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+
+/* Titolo capitolo: Pandoc genera <h1> per i capitoli in EPUB */
+h1 {
+  font-family: var(--font-heading);
+  font-style: var(--heading-style);
+  text-transform: var(--heading-transform);
+  text-align: var(--heading-align);
+  font-weight: 700;
+  font-size: 1.8em;
+  margin-top: 3em;
+  margin-bottom: 1.5em;
+  page-break-before: always;
+  page-break-after: avoid;
+  break-after: avoid;
+  break-before: page;
+}
+
+h2,
+h3 {
+  font-family: var(--font-heading);
+  text-align: var(--heading-align);
+}
+
+p {
+  margin: 0;
+  text-indent: 1.2em;
+}
+
+/* Niente rientro dopo un titolo o dopo un separatore di scena */
+h1 + p,
+h2 + p,
+h3 + p,
+.scene-break + p {
+  text-indent: 0;
+}
+
+/* Separatore di capitolo generato da scene-break.lua a partire da --- */
+.scene-break {
+  text-align: center;
+  margin: 2em 0;
+  text-indent: 0;
+  letter-spacing: 0.2em;
+}
+
+.scene-break::before {
+  content: var(--scene-break-glyph);
+}
+
+blockquote {
+  font-style: italic;
+  margin: 1em 2em;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
