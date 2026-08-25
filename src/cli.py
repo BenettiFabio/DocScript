@@ -5,6 +5,7 @@ import sys
 import pyfiglet
 
 from src import workflow
+from src.ai_embedding import workflow_ai as wai
 from src.config import (
     CustomPaths,
     AssetsExtList,
@@ -38,6 +39,7 @@ JUMP_CHECK_COMMANDS = {
     "help",
     "version",
     "fix-links",
+    "ai_index",
 }
 NEED_FS_COMMANDS = {
     "start",
@@ -92,6 +94,9 @@ def main() -> None:
         "--fix-links",
         action="store_true",
         help="Automatic Fix of all links, run -L before this",
+    )
+    group_standalone.add_argument(
+        "-ai", "--ai-index", action="store_true", help="Generate the AI chunk structure"
     )
     group_standalone.add_argument(
         "-h", "--help", action="store_true", help="Show this help message"
@@ -240,6 +245,10 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
     if args.fix_links:
         print("Automatic fix links")
         workflow.fix_links()
+        return
+    if args.ai_index:
+        print("Indexing for AI Started...")
+        wai.init_index()
         return
     # -------------------------------
     # Group 2

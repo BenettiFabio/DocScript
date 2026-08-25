@@ -112,7 +112,7 @@ BUILD_B_PATH = Path(os.path.join(_BANK_DIR, _BUILD_DIR)).resolve()
 EXCLUDED_DIRS = [
     _ASSETS_DIR,
     _BUILD_DIR,
-    _CONFIG_DIR,  # ,
+    _CONFIG_DIR,
     # _TEMPORARY_DIR
 ]
 
