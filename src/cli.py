@@ -40,6 +40,7 @@ JUMP_CHECK_COMMANDS = {
     "version",
     "fix-links",
     "ai_index",
+    "ai_clear",
 }
 NEED_FS_COMMANDS = {
     "start",
@@ -97,6 +98,9 @@ def main() -> None:
     )
     group_standalone.add_argument(
         "-ai", "--ai-index", action="store_true", help="Generate the AI chunk structure"
+    )
+    group_standalone.add_argument(
+        "-ac", "--ai-clear", action="store_true", help="Clear all AI support files"
     )
     group_standalone.add_argument(
         "-h", "--help", action="store_true", help="Show this help message"
@@ -250,6 +254,10 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
         print("Indexing for AI Started...")
         wai.init_index()
         return
+    if args.ai_clear:
+        print("Cleaning all AI files...")
+        wai.clean_index()
+        return
     # -------------------------------
     # Group 2
     # -------------------------------
@@ -305,6 +313,8 @@ def validate_args(args: argparse.Namespace) -> None:
         args.version,
         args.lint,
         args.fix_links,
+        args.ai_index,
+        args.ai_clear,
     ]
 
     conversion_ops = [
@@ -331,7 +341,7 @@ def validate_args(args: argparse.Namespace) -> None:
     # standalone + conversion forbidden
     if active_standalone > 0 and active_conversion > 0:
         print(
-            "Error: Operations -i, -ib, -s, -u, -v, -h -L -fl"
+            "Error: Operations -i, -ib, -s, -u, -v, -h, -L, -fl, -ai, -ac"
             "cannot be combined with -a, -g, -n, -c"
         )
         sys.exit(1)
@@ -386,4 +396,8 @@ def get_command(args: argparse.Namespace) -> str:
         return "lint"
     if args.fix_links:
         return "fix-links"
+    if args.ai_index:
+        return "ai-index"
+    if args.ai_clear:
+        return "ai-clear"
     return "help"

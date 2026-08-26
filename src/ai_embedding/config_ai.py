@@ -4,6 +4,9 @@ from pathlib import Path
 from src.config import (
     _PRJ_ROOT_DIR,
 )
+from src.utils import (
+    remove_dir,
+)
 
 ###########
 # Defines #
@@ -34,3 +37,10 @@ def create_ai_dir() -> None:
     """
     if not os.path.exists(_AI_DIR):
         os.makedirs(_AI_DIR, exist_ok=True)
+
+
+def remove_ai_dir() -> None:
+    """
+    Remove a .ai/ dir in the correct location
+    """
+    remove_dir(_AI_DIR)

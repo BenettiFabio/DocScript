@@ -16,6 +16,7 @@ from src.ai_embedding.config_ai import (
     AI_MANIFEST_PATH,
     is_ai,
     create_ai_dir,
+    remove_ai_dir,
 )
 from src.ai_embedding.indexer import (
     fill_ai_dir,
@@ -96,6 +97,33 @@ def init_index() -> None:
                 AI_CHUNK_PATH,
                 AI_MANIFEST_PATH,
             )
+
+        print("[AI] Indexing Done!")
+
+    except Exception as e:
+        print(f"Error while building the AI Index: {e}")
+        sys.exit(1)
+
+
+def clean_index() -> None:
+    if is_bank():
+        print("Error: The AI functionalities works only in local Vault.")
+        sys.exit(1)
+
+    try:
+        if not is_vault():
+            print("Error: The AI Index needs a initialized Vault!")
+            sys.exit(1)
+
+        if not is_ai():
+            print("Error: The AI dir .ai/ already deleted!")
+            sys.exit(1)
+        else:
+            remove_ai_dir()
+            if not is_ai():
+                print("[AI] .ai/ directory cleared!")
+            else:
+                print("Error: Impossible cleaning .ai/ dir!")
 
     except Exception as e:
         print(f"Error while building the AI Index: {e}")
