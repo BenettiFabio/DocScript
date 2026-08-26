@@ -103,6 +103,12 @@ def main() -> None:
         "-ac", "--ai-clear", action="store_true", help="Clear all AI support files"
     )
     group_standalone.add_argument(
+        "-ae",
+        "--ai-embed",
+        action="store_true",
+        help="Embed the AI index generated with -ai",
+    )
+    group_standalone.add_argument(
         "-h", "--help", action="store_true", help="Show this help message"
     )
 
@@ -258,6 +264,10 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
         print("Cleaning all AI files...")
         wai.clean_index()
         return
+    if args.ai_embed:
+        print("Embedding the AI Index...")
+        wai.embedding_index()
+        return
     # -------------------------------
     # Group 2
     # -------------------------------
@@ -315,6 +325,7 @@ def validate_args(args: argparse.Namespace) -> None:
         args.fix_links,
         args.ai_index,
         args.ai_clear,
+        args.ai_embed,
     ]
 
     conversion_ops = [
@@ -400,4 +411,6 @@ def get_command(args: argparse.Namespace) -> str:
         return "ai-index"
     if args.ai_clear:
         return "ai-clear"
+    if args.ai_embed:
+        return "ai-embed"
     return "help"

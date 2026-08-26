@@ -21,6 +21,9 @@ from src.ai_embedding.config_ai import (
 from src.ai_embedding.indexer import (
     fill_ai_dir,
 )
+from src.ai_embedding.embedder import (
+    embedding_ai,
+)
 from src.modes import CMode
 
 
@@ -124,6 +127,27 @@ def clean_index() -> None:
                 print("[AI] .ai/ directory cleared!")
             else:
                 print("Error: Impossible cleaning .ai/ dir!")
+
+    except Exception as e:
+        print(f"Error while building the AI Index: {e}")
+        sys.exit(1)
+
+
+def embedding_index() -> None:
+    if is_bank():
+        print("Error: The AI functionalities works only in local Vault.")
+        sys.exit(1)
+
+    try:
+        if not is_vault():
+            print("Error: The AI Index needs a initialized Vault!")
+            sys.exit(1)
+
+        if not is_ai():
+            print("Error: The AI dir .ai/ not exists! run --ai-index and retry")
+            sys.exit(1)
+        else:
+            embedding_ai()
 
     except Exception as e:
         print(f"Error while building the AI Index: {e}")
