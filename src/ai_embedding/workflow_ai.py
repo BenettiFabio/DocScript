@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 
 from src.config import (
+    _VAULT_DIR,
     is_bank,
     is_vault,
     get_all_files_from_main,
@@ -72,15 +73,11 @@ def init_index() -> None:
         file_found_main = get_all_files_from_main(mode)
 
         checkVaultFlag = False
-        check_inconsistency(file_found_main,
-                            file_found_root, checkVaultFlag)
+        check_inconsistency(file_found_main, file_found_root, checkVaultFlag)
 
         # Create a list of files to be chunkized
         root_map = {Path(p).name: p for p in file_found_root}
-        only_used_files = [
-            root_map[Path(name).name]
-            for name in file_found_main
-        ]
+        only_used_files = [root_map[Path(name).name] for name in file_found_main]
 
         num_docs = len(only_used_files)
         print(f"[AI] Document Found: {num_docs}")
@@ -93,10 +90,11 @@ def init_index() -> None:
         if is_ai():
             fill_ai_dir(
                 only_used_files,
+                _VAULT_DIR,
                 AI_CONFIG_PATH,
                 AI_DOCUMENTS_PATH,
                 AI_CHUNK_PATH,
-                AI_MANIFEST_PATH
+                AI_MANIFEST_PATH,
             )
 
     except Exception as e:

@@ -72,17 +72,12 @@ CUSTOM_FILE_NAME = "custom.md"
 
 YAML_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, YAML_NAME)).resolve()
 TEMPLATE_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, TEMPLATE_NAME)).resolve()
-LUA_FILTER_PATH = Path(os.path.join(
-    _DFLT_CONFIG_DIR, LUA_FILTER_NAME)).resolve()
+LUA_FILTER_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, LUA_FILTER_NAME)).resolve()
 NEW_NOTE_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, NEW_NOTE_NAME)).resolve()
-PANDOC_OPT_PATH = Path(os.path.join(
-    _DFLT_CONFIG_DIR, PANDOC_OPT_NAME)).resolve()
-EPUB_TEMPL_PATH = Path(os.path.join(
-    _DFLT_CONFIG_DIR, EPUB_TEMPL_NAME)).resolve()
-EPUB_COVER_PATH = Path(os.path.join(
-    _DFLT_CONFIG_DIR, EPUB_COVER_NAME)).resolve()
-EPUB_LUAF_PATH = Path(os.path.join(
-    _DFLT_CONFIG_DIR, EPUB_LUAF_NAME)).resolve()
+PANDOC_OPT_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, PANDOC_OPT_NAME)).resolve()
+EPUB_TEMPL_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, EPUB_TEMPL_NAME)).resolve()
+EPUB_COVER_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, EPUB_COVER_NAME)).resolve()
+EPUB_LUAF_PATH = Path(os.path.join(_DFLT_CONFIG_DIR, EPUB_LUAF_NAME)).resolve()
 
 # Vault path
 CONFIG_DIR_VAULT_PATH = Path(
@@ -91,8 +86,7 @@ CONFIG_DIR_VAULT_PATH = Path(
 CONFIG_USR_V_FILES_DIR = Path(
     os.path.join(_VAULT_DIR, _CONFIG_DIR, _USR_CONF_DIR)
 ).resolve()
-INIT_V_PATH = Path(os.path.join(
-    _PRJ_ROOT_DIR, _INITIALIZE_DIR, _INIT_V_DIR)).resolve()
+INIT_V_PATH = Path(os.path.join(_PRJ_ROOT_DIR, _INITIALIZE_DIR, _INIT_V_DIR)).resolve()
 SETUP_V_PATH = Path(
     os.path.join(_PRJ_ROOT_DIR, _INITIALIZE_DIR, _SETUP_V_DIR)
 ).resolve()
@@ -105,8 +99,7 @@ CONFIG_DIR_BANK_PATH = Path(
 CONFIG_USR_B_FILES_DIR = Path(
     os.path.join(_BANK_DIR, _CONFIG_DIR, _USR_CONF_DIR)
 ).resolve()
-INIT_B_PATH = Path(os.path.join(
-    _PRJ_ROOT_DIR, _INITIALIZE_DIR, _INIT_B_DIR)).resolve()
+INIT_B_PATH = Path(os.path.join(_PRJ_ROOT_DIR, _INITIALIZE_DIR, _INIT_B_DIR)).resolve()
 BUILD_B_PATH = Path(os.path.join(_BANK_DIR, _BUILD_DIR)).resolve()
 
 EXCLUDED_DIRS = [
@@ -116,8 +109,7 @@ EXCLUDED_DIRS = [
     # _TEMPORARY_DIR
 ]
 
-EXCLUDED_FILES = [COMB_FILE_NAME, NEW_NOTE_NAME,
-                  MAIN_FILE_NAME, CUSTOM_FILE_NAME]
+EXCLUDED_FILES = [COMB_FILE_NAME, NEW_NOTE_NAME, MAIN_FILE_NAME, CUSTOM_FILE_NAME]
 
 ACCEPTED_ASSETS_EXT_DEFAULT = [
     ".png",
@@ -314,12 +306,10 @@ def apply_build_overrides(
         cfgCstmPath.custom_epub_temp_path = add_new_css(buildOpts.epub_templ)
 
     if buildOpts.epub_cover:
-        cfgCstmPath.custom_epub_cover_path = add_new_image(
-            buildOpts.epub_cover)
+        cfgCstmPath.custom_epub_cover_path = add_new_image(buildOpts.epub_cover)
 
     if buildOpts.epub_lua:
-        cfgCstmPath.custom_epub_luaf_path = add_new_luaf(
-            buildOpts.epub_lua)
+        cfgCstmPath.custom_epub_luaf_path = add_new_luaf(buildOpts.epub_lua)
 
 
 def add_new_yaml(yamlFile: str | Path) -> str:
@@ -346,7 +336,7 @@ def add_new_css(cssFile: str | Path) -> str:
     """
 
     css_file = str(cssFile)
-    ext = os.path.splitext(yaml_file)[1].lower()
+    ext = os.path.splitext(css_file)[1].lower()
     if ext not in [".css"]:
         print(f"Error: Input file '{css_file}' must be .css.")
         sys.exit(1)
@@ -446,8 +436,7 @@ def check_integrity() -> None:
         sys.exit(1)
 
     if not os.path.exists(_DFLT_CONFIG_DIR):
-        print(
-            f"Error: config directory: '{_DFLT_CONFIG_DIR}' does not exists.")
+        print(f"Error: config directory: '{_DFLT_CONFIG_DIR}' does not exists.")
         sys.exit(1)
 
     if not os.path.exists(SETUP_V_PATH):
@@ -470,8 +459,7 @@ def create_vault_structure(BankFlag: bool = False) -> None:
 
             - [ArgumentName1](main-arg1/main.main-arg1.first-note.md)
         """
-        write_file(Path(os.path.join(_VAULT_DIR, "main.md")
-                        ).resolve(), contenuto_main)
+        write_file(Path(os.path.join(_VAULT_DIR, "main.md")).resolve(), contenuto_main)
 
         # Write the custom.md file with the first default references
         contenuto_custom = """\
@@ -482,9 +470,7 @@ def create_vault_structure(BankFlag: bool = False) -> None:
             # Custom file for conversion order
         """
         write_file(
-            Path(
-                os.path.join(_VAULT_DIR, "custom.md")
-            ).resolve(), contenuto_custom
+            Path(os.path.join(_VAULT_DIR, "custom.md")).resolve(), contenuto_custom
         )
 
         print("- Vault Dir : ok\n")
@@ -496,18 +482,13 @@ def create_vault_structure(BankFlag: bool = False) -> None:
         # Write the .conf file with the default path
         # Use relative paths to ./config-files in the vault/config folder
         rel_yaml_path = Path(os.path.join("./", _USR_CONF_DIR, YAML_NAME))
-        rel_template_path = Path(os.path.join(
-            "./", _USR_CONF_DIR, TEMPLATE_NAME))
+        rel_template_path = Path(os.path.join("./", _USR_CONF_DIR, TEMPLATE_NAME))
         rel_lua_path = Path(os.path.join("./", _USR_CONF_DIR, LUA_FILTER_NAME))
         rel_start_path = Path(os.path.join("./", _USR_CONF_DIR, NEW_NOTE_NAME))
-        rel_pandoc_path = Path(os.path.join(
-            "./", _USR_CONF_DIR, PANDOC_OPT_NAME))
-        rel_epub_temp_path = Path(os.path.join(
-            "./", _USR_CONF_DIR, EPUB_TEMPL_NAME))
-        rel_epub_cover_path = Path(os.path.join(
-            "./", _USR_CONF_DIR, EPUB_COVER_NAME))
-        rel_epub_lua_path = Path(os.path.join(
-            "./", _USR_CONF_DIR, EPUB_LUAF_NAME))
+        rel_pandoc_path = Path(os.path.join("./", _USR_CONF_DIR, PANDOC_OPT_NAME))
+        rel_epub_temp_path = Path(os.path.join("./", _USR_CONF_DIR, EPUB_TEMPL_NAME))
+        rel_epub_cover_path = Path(os.path.join("./", _USR_CONF_DIR, EPUB_COVER_NAME))
+        rel_epub_lua_path = Path(os.path.join("./", _USR_CONF_DIR, EPUB_LUAF_NAME))
 
         contenuto_conf = f"""\
             # default configuration - start path from config/
@@ -543,9 +524,7 @@ def create_vault_structure(BankFlag: bool = False) -> None:
             # Custom file for conversion order
         """
         write_file(
-            Path(
-                os.path.join(_BANK_DIR, "custom.md")
-            ).resolve(), contenuto_custom
+            Path(os.path.join(_BANK_DIR, "custom.md")).resolve(), contenuto_custom
         )
 
         print("- Data Bank Structure : ok")
@@ -556,17 +535,12 @@ def create_vault_structure(BankFlag: bool = False) -> None:
 
         # I write the references relating to the config-files folder inside the vault
         rel_yaml_path = Path(os.path.join("./", _USR_CONF_DIR, YAML_NAME))
-        rel_template_path = Path(os.path.join(
-            "./", _USR_CONF_DIR, TEMPLATE_NAME))
+        rel_template_path = Path(os.path.join("./", _USR_CONF_DIR, TEMPLATE_NAME))
         rel_lua_path = Path(os.path.join("./", _USR_CONF_DIR, LUA_FILTER_NAME))
-        rel_pandoc_path = Path(os.path.join(
-            "./", _USR_CONF_DIR, PANDOC_OPT_NAME))
-        rel_epub_temp_path = Path(os.path.join(
-            "./", _USR_CONF_DIR, EPUB_TEMPL_NAME))
-        rel_epub_cover_path = Path(os.path.join(
-            "./", _USR_CONF_DIR, EPUB_COVER_NAME))
-        rel_epub_lua_path = Path(os.path.join(
-            "./", _USR_CONF_DIR, EPUB_LUAF_NAME))
+        rel_pandoc_path = Path(os.path.join("./", _USR_CONF_DIR, PANDOC_OPT_NAME))
+        rel_epub_temp_path = Path(os.path.join("./", _USR_CONF_DIR, EPUB_TEMPL_NAME))
+        rel_epub_cover_path = Path(os.path.join("./", _USR_CONF_DIR, EPUB_COVER_NAME))
+        rel_epub_lua_path = Path(os.path.join("./", _USR_CONF_DIR, EPUB_LUAF_NAME))
 
         contenuto_conf = f"""\
             # default configuration - start path from config/
@@ -759,8 +733,7 @@ def _read_main_files_recursive(
 
             # Resolve relative path
             resolved_path = safe_path(
-                normalize_unc_path(
-                    str(safe_path(main_dir, str(file_path)).resolve()))
+                normalize_unc_path(str(safe_path(main_dir, str(file_path)).resolve()))
             )
 
             # Skip invalid paths
@@ -824,8 +797,7 @@ def get_all_files_from_main(mode: CMode) -> list[str]:
 
     # If void file exit
     if not matching_files:
-        print(
-            f"Error: No files found in {'custom.md' if custom else 'main.md'}.")
+        print(f"Error: No files found in {'custom.md' if custom else 'main.md'}.")
         sys.exit(1)
 
     return matching_files
@@ -908,8 +880,7 @@ def get_all_files_from_bank(mode: CMode) -> tuple[list[str], dict[str, str]]:
                 collab_main = active_collaborators_map.get(current_collab)
 
                 if not collab_main:
-                    print(
-                        f"Warning: '{current_collab}' not in collaborator.md, skip.")
+                    print(f"Warning: '{current_collab}' not in collaborator.md, skip.")
                     continue
 
                 note_abs = safe_path(os.path.dirname(collab_main), note_rel)
@@ -952,11 +923,9 @@ def find_main_inconsistency(
     ]
 
     # Normalize lists (file names only)
-    normalized_actual_list = [
-        Path(path).name for path in filtered_matching_files_root]
+    normalized_actual_list = [Path(path).name for path in filtered_matching_files_root]
 
-    normalized_main_list: list[str] = [
-        Path(path).name for path in matchingFileMain]
+    normalized_main_list: list[str] = [Path(path).name for path in matchingFileMain]
 
     main_set = set(normalized_main_list)
     actual_set = set(normalized_actual_list)
@@ -979,9 +948,7 @@ def check_inconsistency(
 
     if not bypassFlag:
 
-        missing_in_main = find_main_inconsistency(
-            matchingFileMain, matchingFileRoot
-        )
+        missing_in_main = find_main_inconsistency(matchingFileMain, matchingFileRoot)
 
         if missing_in_main:
             print("Error: The following .md files are NOT included in main:")
@@ -992,12 +959,8 @@ def check_inconsistency(
         # Check only the existence of files (file names only)
 
         # root is the entire vault (_TEMPORARY_DIR included)
-        normalized_actual_list = [
-            str(Path(path)) for path in matchingFileRoot
-        ]
-        normalized_main_list = [
-            Path(path).name for path in matchingFileMain
-        ]
+        normalized_actual_list = [str(Path(path)) for path in matchingFileRoot]
+        normalized_main_list = [Path(path).name for path in matchingFileMain]
         path_by_name = {Path(p).name: p for p in normalized_actual_list}
 
         for filename in normalized_main_list:
@@ -1111,7 +1074,7 @@ def find_unused_assets(
             parts = suffix.parts
 
             if "assets" in parts:
-                rel_asset = Path(*parts[parts.index("assets") + 1:]).as_posix()
+                rel_asset = Path(*parts[parts.index("assets") + 1 :]).as_posix()
 
                 referenced.add(rel_asset)
             else:
@@ -1159,8 +1122,7 @@ def find_broken_links(matchingFilesMain: list[str]) -> dict[str, list[str]]:
             content = note_file.read()
 
         # exclude comments
-        content_without_comments = re.sub(
-            r"<!--.*?-->", "", content, flags=re.DOTALL)
+        content_without_comments = re.sub(r"<!--.*?-->", "", content, flags=re.DOTALL)
         local_links = _extract_markdown_link_targets(content_without_comments)
         broken_links: list[str] = []
         seen_links: set[str] = set()
@@ -1230,7 +1192,7 @@ def _find_asset_candidate(
     if "assets" in parts:
         # Keep the sub-path that comes after the assets directory name so that
         # files in nested sub-folders are still matched correctly.
-        suffix = Path(*parts[parts.index("assets") + 1:])
+        suffix = Path(*parts[parts.index("assets") + 1 :])
     else:
         suffix = Path(parts[-1]) if parts else Path(path_part)
 
@@ -1278,7 +1240,7 @@ def _replace_target_outside_comments(text: str, target: str, replacement: str) -
         if comment_end == -1:
             comment_end = length
 
-        result.append(text[comment_start: comment_end + 3])
+        result.append(text[comment_start : comment_end + 3])
         i = comment_end + 3
 
     return "".join(result)
@@ -1369,14 +1331,12 @@ def copy_assets(outputDir: str, collaborators: dict[str, str]) -> None:
     merged without overwriting unchanged files.
     """
     for name, main_md_path in collaborators.items():
-        collab_assets_dir = os.path.join(
-            os.path.dirname(main_md_path), "assets")
+        collab_assets_dir = os.path.join(os.path.dirname(main_md_path), "assets")
         if os.path.exists(collab_assets_dir):
             copy_dir_recursive(collab_assets_dir, outputDir)
             print(f"Assets copied for {name} into {outputDir}")
         else:
-            print(
-                f"Warning: assets not found for {name} in {collab_assets_dir}")
+            print(f"Warning: assets not found for {name} in {collab_assets_dir}")
 
 
 def normalize_links_after_merge(
@@ -1469,7 +1429,7 @@ def normalize_links_after_merge(
         parts = Path(path_part).parts
 
         if "assets" in parts:
-            suffix_key = Path(*parts[parts.index("assets") + 1:]).as_posix()
+            suffix_key = Path(*parts[parts.index("assets") + 1 :]).as_posix()
         else:
             suffix_key = suffix.as_posix()
 
@@ -1500,8 +1460,7 @@ def normalize_links_after_merge(
         # -----------------------------
         # build relative path from combined file
         # -----------------------------
-        rel_target = Path(os.path.relpath(
-            asset_path, CombinedPath.parent)).as_posix()
+        rel_target = Path(os.path.relpath(asset_path, CombinedPath.parent)).as_posix()
 
         if not rel_target.startswith("."):
             rel_target = "./" + rel_target
@@ -1617,23 +1576,16 @@ def combine_and_execute(
         # -- Copy config files (renamed to default names so execute_pandoc
         #    doesn't need to know which custom file is in use) --
         print(f"3 - Copying config files... to {app_config}")
+        shutil.copy2(str(cfgCstmPath.custom_teml_path), app_config / TEMPLATE_NAME)
+        shutil.copy2(str(cfgCstmPath.custom_luaf_path), app_config / LUA_FILTER_NAME)
         shutil.copy2(
-            str(cfgCstmPath.custom_teml_path),
-            app_config / TEMPLATE_NAME
-        )
-        shutil.copy2(
-            str(cfgCstmPath.custom_luaf_path),
-            app_config / LUA_FILTER_NAME
-        )
-        shutil.copy2(
-            str(cfgCstmPath.custom_pandoc_opt_path),
-            app_config / PANDOC_OPT_NAME
+            str(cfgCstmPath.custom_pandoc_opt_path), app_config / PANDOC_OPT_NAME
         )
 
         # -- Convert locally --
         local_dst = app_build / Path(dst_path).name
 
-        normalize_links_after_merge(local_unified, app_build, app_assets)
+        normalize_links_after_merge(local_unified, str(app_build), str(app_assets))
 
         execute_pandoc(
             str(app_config / TEMPLATE_NAME),
@@ -1654,8 +1606,7 @@ def combine_and_execute(
         if local_dst.exists():
             shutil.copy2(local_dst, dst_path)
         else:
-            print(
-                f"Warning: Output '{local_dst}' not found after the conversion.")
+            print(f"Warning: Output '{local_dst}' not found after the conversion.")
 
         # -- Delete _APPL_DIR entirely --
         remove_dir(app_assets)
@@ -1726,8 +1677,7 @@ def inject_title_into_yaml(yamlBlock: str, title: str) -> str:
         idx = closing_match.start()
 
         return (
-            yaml_block[:idx] +
-            f'\nCompanyStudyTitle: "{safe_title}"' + yaml_block[idx:]
+            yaml_block[:idx] + f'\nCompanyStudyTitle: "{safe_title}"' + yaml_block[idx:]
         )
 
     return yaml_block
@@ -1766,7 +1716,7 @@ def copy_config_yaml(
             if combined_content.lstrip().startswith("---"):
                 m2 = re.search(r"\n(---|\.\.\.)(?:\r?\n)", combined_content)
                 if m2:
-                    combined_content = combined_content[m2.end():].lstrip()
+                    combined_content = combined_content[m2.end() :].lstrip()
 
             # Add the new YAML block at the beginning
             new_content = f"{yaml_block}\n\n{combined_content}"

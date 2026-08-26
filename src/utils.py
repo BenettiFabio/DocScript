@@ -1,12 +1,17 @@
 import os
 import re
+import json
 import shutil
 import stat
 import subprocess
 import textwrap
 import time
+import hashlib
 from collections.abc import Callable
 from pathlib import Path
+
+
+GENERIC_LINK_PATTERN = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 
 ###############
 # Description #
@@ -42,8 +47,7 @@ def normalize_unc_path(windowsPath: str) -> str:
     windows_path = windowsPath
 
     # Read all the network disk drive into the system
-    result = subprocess.run(
-        "net use", capture_output=True, text=True, shell=True)
+    result = subprocess.run("net use", capture_output=True, text=True, shell=True)
     lines = result.stdout.splitlines()
     mapped_drives = {}
 
@@ -72,7 +76,7 @@ def normalize_unc_path(windowsPath: str) -> str:
             idx = path_parts_lower.index(unc_parts[-1].lower())
 
             # Build the path starting from the first folder found.
-            relative_parts = path_parts[idx + 1:]
+            relative_parts = path_parts[idx + 1 :]
             final_path = Path(drive + "/") / Path(*relative_parts)
 
             return str(final_path).replace("\\", "/")
@@ -245,5 +249,43 @@ def convert_link_to_absolute(markdownText: str, base_path: str) -> str:
         abs_path = (base_dir / rel_path).resolve()
         return f"[{label}]({abs_path})"
 
-    pattern = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+    pattern = GENERIC_LINK_PATTERN
     return pattern.sub(replacer, markdownText).replace("\\", "/")
+
+
+def write_json(dst: Path, data: dict) -> None:
+    """
+    Write a JSON file creating parent directories if necessary.
+    """
+
+    dst.parent.mkdir(parents=True, exist_ok=True)
+
+    with dst.open("w", encoding="utf-8") as file:
+        json.dump(
+            data,
+            file,
+            ensure_ascii=False,
+            indent=2,
+        )
+
+        file.write("\n")
+
+
+def calculate_hash(content: str) -> str:
+    """
+    Calculate SHA256 hash of a string.
+    """
+
+    return hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+
+def is_external_link(target: str) -> bool:
+
+    target = target.lower()
+
+    return (
+        target.startswith("http://")
+        or target.startswith("https://")
+        or target.startswith("mailto:")
+        or target.startswith("ftp://")
+    )
