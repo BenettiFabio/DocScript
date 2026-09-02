@@ -152,10 +152,10 @@ python DocScript/DocScript.py --help
 
 # Library Dependencies
 
-1. **MikTeX**: Requires LateX to be installed and in the path.
-2. **Pandoc** (<=3.7.0.1): Used to convert .tex to .pdf (must be added to the env Path).
+1. **MikTeX**: Requires LateX to be installed and in the system path like `C:\Users\user-name\AppData\Local\Programs\MiKTeX\miktex\bin\x64\`.
+2. **Pandoc** (<=3.7.0.1): Used to convert .tex to .pdf (must be added to the env system Path) like `C:\Program Files\Pandoc\`.
 3. Fonts: **GNU FreeFonts** (_FreeSans_, _FreeMono_, _FreeSerif_). Be sure to install them with administrator rights. To make installation easier, they are located in the `DocScript/requirements/user` folder.
-4. **Stroberry Perl**: This must also be added to the system paths.
+4. **Stroberry Perl**: This must also be added to the system paths like `C:\Strawberry\perl\bin\`.
 
 # Useful VSCode Dependencies
 
