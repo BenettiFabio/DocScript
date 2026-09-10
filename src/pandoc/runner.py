@@ -83,8 +83,7 @@ def check_precondition() -> None:
 
     if sys.platform.startswith("win"):
         if (
-            os.system(
-                'fc-list | findstr /i "FreeSerif FreeSans FreeMono" >nul 2>nul')
+            os.system('fc-list | findstr /i "FreeSerif FreeSans FreeMono" >nul 2>nul')
             != 0
         ):
             print("Error: GNU FreeFonts not installed.")
@@ -94,10 +93,7 @@ def check_precondition() -> None:
 
     if sys.platform.startswith("linux"):
         if os.system("locate Free .ttf | grep /usr/share/fonts/TTF/ > /dev/null") != 0:
-            print(
-                "Error: GNU FreeFonts not installed "
-                "in /usr/share/fonts/TTF ."
-            )
+            print("Error: GNU FreeFonts not installed " "in /usr/share/fonts/TTF .")
             sys.exit(1)
         else:
             print("GNU FreeFonts installed.")
@@ -112,7 +108,7 @@ def execute_pandoc(
     d_v: str,  # dir vault
     d_a: str,  # dir assets
     d_b: str,  # dir build finale
-    epub_css: str,    # path to css   for epub conversion
+    epub_css: str,  # path to css   for epub conversion
     epub_cover: str,  # path to cover for epub conversion
     epub_luaf: str,
 ) -> None:
@@ -173,7 +169,7 @@ def execute_pandoc(
                             "-interaction=nonstopmode",
                             "-halt-on-error",
                             "-file-line-error",
-                            tex_path.name
+                            tex_path.name,
                         ],
                         cwd=str(tex_path.parent),
                     )
@@ -235,8 +231,10 @@ def execute_pandoc(
                 if epub_css:
                     cmd += ["--css", str(normalize_unc_path(str(epub_css)))]
                 if epub_cover:
-                    cmd += ["--epub-cover-image",
-                            str(normalize_unc_path(str(epub_cover)))]
+                    cmd += [
+                        "--epub-cover-image",
+                        str(normalize_unc_path(str(epub_cover))),
+                    ]
                 _run_logged_command(cmd)
 
         else:
@@ -273,14 +271,11 @@ def execute_pandoc(
                 ]
 
                 if epub_css:
-                    cmd += [
-                        "--css",
-                        str(normalize_unc_path(str(epub_css)))
-                    ]
+                    cmd += ["--css", str(normalize_unc_path(str(epub_css)))]
                 if epub_cover:
                     cmd += [
                         "--epub-cover-image",
-                        str(normalize_unc_path(str(epub_cover)))
+                        str(normalize_unc_path(str(epub_cover))),
                     ]
 
             _run_logged_command(cmd)

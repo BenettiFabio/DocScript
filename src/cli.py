@@ -38,6 +38,7 @@ JUMP_CHECK_COMMANDS = {
     "help",
     "version",
     "fix-links",
+    "main",
 }
 NEED_FS_COMMANDS = {
     "start",
@@ -94,6 +95,9 @@ def main() -> None:
         help="Automatic Fix of all links, run -L before this",
     )
     group_standalone.add_argument(
+        "-m", "--main", action="store_true", help="Add all the files in main.md"
+    )
+    group_standalone.add_argument(
         "-h", "--help", action="store_true", help="Show this help message"
     )
 
@@ -128,13 +132,13 @@ def main() -> None:
     # -------------------------------
     # Gruppo 3: Additive Operation
     # -------------------------------
-    parser.add_argument("-y", "--yaml", metavar="YAML_NAME",
-                        help="Custom YAML file")
+    parser.add_argument("-y", "--yaml", metavar="YAML_NAME", help="Custom YAML file")
     parser.add_argument(
         "-t", "--template", metavar="TEMPLATE_NAME", help="Custom Template file"
     )
-    parser.add_argument("-l", "--lua", metavar="LUA_NAME",
-                        help="Custom Lua Filter file")
+    parser.add_argument(
+        "-l", "--lua", metavar="LUA_NAME", help="Custom Lua Filter file"
+    )
     parser.add_argument(
         "-p",
         "--pandoc",
@@ -157,7 +161,8 @@ def main() -> None:
         "-el",
         "--epub-lua",
         metavar="EPUB_LUA_NAME",
-        help="Custom Lua Filter specific for epub files")
+        help="Custom Lua Filter specific for epub files",
+    )
     parser.add_argument(
         "-T",
         "--title",
@@ -202,8 +207,7 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
         AssetsCustomExt = AssetsExtList()
         if request in NEED_FS_COMMANDS:
             # check the configuration file -> overwrite the defaults
-            check_config_file(cfgCstmPath=ConfigCustomPaths,
-                              sstCstmXt=AssetsCustomExt)
+            check_config_file(cfgCstmPath=ConfigCustomPaths, sstCstmXt=AssetsCustomExt)
             # check cli options -> overwrite configuration file options
             apply_build_overrides(
                 cfgCstmPath=ConfigCustomPaths,
@@ -240,6 +244,10 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
     if args.fix_links:
         print("Automatic fix links")
         workflow.fix_links()
+        return
+    if args.main:
+        print("Auto fixing the main.md file")
+        workflow.gen_main_file()
         return
     # -------------------------------
     # Group 2
@@ -377,4 +385,6 @@ def get_command(args: argparse.Namespace) -> str:
         return "lint"
     if args.fix_links:
         return "fix-links"
+    if args.main:
+        return "main"
     return "help"

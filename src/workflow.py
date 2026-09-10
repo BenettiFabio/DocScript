@@ -5,6 +5,7 @@ from src.config import (
     CustomPaths,
     AssetsExtList,
     BuildOptions,
+    add_files_to_main,
     check_inconsistency,
     find_main_inconsistency,
     find_broken_links,
@@ -125,6 +126,13 @@ def conversion_procedure(
         file_found_root = get_all_files_from_root()
         file_found_main = get_all_files_from_main(mode)
 
+        # If void main file exit
+        if not file_found_main:
+            print(
+                f"Error: No files found in {'custom.md' if modality == CMode.CUSTOM.name else 'main.md'}."
+            )
+            sys.exit(1)
+
         # Reduce the number of notes to only those of interest
         filter_file_list_main: list[str] = []
         filter_file_list_root: list[str] = []
@@ -154,8 +162,7 @@ def conversion_procedure(
             filter_file_list_root = file_found_root
 
         # Check of consistency if not custom
-        check_inconsistency(filter_file_list_main,
-                            filter_file_list_root, bypassFlag)
+        check_inconsistency(filter_file_list_main, filter_file_list_root, bypassFlag)
 
     else:
         # Bank: files live in multiple collaborator vaults.
@@ -175,15 +182,11 @@ def conversion_procedure(
 
     # Create a list for combined_file.md
     root_map = {Path(p).name: p for p in filter_file_list_root}
-    only_used_files = [
-        root_map[Path(name).name]
-        for name in filter_file_list_main
-    ]
+    only_used_files = [root_map[Path(name).name] for name in filter_file_list_main]
 
     # Effective conversion
     if dst is not None:
-        combine_and_execute(only_used_files, collaborators,
-                            cfgCstmPath, buildOpts, dst)
+        combine_and_execute(only_used_files, collaborators, cfgCstmPath, buildOpts, dst)
     else:
         print("Error: No output file selected")
         sys.exit(1)
@@ -282,6 +285,13 @@ def fix_links() -> None:
     mode = CMode.ALL
     file_found_main = get_all_files_from_main(mode)
 
+    # If void main file exit
+    if not file_found_main:
+        print(
+            f"Error: No files found in {'custom.md' if mode == CMode.CUSTOM.name else 'main.md'}."
+        )
+        sys.exit(1)
+
     broken_links = find_broken_links(file_found_main)
 
     # Fixes file locations for assets.
@@ -299,3 +309,31 @@ def fix_links() -> None:
             print("\n")
     else:
         print("No links appear to be broken in this Vault, enjoy!")
+
+
+def gen_main_file() -> None:
+    """
+    Regenerate the vault main.md by detecting files that are missing from the
+    index and inserting them into the appropriate existing sections, or creating
+    new sections when needed.
+    """
+
+    if is_bank():
+        print("Error: Use this cmd only in a personal Vault.")
+        sys.exit(1)
+
+    print("Start parsing all the repo, please wait...")
+
+    mode = CMode.ALL
+    file_found_main = get_all_files_from_main(mode)
+    file_found_root = get_all_files_from_root()
+
+    missed_links = find_main_inconsistency(file_found_main, file_found_root)
+
+    if missed_links:
+        print("\nWarning: The following .md files are will be added in main:\n")
+        for f in sorted(missed_links):
+            print(f"- {f}")
+        print("\n")
+
+    add_files_to_main(missed_links, file_found_root)

@@ -98,7 +98,7 @@ python DocScript/DocScript.py --help
     > into the overall index (`main.md`)
 
 1.  `main.md`: This file is the index of the entire structure.
-    - It will link all the project pages so they can be easily found over time.
+    - It will link all project pages so they can be easily found over time, and it is also possible to generate a version directly with the `-m` command (see `--help`).
     - The `main.md` will be used as the conversion order so that, if the entire vault is converted into a single pdf, the order in which topics should be included is known.
     - The `main.md` can in turn contain other main files recursively. If there are subfolders, they **must** have their own main files describing the contents of the folder.
 
@@ -362,16 +362,25 @@ It is an executable that, regardless of where you are when it is launched, enter
 ```bash
 # help
 \scripts\DocScript.py -h
+
 # repo initialization
 \scripts\DocScript.py -i
 \scripts\DocScript.py -ib
+
 # adding a md note
 \scripts\DocScript.py -s macro-topic-name/new-note-name.md
+
+# if many notes are not present in the main file, use this to insert them
+## ATT! they will be commented so they can be easily recognized
+## ATT! they will be inserted in alphabetical order, leaving you free to reorder them
+\scripts\DocScript.py -m
+
 # checks that links inside notes are correct
 # also verifies that all assets are used and reports unused ones
 \scripts\DocScript.py -L
 # should be run AFTER -L in order to automatically fix links highlighted by -L
 \scripts\DocScript.py -fl
+
 # pdf generation
 \scripts\DocScript.py -n source-note-name.md output.pdf
 \scripts\DocScript.py -g macro-topic-name output.pdf

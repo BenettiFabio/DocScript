@@ -42,8 +42,7 @@ def normalize_unc_path(windowsPath: str) -> str:
     windows_path = windowsPath
 
     # Read all the network disk drive into the system
-    result = subprocess.run(
-        "net use", capture_output=True, text=True, shell=True)
+    result = subprocess.run("net use", capture_output=True, text=True, shell=True)
     lines = result.stdout.splitlines()
     mapped_drives = {}
 
@@ -72,7 +71,7 @@ def normalize_unc_path(windowsPath: str) -> str:
             idx = path_parts_lower.index(unc_parts[-1].lower())
 
             # Build the path starting from the first folder found.
-            relative_parts = path_parts[idx + 1:]
+            relative_parts = path_parts[idx + 1 :]
             final_path = Path(drive + "/") / Path(*relative_parts)
 
             return str(final_path).replace("\\", "/")
