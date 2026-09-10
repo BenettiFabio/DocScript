@@ -23,6 +23,10 @@ from src.ai_embedding.indexer import (
 )
 from src.ai_embedding.embedder import (
     embedding_ai,
+    embedding_upgrade,
+)
+from src.ai_embedding.query import (
+    chat_loop,
 )
 from src.modes import CMode
 
@@ -148,6 +152,48 @@ def embedding_index() -> None:
             sys.exit(1)
         else:
             embedding_ai()
+
+    except Exception as e:
+        print(f"Error while building the AI Index: {e}")
+        sys.exit(1)
+
+
+def embedding_update() -> None:
+    if is_bank():
+        print("Error: The AI functionalities works only in local Vault.")
+        sys.exit(1)
+
+    try:
+        if not is_vault():
+            print("Error: The AI Index needs a initialized Vault!")
+            sys.exit(1)
+
+        if not is_ai():
+            print("Error: The AI dir .ai/ not exists! run --ai-index and retry")
+            sys.exit(1)
+        else:
+            embedding_upgrade()
+
+    except Exception as e:
+        print(f"Error while building the AI Index: {e}")
+        sys.exit(1)
+
+
+def enable_query_mode() -> None:
+    if is_bank():
+        print("Error: The AI functionalities works only in local Vault.")
+        sys.exit(1)
+
+    try:
+        if not is_vault():
+            print("Error: The AI Index needs a initialized Vault!")
+            sys.exit(1)
+
+        if not is_ai():
+            print("Error: The AI dir .ai/ not exists! run --ai-index and retry")
+            sys.exit(1)
+        else:
+            chat_loop()
 
     except Exception as e:
         print(f"Error while building the AI Index: {e}")

@@ -39,9 +39,10 @@ JUMP_CHECK_COMMANDS = {
     "help",
     "version",
     "fix-links",
-    "ai_index",
-    "ai_clear",
-    "ai_embed",
+    "ai-index",
+    "ai-clear",
+    "ai-embed",
+    "ai-query",
 }
 NEED_FS_COMMANDS = {
     "start",
@@ -110,6 +111,18 @@ def main() -> None:
         help="Embed the AI index generated with -ai",
     )
     group_standalone.add_argument(
+        "-au",
+        "--ai-update",
+        action="store_true",
+        help="Embed the AI index only if changed",
+    )
+    group_standalone.add_argument(
+        "-aq",
+        "--ai-query",
+        action="store_true",
+        help="Make a query about your local data! enjoy!",
+    )
+    group_standalone.add_argument(
         "-h", "--help", action="store_true", help="Show this help message"
     )
 
@@ -144,8 +157,7 @@ def main() -> None:
     # -------------------------------
     # Gruppo 3: Additive Operation
     # -------------------------------
-    parser.add_argument("-y", "--yaml", metavar="YAML_NAME",
-                        help="Custom YAML file")
+    parser.add_argument("-y", "--yaml", metavar="YAML_NAME", help="Custom YAML file")
     parser.add_argument(
         "-t", "--template", metavar="TEMPLATE_NAME", help="Custom Template file"
     )
@@ -220,8 +232,7 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
         AssetsCustomExt = AssetsExtList()
         if request in NEED_FS_COMMANDS:
             # check the configuration file -> overwrite the defaults
-            check_config_file(cfgCstmPath=ConfigCustomPaths,
-                              sstCstmXt=AssetsCustomExt)
+            check_config_file(cfgCstmPath=ConfigCustomPaths, sstCstmXt=AssetsCustomExt)
             # check cli options -> overwrite configuration file options
             apply_build_overrides(
                 cfgCstmPath=ConfigCustomPaths,
@@ -270,6 +281,14 @@ def dispatch(parser: argparse.ArgumentParser) -> None:
     if args.ai_embed:
         print("Embedding the AI Index...")
         wai.embedding_index()
+        return
+    if args.ai_update:
+        print("Update the Embedding vector DB")
+        wai.embedding_update()
+        return
+    if args.ai_query:
+        print("Make a Query mode...")
+        wai.enable_query_mode()
         return
     # -------------------------------
     # Group 2
@@ -329,6 +348,8 @@ def validate_args(args: argparse.Namespace) -> None:
         args.ai_index,
         args.ai_clear,
         args.ai_embed,
+        args.ai_update,
+        args.ai_query,
     ]
 
     conversion_ops = [
@@ -355,7 +376,7 @@ def validate_args(args: argparse.Namespace) -> None:
     # standalone + conversion forbidden
     if active_standalone > 0 and active_conversion > 0:
         print(
-            "Error: Operations -i, -ib, -s, -u, -v, -h, -L, -fl, -ai, -ac"
+            "Error: Operations -i, -ib, -s, -u, -v, -h, -L, -fl, -ai, -ac, -ae, -au"
             "cannot be combined with -a, -g, -n, -c"
         )
         sys.exit(1)
@@ -416,4 +437,8 @@ def get_command(args: argparse.Namespace) -> str:
         return "ai-clear"
     if args.ai_embed:
         return "ai-embed"
+    if args.ai_update:
+        return "ai-update"
+    if args.ai_query:
+        return "ai-query"
     return "help"
