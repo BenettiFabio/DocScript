@@ -606,6 +606,12 @@ def create_new_note(ConfigPath: CustomPaths, noteName: str | Path) -> None:
         )
         sys.exit(1)
 
+    if os.path.exists(new_note_path):
+        print(
+            f"Error: The note '{note_name}' already exists and cannot be overwritten."
+        )
+        sys.exit(1)
+
     # Copy template and rename
     try:
         with open(safe_path(str(starting_note)), encoding="utf-8") as template_file:
