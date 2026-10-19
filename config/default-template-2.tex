@@ -140,6 +140,12 @@ $endif$
 $if(headerfooter)$
 \newlength{\HeaderLowering}
 \setlength{\HeaderLowering}{4.5mm}
+
+%%%%%%% Altezza dei loghi nell'header: modifica questo valore per ridimensionarli.
+\newlength{\HeaderLogoHeight}
+\setlength{\HeaderLogoHeight}{5mm}
+%%%%%%%
+
 % Mantiene le dimensioni compatte del custom.
 \setlength{\headheight}{28pt}
 \setlength{\headsep}{7pt}
@@ -155,7 +161,7 @@ $if(headerfooter)$
     \fancyhf{}%
     \fancyhead[L]{%
         \raisebox{-\HeaderLowering}{%
-            $if(LogoFileName)$\LogoBox{$LogoFileName$}{8mm}\hspace{2mm}$endif$%
+            $if(LogoHeaderFileName)$\LogoBox{$LogoHeaderFileName$}{\HeaderLogoHeight}\hspace{2mm}$else$$if(LogoFileName)$\LogoBox{$LogoFileName$}{\HeaderLogoHeight}\hspace{2mm}$endif$$endif$%
             \small $if(CompanyDocumentCode)$$CompanyDocumentCode$\ -- $endif$%
             $if(CompanyStudyTitle)$$CompanyStudyTitle$$endif$%
         }%
@@ -175,7 +181,7 @@ $if(headerfooter)$
     \fancyhf{}%
     \fancyhead[L]{%
         \raisebox{-\HeaderLowering}{%
-            $if(LogoFileName)$\LogoBox{$LogoFileName$}{8mm}\hspace{2mm}$endif$%
+            $if(LogoHeaderFileName)$\LogoBox{$LogoHeaderFileName$}{\HeaderLogoHeight}\hspace{2mm}$else$$if(LogoFileName)$\LogoBox{$LogoFileName$}{\HeaderLogoHeight}\hspace{2mm}$endif$$endif$%
             \small $if(CompanyDocumentCode)$$CompanyDocumentCode$\ -- $endif$%
             $if(CompanyStudyTitle)$$CompanyStudyTitle$$endif$%
         }%

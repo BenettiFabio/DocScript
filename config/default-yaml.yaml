@@ -6,8 +6,8 @@ titlepage: true
 headerfooter: true
 draft: false
 toc: true
-listfigures: false
-listtables: false
+listfigures: true
+listtables: true
 
 # ----------------------------------------------------------------------
 # Dati Aziendali e Documento
@@ -21,11 +21,13 @@ CompanyTechnicalManager:
 CompanyTechnicalSupervisor:
 CompanyStudyTitle:
 CompanyDocumentCode:
+CompanyDocRevision:
 
 # ----------------------------------------------------------------------
 # Impostazioni di Layout e Assets
 # ----------------------------------------------------------------------
 LogoFileName: '../assets/docfiles/logo-docscript.png'
+LogoHeaderFileName:
 footerText: 'Reserved - Property of Company S.p.A.'
 
 # ----------------------------------------------------------------------
